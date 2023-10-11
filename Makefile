@@ -1,0 +1,11 @@
+protos: 
+	buf generate --template buf.gen.yaml https://github.com/PKUHPC/scow-scheduler-adapter-interface.git#subdir=protos
+	buf generate --template buf.gen.yaml https://github.com/PKUHPC/Crane.git#subdir=protos
+run: 
+	go run *.go
+
+build:
+	go build
+
+test:
+	go test
