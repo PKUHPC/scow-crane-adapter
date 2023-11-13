@@ -81,7 +81,7 @@ func (s *serverVersion) GetVersion(ctx context.Context, in *protos.GetVersionReq
 		}
 	}
 	if version == "" {
-		return &protos.GetVersionResponse{Major: 1, Minor: 2, Patch: 0}, nil
+		return &protos.GetVersionResponse{Major: 1, Minor: 3, Patch: 0}, nil
 	}
 	list := strings.Split(version, ".")
 	major, _ := strconv.Atoi(list[0])
