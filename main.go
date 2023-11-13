@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,8 +46,48 @@ type serverConfig struct {
 	protos.UnimplementedConfigServiceServer
 }
 
+type serverVersion struct {
+	protos.UnimplementedVersionServiceServer
+}
+
 func init() {
 	config = utils.ParseConfig(utils.DefaultConfigPath)
+}
+
+// version
+func (s *serverVersion) GetVersion(ctx context.Context, in *protos.GetVersionRequest) (*protos.GetVersionResponse, error) {
+	var version string
+	// 记录日志
+	logger.Infof("Received request GetVersion: %v", in)
+	file, _ := os.Open("Makefile")
+	defer file.Close()
+	// 创建一个 bufio 读取器
+	reader := bufio.NewReader(file)
+	// 逐行读取文件内容
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break // 文件读取完毕或出现错误
+		}
+
+		// 在这里对每一行进行解析
+		// 这里只是简单地打印每一行的内容，你可以根据实际需求进行解析处理
+		// fmt.Println("Line:", line)
+		// 匹配字符串
+		tagPresent := strings.Contains(line, "tag=")
+		if tagPresent {
+			version = line[len(line)-6:]
+			break
+		}
+	}
+	if version == "" {
+		return &protos.GetVersionResponse{Major: 1, Minor: 2, Patch: 0}, nil
+	}
+	list := strings.Split(version, ".")
+	major, _ := strconv.Atoi(list[0])
+	minor, _ := strconv.Atoi(list[1])
+	patch, _ := strconv.Atoi(list[2])
+	return &protos.GetVersionResponse{Major: uint32(major), Minor: uint32(minor), Patch: uint32(patch)}, nil
 }
 
 func (s *serverConfig) GetAvailablePartitions(ctx context.Context, in *protos.GetAvailablePartitionsRequest) (*protos.GetAvailablePartitionsResponse, error) {
@@ -518,7 +560,7 @@ func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 	}
 
 	// 这个地方需要做校验，如果小于0的话直接返回
-	if in.DeltaMinutes*60 + int64(seconds) <= 0 {
+	if in.DeltaMinutes*60+int64(seconds) <= 0 {
 		// 直接返回
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Time limit should be greater than 0.")
 	}
@@ -993,15 +1035,15 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 	// defer file.Close()
-	 // 创建一个 lumberjack.Logger，用于日志轮转配置
-	 logFile := &lumberjack.Logger{
-        Filename:   "server.log", // 日志文件路径
-        MaxSize:    10,           // 日志文件的最大大小（以MB为单位）
-        MaxBackups: 3,            // 保留的旧日志文件数量
-        MaxAge:     28,           // 保留的旧日志文件的最大天数
-        LocalTime:  true,         // 使用本地时间戳
-        Compress:   true,         // 是否压缩旧日志文件
-    }
+	// 创建一个 lumberjack.Logger，用于日志轮转配置
+	logFile := &lumberjack.Logger{
+		Filename:   "server.log", // 日志文件路径
+		MaxSize:    10,           // 日志文件的最大大小（以MB为单位）
+		MaxBackups: 3,            // 保留的旧日志文件数量
+		MaxAge:     28,           // 保留的旧日志文件的最大天数
+		LocalTime:  true,         // 使用本地时间戳
+		Compress:   true,         // 是否压缩旧日志文件
+	}
 	logger.SetOutput(io.MultiWriter(os.Stdout, logFile))
 	defer logFile.Close()
 
@@ -1025,6 +1067,7 @@ func main() {
 	protos.RegisterAccountServiceServer(s, &serverAccount{})
 	protos.RegisterConfigServiceServer(s, &serverConfig{})
 	protos.RegisterUserServiceServer(s, &serverUser{})
+	protos.RegisterVersionServiceServer(s, &serverVersion{})
 	// 启动服务
 	err = s.Serve(lis)
 	if err != nil {
