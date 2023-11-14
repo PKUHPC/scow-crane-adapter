@@ -65,14 +65,7 @@ func (s *serverVersion) GetVersion(ctx context.Context, in *protos.GetVersionReq
 	reader := bufio.NewReader(file)
 	// 逐行读取文件内容
 	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			break // 文件读取完毕或出现错误
-		}
-
-		// 在这里对每一行进行解析
-		// 这里只是简单地打印每一行的内容，你可以根据实际需求进行解析处理
-		// fmt.Println("Line:", line)
+		line, _ := reader.ReadString('\n')
 		// 匹配字符串
 		tagPresent := strings.Contains(line, "tag=")
 		if tagPresent {
