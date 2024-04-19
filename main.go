@@ -150,7 +150,7 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.GetReason())
 	}
 	return &protos.AddUserToAccountResponse{}, nil
@@ -170,7 +170,7 @@ func (s *serverUser) RemoveUserFromAccount(ctx context.Context, in *protos.Remov
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
 	return &protos.RemoveUserFromAccountResponse{}, nil
@@ -190,7 +190,7 @@ func (s *serverUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
 	return &protos.BlockUserInAccountResponse{}, nil
@@ -210,7 +210,7 @@ func (s *serverUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
 	return &protos.UnblockUserInAccountResponse{}, nil
@@ -235,7 +235,7 @@ func (s *serverUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	for _, v := range response.GetUserList() {
 		blocked = v.GetBlocked()
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
 	}
 	return &protos.QueryUserInAccountBlockStatusResponse{Blocked: blocked}, nil
@@ -257,7 +257,7 @@ func (s *serverAccount) ListAccounts(ctx context.Context, in *protos.ListAccount
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
 	}
 
@@ -308,7 +308,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
 	}
 	// 账户创建成功后，将用户添加至账户中
@@ -339,7 +339,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if responseUser.GetOk() == false {
+	if !responseUser.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", responseUser.GetReason())
 	}
 	return &protos.CreateAccountResponse{}, nil
@@ -359,7 +359,7 @@ func (s *serverAccount) BlockAccount(ctx context.Context, in *protos.BlockAccoun
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
 	} else {
 		return &protos.BlockAccountResponse{}, nil
@@ -380,7 +380,7 @@ func (s *serverAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAc
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
 	} else {
 		return &protos.UnblockAccountResponse{}, nil
@@ -400,7 +400,7 @@ func (s *serverAccount) GetAllAccountsWithUsers(ctx context.Context, in *protos.
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
 	}
 	// 获取所有账户信息
@@ -445,7 +445,7 @@ func (s *serverAccount) QueryAccountBlockStatus(ctx context.Context, in *protos.
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.GetReason())
 	}
 
@@ -492,7 +492,7 @@ func (s *serverJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 		message := fmt.Sprintf("Task #%d was not found in crane.", in.JobId)
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", message)
 	}
-	if response.GetOk() == true {
+	if !response.GetOk() {
 		for _, taskInfo := range taskInfoList {
 			timeLimit := taskInfo.GetTimeLimit()
 			seconds = uint64(timeLimit.GetSeconds())
@@ -524,7 +524,7 @@ func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 		message := fmt.Sprintf("Task #%d was not found in crane.", in.JobId)
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", message)
 	}
-	if responseLimitTime.GetOk() == true {
+	if responseLimitTime.GetOk() {
 		for _, taskInfo := range taskInfoList {
 			timeLimit := taskInfo.GetTimeLimit()
 			seconds = uint64(timeLimit.GetSeconds())
@@ -547,7 +547,7 @@ func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", response.GetReason())
 	}
 	return &protos.ChangeJobTimeLimitResponse{}, nil
@@ -569,7 +569,7 @@ func (s *serverJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
 	}
 	if len(response.GetTaskInfoList()) == 0 {
@@ -770,7 +770,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if response.GetOk() == false {
+	if !response.GetOk() {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
 	}
 	if len(response.GetTaskInfoList()) == 0 {
