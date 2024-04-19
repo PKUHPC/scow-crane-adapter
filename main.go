@@ -111,7 +111,7 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	var (
 		allowedPartitionQosList []*protos.UserInfo_AllowedPartitionQos
 	)
-	logger.Infof("Received request AddUserToAccount: %v", in)
+	logger.Infof("Received request AddUserToAccoundt: %v", in)
 
 	// 获取crane中QOS列表
 	qosList, _ := utils.GetQos()
