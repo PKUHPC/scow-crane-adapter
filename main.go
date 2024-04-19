@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/utils"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -50,8 +50,17 @@ type serverVersion struct {
 	protos.UnimplementedVersionServiceServer
 }
 
+type serverApp struct {
+	protos.UnimplementedAppServiceServer
+}
+
 func init() {
 	config = utils.ParseConfig(utils.DefaultConfigPath)
+}
+
+// app
+func (s *serverApp) GetAppconnectionInfo(ctx context.Context, in *protos.GetAppConnectionInfoRequest) (*protos.GetAppConnectionInfoResponse, error) {
+	return &protos.GetAppConnectionInfoResponse{}, nil
 }
 
 // version
@@ -1099,6 +1108,7 @@ func main() {
 	protos.RegisterConfigServiceServer(s, &serverConfig{})
 	protos.RegisterUserServiceServer(s, &serverUser{})
 	protos.RegisterVersionServiceServer(s, &serverVersion{})
+	protos.RegisterAppServiceServer(s, &serverApp{})
 	// 启动服务
 	err = s.Serve(lis)
 	if err != nil {
