@@ -1,23 +1,25 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/utils"
 	"strings"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
