@@ -192,3 +192,23 @@ func SortJobInfo(sortKey string, sortOrder string, jobInfo []*protos.JobInfo) []
 	sortByKey(jobInfo, sortKey, sortOrder)
 	return jobInfo
 }
+
+// 本地提交cbatch作业函数
+func LocalSubmitJob(scriptString string, username string) (string, error) {
+	// 提交作业命令行
+	cmdLine := fmt.Sprintf("su - %s -c 'cbatch %s'", username, scriptString)
+	cmd := exec.Command("bash", "-c", cmdLine)
+
+	// 创建一个 bytes.Buffer 用于捕获输出
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+
+	// 执行命令
+	err := cmd.Run()
+	if err != nil {
+		return output.String(), err
+	}
+
+	return output.String(), nil
+}

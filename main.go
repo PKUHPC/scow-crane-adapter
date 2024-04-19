@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"path/filepath"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/utils"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,31 +54,10 @@ func init() {
 
 // version
 func (s *serverVersion) GetVersion(ctx context.Context, in *protos.GetVersionRequest) (*protos.GetVersionResponse, error) {
-	var version string
 	// 记录日志
 	logger.Infof("Received request GetVersion: %v", in)
-	file, _ := os.Open("Makefile")
-	defer file.Close()
-	// 创建一个 bufio 读取器
-	reader := bufio.NewReader(file)
-	// 逐行读取文件内容
-	for {
-		line, _ := reader.ReadString('\n')
-		// 匹配字符串
-		tagPresent := strings.Contains(line, "tag=")
-		if tagPresent {
-			version = line[len(line)-6:]
-			break
-		}
-	}
-	if version == "" {
-		return &protos.GetVersionResponse{Major: 1, Minor: 3, Patch: 0}, nil
-	}
-	list := strings.Split(version, ".")
-	major, _ := strconv.Atoi(list[0])
-	minor, _ := strconv.Atoi(list[1])
-	patch, _ := strconv.Atoi(list[2])
-	return &protos.GetVersionResponse{Major: uint32(major), Minor: uint32(minor), Patch: uint32(patch)}, nil
+	return &protos.GetVersionResponse{Major: 1, Minor: 3, Patch: 0}, nil
+
 }
 
 func (s *serverConfig) GetAvailablePartitions(ctx context.Context, in *protos.GetAvailablePartitionsRequest) (*protos.GetAvailablePartitionsResponse, error) {
@@ -940,11 +917,14 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 
 func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) (*protos.SubmitJobResponse, error) {
 	var (
-		craneOptions string
-		stdout       string
-		memory       uint64
-		homedir      string
+		// craneOptions string
+		stdout string
+		// memory       uint64
+		homedir         string
+		timeLimitString string
+		scriptString    = "#!/bin/bash\n"
 	)
+
 	logger.Infof("Received request SubmitJob: %v", in)
 
 	if in.Stdout != nil {
@@ -953,16 +933,12 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		stdout = "job.%j.out"
 	}
 
-	if in.MemoryMb != nil {
-		memory = *in.MemoryMb / uint64(in.NodeCount)
-	} else {
-		memory = 800
-	}
+	// if in.MemoryMb != nil {
+	// 	memory = *in.MemoryMb / uint64(in.NodeCount)
+	// } else {
+	// 	memory = 800
+	// }
 
-	uid, err := utils.GetUidByUserName(in.UserId) // 获取用户的uid
-	if err != nil {
-		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", "The user is not exists.")
-	}
 	// 拼凑成绝对路径的工作目录
 
 	isAbsolute := filepath.IsAbs(in.WorkingDirectory)
@@ -974,45 +950,105 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 
 	// 请求体
-	request := &protos.SubmitBatchTaskRequest{
-		Task: &protos.TaskToCtld{
-			TimeLimit:     durationpb.New(time.Duration(*in.TimeLimitMinutes*uint32(60)) * time.Second),
-			PartitionName: in.Partition,
-			Resources: &protos.Resources{
-				AllocatableResource: &protos.AllocatableResource{
-					CpuCoreLimit:       float64(in.CoreCount) * 1,
-					MemoryLimitBytes:   memory * 1024 * 1024,
-					MemorySwLimitBytes: memory * 1024 * 1024,
-				},
-			},
-			Type:            protos.TaskType_Batch,
-			Uid:             uint32(uid),
-			Account:         in.Account,
-			Name:            in.JobName,
-			NodeNum:         in.NodeCount,
-			NtasksPerNode:   1,
-			CpusPerTask:     float64(in.CoreCount),
-			RequeueIfFailed: false,
-			Payload: &protos.TaskToCtld_BatchMeta{
-				BatchMeta: &protos.BatchTaskAdditionalMeta{
-					ShScript:          "#!/bin/bash\n" + craneOptions + in.Script,
-					OutputFilePattern: stdout,
-				},
-			},
-			Cwd: homedir, // 工作目录不存在的情况下不会生成输出文件
-			Qos: *in.Qos,
-		},
+	// request := &protos.SubmitBatchTaskRequest{
+	// 	Task: &protos.TaskToCtld{
+	// 		TimeLimit:     durationpb.New(time.Duration(*in.TimeLimitMinutes*uint32(60)) * time.Second),
+	// 		PartitionName: in.Partition,
+	// 		Resources: &protos.Resources{
+	// 			AllocatableResource: &protos.AllocatableResource{
+	// 				CpuCoreLimit:       float64(in.CoreCount) * 1,
+	// 				MemoryLimitBytes:   memory * 1024 * 1024,
+	// 				MemorySwLimitBytes: memory * 1024 * 1024,
+	// 			},
+	// 		},
+	// 		Type:            protos.TaskType_Batch,
+	// 		Uid:             uint32(uid),
+	// 		Account:         in.Account,
+	// 		Name:            in.JobName,
+	// 		NodeNum:         in.NodeCount,
+	// 		NtasksPerNode:   1,
+	// 		CpusPerTask:     float64(in.CoreCount),
+	// 		RequeueIfFailed: false,
+	// 		Payload: &protos.TaskToCtld_BatchMeta{
+	// 			BatchMeta: &protos.BatchTaskAdditionalMeta{
+	// 				ShScript:          "#!/bin/bash\n" + craneOptions + in.Script,
+	// 				OutputFilePattern: stdout,
+	// 			},
+	// 		},
+	// 		Cwd: homedir, // 工作目录不存在的情况下不会生成输出文件
+	// 		Qos: *in.Qos,
+	// 	},
+	// }
+
+	// response, err := stubCraneCtld.SubmitBatchTask(context.Background(), request)
+	scriptString += "#CBATCH " + "-A " + in.Account + "\n"
+	scriptString += "#CBATCH " + "-p " + in.Partition + "\n"
+	if in.Qos != nil {
+		scriptString += "#CBATCH " + "--qos " + *in.Qos + "\n"
 	}
-	response, err := stubCraneCtld.SubmitBatchTask(context.Background(), request)
+	scriptString += "#CBATCH " + "-J " + in.JobName + "\n"
+	scriptString += "#CBATCH " + "-N " + strconv.Itoa(int(in.NodeCount)) + "\n"
+	scriptString += "#CBATCH " + "--ntasks-per-node " + strconv.Itoa(1) + "\n"
+	scriptString += "#CBATCH " + "-c " + strconv.Itoa(int(in.CoreCount)) + "\n"
+	if in.TimeLimitMinutes != nil {
+		// 要把时间换成字符串的形式
+		if *in.TimeLimitMinutes < 60 {
+			timeLimitString = fmt.Sprintf("00:%s:00", strconv.Itoa(int(*in.TimeLimitMinutes)))
+		} else if *in.TimeLimitMinutes == 60 {
+			timeLimitString = "1:00:00"
+		} else {
+			hours, minitues := *in.TimeLimitMinutes/60, *in.TimeLimitMinutes%60
+			timeLimitString = fmt.Sprintf("%s:%s:00", strconv.Itoa(int(hours)), strconv.Itoa(int(minitues)))
+		}
+		scriptString += "#CBATCH " + "--time " + timeLimitString + "\n"
+	}
+	scriptString += "#CBATCH " + "--chdir " + homedir + "\n"
+	if in.Stdout != nil {
+		scriptString += "#CBATCH " + "--output " + stdout + "\n"
+	}
+
+	// 确认crane是否支持错误输出
+	// if in.Stderr != nil {
+	// 	scriptString += "#CBATCH " + "--error " + *in.Stderr + "\n"
+	// }
+
+	if in.MemoryMb != nil {
+		scriptString += "#CBATCH " + "--mem " + strconv.Itoa(int(*in.MemoryMb)) + "M" + "\n"
+	}
+	if len(in.ExtraOptions) != 0 {
+		for _, extraVale := range in.ExtraOptions {
+			scriptString += "#CBATCH " + extraVale + "\n"
+		}
+	}
+	scriptString += "#CBATCH " + "--export ALL" + "\n"
+	scriptString += "#CBATCH " + "--get-user-env" + "\n"
+	scriptString += in.Script
+
+	// 将这个保存成一个脚本文件，通过脚本文件进行提交
+	// 生成一个随机的文件名
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	filePath := homedir + "/" + string(b) + ".sh"
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		logger.Infof("%v", err.Error())
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
 	}
-	if response.GetOk() == false {
-		logger.Infof("%v", response.GetReason())
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	defer file.Close()
+	writer := bufio.NewWriter(file)
+	writer.WriteString(scriptString)
+	writer.Flush()
+
+	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
+	if err != nil {
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
-	return &protos.SubmitJobResponse{JobId: response.GetTaskId(), GeneratedScript: "#!/bin/bash\n" + craneOptions + in.Script}, nil
+	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
+	jobIdString := responseList[len(responseList)-1]
+	jobId, _ := strconv.Atoi(jobIdString)
+	return &protos.SubmitJobResponse{JobId: uint32(jobId), GeneratedScript: scriptString}, nil
 }
 
 func main() {
