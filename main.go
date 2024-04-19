@@ -492,7 +492,7 @@ func (s *serverJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 		message := fmt.Sprintf("Task #%d was not found in crane.", in.JobId)
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", message)
 	}
-	if !response.GetOk() {
+	if response.GetOk() {
 		for _, taskInfo := range taskInfoList {
 			timeLimit := taskInfo.GetTimeLimit()
 			seconds = uint64(timeLimit.GetSeconds())
