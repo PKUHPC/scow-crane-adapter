@@ -256,6 +256,7 @@ func (s *serverAccount) ListAccounts(ctx context.Context, in *protos.ListAccount
 	)
 	// 记录日志
 	logger.Infof("Received request ListAccounts: %v", in)
+
 	// 请求体
 	request := &protos.QueryEntityInfoRequest{
 		Uid:        0,
@@ -1053,7 +1054,6 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	writer.Flush()
 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
-	logger.Infof("Received submit result: %v %v", submitResult, err)
 	if err != nil {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
