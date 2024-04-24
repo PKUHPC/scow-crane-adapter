@@ -1053,6 +1053,7 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	writer.Flush()
 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
+	logger.Infof("Received submit result: %v %v", submitResult, err)
 	if err != nil {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
