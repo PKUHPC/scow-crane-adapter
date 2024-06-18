@@ -1059,8 +1059,10 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
 	jobIdString := responseList[len(responseList)-1]
-	jobId, _ := strconv.Atoi(jobIdString)
-	return &protos.SubmitJobResponse{JobId: uint32(jobId), GeneratedScript: scriptString}, nil
+
+	jobId1, _ := strconv.Atoi(jobIdString[:len(jobIdString)-1])
+
+	return &protos.SubmitJobResponse{JobId: uint32(jobId1), GeneratedScript: scriptString}, nil
 }
 
 func main() {
