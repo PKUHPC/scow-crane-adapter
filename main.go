@@ -509,7 +509,7 @@ func (s *serverJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 		}
 		return &protos.QueryJobTimeLimitResponse{TimeLimitMinutes: seconds / 60}, nil
 	}
-	return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+	return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Get job timelimit failed.")
 }
 
 func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJobTimeLimitRequest) (*protos.ChangeJobTimeLimitResponse, error) {
@@ -1043,7 +1043,8 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
-	filePath := homedir + "/" + string(b) + ".sh"
+	// filePath := homedir + "/" + string(b) + ".sh"
+	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
@@ -1054,6 +1055,8 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	writer.Flush()
 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
+	// submitResult, err := utils.LocalSubmitJob(scriptString, in.UserId)
+	os.Remove(filePath) // 删除掉提交脚本
 	if err != nil {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
