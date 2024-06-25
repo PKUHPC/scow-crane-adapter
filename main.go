@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/utils"
 	"strconv"
@@ -26,7 +27,7 @@ import (
 
 var (
 	config        *utils.Config
-	stubCraneCtld protos.CraneCtldClient
+	stubCraneCtld craneProtos.CraneCtldClient
 	logger        *logrus.Logger
 )
 
@@ -67,7 +68,7 @@ func (s *serverApp) GetAppconnectionInfo(ctx context.Context, in *protos.GetAppC
 func (s *serverVersion) GetVersion(ctx context.Context, in *protos.GetVersionRequest) (*protos.GetVersionResponse, error) {
 	// 记录日志
 	logger.Infof("Received request GetVersion: %v", in)
-	return &protos.GetVersionResponse{Major: 1, Minor: 3, Patch: 0}, nil
+	return &protos.GetVersionResponse{Major: 1, Minor: 5, Patch: 0}, nil
 
 }
 
@@ -75,8 +76,84 @@ func (s *serverConfig) GetAvailablePartitions(ctx context.Context, in *protos.Ge
 	// 先获取account的partition qos
 	// 在获取user的partition qos
 	// 查账户和用户之间有没有关联关系
-
 	return &protos.GetAvailablePartitionsResponse{}, nil
+}
+
+// 先在这里实现getclusterinfo的逻辑
+func (s *serverConfig) GetClusterInfo(ctx context.Context, in *protos.GetClusterInfoRequest) (*protos.GetClusterInfoResponse, error) {
+	var (
+		partitions []*protos.PartitionInfo
+	)
+	logger.Infof("Received request GetClusterInfo: %v", in)
+	for _, part := range config.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
+		var runningNodes uint32
+		var state protos.PartitionInfo_PartitionStatus
+		partitionName := part.Name // 获取分区名
+		// 请求体
+		request := &craneProtos.QueryPartitionInfoRequest{
+			PartitionName: partitionName,
+		}
+
+		response, err := stubCraneCtld.QueryPartitionInfo(context.Background(), request)
+		if err != nil {
+			return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		}
+		// 这里还要拿cqueue的值
+		runningJobCmd := fmt.Sprintf("cqueue -p %s -t r --noheader | wc -l", part.Name)              // 获取正在运行作业的个数
+		pendingJobCmd := fmt.Sprintf("cqueue -p %s -t p --noheader | wc -l", part.Name)              // 获取正在排队作业的个数
+		runningNodeCmd := fmt.Sprintf("cinfo -p %s -t alloc,mix | awk 'NR>1 {print $4}'", part.Name) // 获取正在排队作业的个数
+
+		runningJobNumStr, err := utils.RunCommand(runningJobCmd) // 转化一下
+		if err != nil {
+			return nil, utils.RichError(codes.Internal, "CRANE_RUNCOMMAND_ERROR", err.Error())
+		}
+		pendingJobNumStr, err := utils.RunCommand(pendingJobCmd) // 转化一下
+		if err != nil {
+			return nil, utils.RichError(codes.Internal, "CRANE_RUNCOMMAND_ERROR", err.Error())
+		}
+		runningNodeStr, err := utils.RunCommand(runningNodeCmd)
+		if err != nil {
+			return nil, utils.RichError(codes.Internal, "CRANE_RUNCOMMAND_ERROR", err.Error())
+		}
+		runningJobNum, _ := strconv.Atoi(runningJobNumStr)
+		fmt.Println(runningJobNum, 7777)
+		pendingJobNum, _ := strconv.Atoi(pendingJobNumStr)
+		if runningNodeStr == "INFO[0000] No matching partitions were found for the given filter." {
+			runningNodes = 0
+		} else {
+			// 不为0的情况
+			tempNodes, _ := strconv.Atoi(runningNodeStr)
+			runningNodes = uint32(tempNodes)
+		}
+
+		partitionValue := response.GetPartitionInfo()[0]
+		logger.Infof("%v", response.GetPartitionInfo())
+		resultRatio := float64(runningNodes) / float64(partitionValue.TotalNodes)
+		percentage := int(resultRatio * 100) // 保留整数
+		if partitionValue.State == craneProtos.PartitionState_PARTITION_UP {
+			state = protos.PartitionInfo_AVAILABLE
+		} else {
+			state = protos.PartitionInfo_NOT_AVAILABLE
+		}
+		partitions = append(partitions, &protos.PartitionInfo{
+			PartitionName:         partitionValue.GetName(),
+			NodeCount:             partitionValue.TotalNodes,
+			RunningNodeCount:      runningNodes,
+			IdleNodeCount:         partitionValue.AliveNodes - runningNodes, // 减去正在运行的节点 partitionValue.TotalNodes - runningNodes,
+			NotAvailableNodeCount: partitionValue.TotalNodes - partitionValue.AliveNodes,
+			CpuCoreCount:          uint32(partitionValue.TotalCpu),
+			RunningCpuCount:       uint32(partitionValue.AllocCpu),
+			IdleCpuCount:          uint32(partitionValue.TotalCpu) - uint32(partitionValue.AllocCpu),
+			NotAvailableCpuCount:  uint32(partitionValue.TotalCpu) - uint32(partitionValue.AvailCpu) - uint32(partitionValue.AllocCpu),
+			JobCount:              uint32(runningJobNum) + uint32(pendingJobNum),
+			RunningJobCount:       uint32(runningJobNum),
+			PendingJobCount:       uint32(pendingJobNum),
+			UsageRatePercentage:   uint32(percentage),
+			PartitionStatus:       state,
+		})
+
+	}
+	return &protos.GetClusterInfoResponse{ClusterName: config.ClusterName, Partitions: partitions}, nil
 }
 
 func (s *serverConfig) GetClusterConfig(ctx context.Context, in *protos.GetClusterConfigRequest) (*protos.GetClusterConfigResponse, error) {
@@ -94,7 +171,7 @@ func (s *serverConfig) GetClusterConfig(ctx context.Context, in *protos.GetClust
 
 	for _, part := range config.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
 		partitionName := part.Name
-		request := &protos.QueryPartitionInfoRequest{
+		request := &craneProtos.QueryPartitionInfoRequest{
 			PartitionName: partitionName,
 		}
 		response, err := stubCraneCtld.QueryPartitionInfo(context.Background(), request)
@@ -118,7 +195,7 @@ func (s *serverConfig) GetClusterConfig(ctx context.Context, in *protos.GetClust
 
 func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToAccountRequest) (*protos.AddUserToAccountResponse, error) {
 	var (
-		allowedPartitionQosList []*protos.UserInfo_AllowedPartitionQos
+		allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 	)
 	logger.Infof("Received request AddUserToAccount: %v", in)
 
@@ -132,7 +209,7 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 
 	// 获取计算分区 配置qos
 	for _, partition := range config.Partitions {
-		allowedPartitionQosList = append(allowedPartitionQosList, &protos.UserInfo_AllowedPartitionQos{
+		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
 			PartitionName: partition.Name,
 			QosList:       qosListValue,
 			DefaultQos:    qosListValue[0],
@@ -142,16 +219,16 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	if err != nil {
 		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", "The user is not exists.")
 	}
-	user := &protos.UserInfo{
+	user := &craneProtos.UserInfo{
 		Uid:                     uint32(uid),
 		Name:                    in.UserId,
 		Account:                 in.AccountName,
 		Blocked:                 false,
 		AllowedPartitionQosList: allowedPartitionQosList,
-		AdminLevel:              protos.UserInfo_None, // none
+		AdminLevel:              craneProtos.UserInfo_None, // none
 	}
 	// 添加用户到账户下的请求体
-	request := &protos.AddUserRequest{
+	request := &craneProtos.AddUserRequest{
 		Uid:  0,
 		User: user,
 	}
@@ -168,9 +245,9 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 func (s *serverUser) RemoveUserFromAccount(ctx context.Context, in *protos.RemoveUserFromAccountRequest) (*protos.RemoveUserFromAccountResponse, error) {
 	// 记录日志
 	logger.Infof("Received request RemoveUserFromAccount: %v", in)
-	request := &protos.DeleteEntityRequest{
+	request := &craneProtos.DeleteEntityRequest{
 		Uid:        0, // 操作者
-		EntityType: protos.EntityType_User,
+		EntityType: craneProtos.EntityType_User,
 		Account:    in.AccountName,
 		Name:       in.UserId,
 	}
@@ -188,10 +265,10 @@ func (s *serverUser) RemoveUserFromAccount(ctx context.Context, in *protos.Remov
 func (s *serverUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUserInAccountRequest) (*protos.BlockUserInAccountResponse, error) {
 	// 记录日志
 	logger.Infof("Received request BlockUserInAccount: %v", in)
-	request := &protos.BlockAccountOrUserRequest{
+	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      true,
 		Uid:        0, // 操作者
-		EntityType: protos.EntityType_User,
+		EntityType: craneProtos.EntityType_User,
 		Name:       in.UserId,
 		Account:    in.AccountName,
 	}
@@ -208,10 +285,10 @@ func (s *serverUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 func (s *serverUser) UnblockUserInAccount(ctx context.Context, in *protos.UnblockUserInAccountRequest) (*protos.UnblockUserInAccountResponse, error) {
 	// 记录日志
 	logger.Infof("Received request UnblockUserInAccount: %v", in)
-	request := &protos.BlockAccountOrUserRequest{
+	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      false,
 		Uid:        0,
-		EntityType: protos.EntityType_User,
+		EntityType: craneProtos.EntityType_User,
 		Name:       in.UserId,
 		Account:    in.AccountName,
 	}
@@ -231,9 +308,9 @@ func (s *serverUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	)
 	// 记录日志
 	logger.Infof("Received request QueryUserInAccountBlockStatus: %v", in)
-	request := &protos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        0,
-		EntityType: protos.EntityType_User,
+		EntityType: craneProtos.EntityType_User,
 		Name:       in.UserId,
 		Account:    in.AccountName,
 	}
@@ -258,9 +335,9 @@ func (s *serverAccount) ListAccounts(ctx context.Context, in *protos.ListAccount
 	logger.Infof("Received request ListAccounts: %v", in)
 
 	// 请求体
-	request := &protos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        0,
-		EntityType: protos.EntityType_User,
+		EntityType: craneProtos.EntityType_User,
 		Name:       in.UserId,
 	}
 	response, err := stubCraneCtld.QueryEntityInfo(context.Background(), request)
@@ -287,7 +364,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	var (
 		partitionList           []string
 		qosList                 []string
-		allowedPartitionQosList []*protos.UserInfo_AllowedPartitionQos
+		allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 	)
 	// 记录日志
 	logger.Infof("Received request CreateAccount: %v", in)
@@ -302,7 +379,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos is not exists.")
 	}
 
-	AccountInfo := &protos.AccountInfo{
+	AccountInfo := &craneProtos.AccountInfo{
 		Name:              in.AccountName,
 		Description:       "Create account in crane.",
 		AllowedPartitions: partitionList,
@@ -310,7 +387,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 		AllowedQosList:    qosListValue,
 	}
 	// 创建账户请求体
-	request := &protos.AddAccountRequest{
+	request := &craneProtos.AddAccountRequest{
 		Uid:     uint32(os.Getuid()),
 		Account: AccountInfo,
 	}
@@ -323,7 +400,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	}
 	// 账户创建成功后，将用户添加至账户中
 	for _, partition := range config.Partitions {
-		allowedPartitionQosList = append(allowedPartitionQosList, &protos.UserInfo_AllowedPartitionQos{
+		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
 			PartitionName: partition.Name,
 			QosList:       qosListValue,
 			DefaultQos:    qosListValue[0],
@@ -333,15 +410,15 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	if err != nil {
 		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", "The user is not exists.")
 	}
-	user := &protos.UserInfo{
+	user := &craneProtos.UserInfo{
 		Uid:                     uint32(uid),
 		Name:                    in.OwnerUserId,
 		Account:                 in.AccountName,
 		Blocked:                 false,
 		AllowedPartitionQosList: allowedPartitionQosList,
-		AdminLevel:              protos.UserInfo_Operator,
+		AdminLevel:              craneProtos.UserInfo_Operator,
 	}
-	requestAddUser := &protos.AddUserRequest{
+	requestAddUser := &craneProtos.AddUserRequest{
 		Uid:  0,
 		User: user,
 	}
@@ -359,9 +436,9 @@ func (s *serverAccount) BlockAccount(ctx context.Context, in *protos.BlockAccoun
 	// 记录日志
 	logger.Infof("Received request BlockAccount: %v", in)
 	// 请求体 封锁账户
-	request := &protos.BlockAccountOrUserRequest{
+	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      true,
-		EntityType: protos.EntityType_Account,
+		EntityType: craneProtos.EntityType_Account,
 		Name:       in.AccountName,
 		Uid:        0,
 	}
@@ -380,9 +457,9 @@ func (s *serverAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAc
 	// 记录日志
 	logger.Infof("Received request UnblockAccount: %v", in)
 	// 请求体 解封账户
-	request := &protos.BlockAccountOrUserRequest{
+	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      false,
-		EntityType: protos.EntityType_Account,
+		EntityType: craneProtos.EntityType_Account,
 		Name:       in.AccountName,
 		Uid:        0,
 	}
@@ -403,7 +480,7 @@ func (s *serverAccount) GetAllAccountsWithUsers(ctx context.Context, in *protos.
 	)
 	// 记录日志
 	logger.Infof("Received request GetAllAccountsWithUsers: %v", in)
-	request := &protos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryEntityInfoRequest{
 		Uid: 0,
 	}
 	response, err := stubCraneCtld.QueryEntityInfo(context.Background(), request)
@@ -416,10 +493,10 @@ func (s *serverAccount) GetAllAccountsWithUsers(ctx context.Context, in *protos.
 	// 获取所有账户信息
 	for _, account := range response.GetAccountList() {
 		var userInfo []*protos.ClusterAccountInfo_UserInAccount
-		requestUser := &protos.QueryEntityInfoRequest{
+		requestUser := &craneProtos.QueryEntityInfoRequest{
 			Uid:        0,
 			Account:    account.GetName(),
-			EntityType: protos.EntityType_User,
+			EntityType: craneProtos.EntityType_User,
 		}
 		// 获取单个账户下用户信息
 		responseUser, _ := stubCraneCtld.QueryEntityInfo(context.Background(), requestUser)
@@ -445,9 +522,9 @@ func (s *serverAccount) QueryAccountBlockStatus(ctx context.Context, in *protos.
 	)
 	logger.Infof("Received request QueryAccountBlockStatus: %v", in)
 	// 请求体
-	request := &protos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        0,
-		EntityType: protos.EntityType_Account,
+		EntityType: craneProtos.EntityType_Account,
 		Name:       in.AccountName,
 	}
 	response, err := stubCraneCtld.QueryEntityInfo(context.Background(), request)
@@ -469,10 +546,10 @@ func (s *serverAccount) QueryAccountBlockStatus(ctx context.Context, in *protos.
 
 func (s *serverJob) CancelJob(ctx context.Context, in *protos.CancelJobRequest) (*protos.CancelJobResponse, error) {
 	logger.Infof("Received request CancelJob: %v", in)
-	request := &protos.CancelTaskRequest{
+	request := &craneProtos.CancelTaskRequest{
 		OperatorUid:   0,
 		FilterTaskIds: []uint32{uint32(in.JobId)},
-		FilterState:   protos.TaskStatus_Invalid,
+		FilterState:   craneProtos.TaskStatus_Invalid,
 	}
 	_, err := stubCraneCtld.CancelTask(context.Background(), request)
 	if err != nil {
@@ -489,7 +566,7 @@ func (s *serverJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 	logger.Infof("Received request QueryJobTimeLimit: %v", in)
 
 	jobIdList = append(jobIdList, in.JobId)
-	request := &protos.QueryTasksInfoRequest{
+	request := &craneProtos.QueryTasksInfoRequest{
 		FilterTaskIds:               jobIdList,
 		OptionIncludeCompletedTasks: true, // 包含运行结束的作业
 	}
@@ -520,7 +597,7 @@ func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 	logger.Infof("Received request ChangeJobTimeLimit: %v", in)
 	// 查询请求体
 	jobIdList = append(jobIdList, in.JobId)
-	requestLimitTime := &protos.QueryTasksInfoRequest{
+	requestLimitTime := &craneProtos.QueryTasksInfoRequest{
 		FilterTaskIds: jobIdList,
 	}
 
@@ -547,9 +624,9 @@ func (s *serverJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Time limit should be greater than 0.")
 	}
 	// 修改时长限制的请求体
-	request := &protos.ModifyTaskRequest{
+	request := &craneProtos.ModifyTaskRequest{
 		TaskId: in.JobId,
-		Value: &protos.ModifyTaskRequest_TimeLimitSeconds{
+		Value: &craneProtos.ModifyTaskRequest_TimeLimitSeconds{
 			TimeLimitSeconds: in.DeltaMinutes*60 + int64(seconds),
 		},
 	}
@@ -571,7 +648,7 @@ func (s *serverJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	)
 	logger.Infof("Received request GetJobById: %v", in)
 	// 请求体
-	request := &protos.QueryTasksInfoRequest{
+	request := &craneProtos.QueryTasksInfoRequest{
 		FilterTaskIds:               []uint32{uint32(in.JobId)},
 		OptionIncludeCompletedTasks: true,
 	}
@@ -587,16 +664,16 @@ func (s *serverJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	}
 	// 获取作业信息
 	TaskInfoList := response.GetTaskInfoList()[0]
-	if TaskInfoList.GetStatus() == protos.TaskStatus_Running {
+	if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Running {
 		elapsedSeconds = time.Now().Unix() - TaskInfoList.GetStartTime().Seconds
-	} else if TaskInfoList.GetStatus() == protos.TaskStatus_Pending {
+	} else if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Pending {
 		elapsedSeconds = 0
 	}
 	// 获取作业时长
 	// elapsedSeconds = TaskInfoList.GetEndTime().Seconds - TaskInfoList.GetStartTime().Seconds
-	if TaskInfoList.GetStatus() == protos.TaskStatus_Running {
+	if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Running {
 		elapsedSeconds = time.Now().Unix() - TaskInfoList.GetStartTime().Seconds
-	} else if TaskInfoList.GetStatus() == protos.TaskStatus_Pending {
+	} else if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Pending {
 		elapsedSeconds = 0
 	} else {
 		elapsedSeconds = TaskInfoList.GetEndTime().Seconds - TaskInfoList.GetStartTime().Seconds
@@ -691,9 +768,9 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	var (
 		startTimeFilter int64
 		endTimeFilter   int64
-		statesList      []protos.TaskStatus
+		statesList      []craneProtos.TaskStatus
 		accountList     []string
-		request         *protos.QueryTasksInfoRequest
+		request         *craneProtos.QueryTasksInfoRequest
 		jobsInfo        []*protos.JobInfo
 		totalNum        uint32
 		// submitTimeTimestamp *timestamppb.Timestamp
@@ -708,14 +785,14 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			if startTimeFilter == 0 && endTimeFilter != 0 {
 				// endTimeProto := timestamppb.New(time.Unix(endTimeFilter, 0))
 				// 新增endTimeInterval 代码
-				endTimeInterval := &protos.TimeInterval{
+				endTimeInterval := &craneProtos.TimeInterval{
 					UpperBound: timestamppb.New(time.Unix(endTimeFilter, 0)), // 设置结束时间的时间戳
 				}
 
 				// UpperBound 表示右区间
 				// LowerBound 表示左区间
 
-				request = &protos.QueryTasksInfoRequest{
+				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
 					FilterAccounts:              accountList,
@@ -724,12 +801,12 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					NumLimit:                    99999999,
 				}
 			} else if startTimeFilter != 0 && endTimeFilter != 0 {
-				endTimeInterval := &protos.TimeInterval{
+				endTimeInterval := &craneProtos.TimeInterval{
 					LowerBound: timestamppb.New(time.Unix(startTimeFilter, 0)),
 					UpperBound: timestamppb.New(time.Unix(endTimeFilter, 0)),
 				}
 
-				request = &protos.QueryTasksInfoRequest{
+				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
 					FilterAccounts:              accountList,
@@ -739,10 +816,10 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				}
 			} else if startTimeFilter != 0 && endTimeFilter == 0 {
 				// startTimeProto := timestamppb.New(time.Unix(startTimeFilter, 0))
-				endTimeInterval := &protos.TimeInterval{
+				endTimeInterval := &craneProtos.TimeInterval{
 					LowerBound: timestamppb.New(time.Unix(startTimeFilter, 0)),
 				}
-				request = &protos.QueryTasksInfoRequest{
+				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
 					FilterAccounts:              accountList,
@@ -751,7 +828,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					NumLimit:                    99999999,
 				}
 			} else {
-				request = &protos.QueryTasksInfoRequest{
+				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
 					FilterAccounts:              accountList,
@@ -761,7 +838,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			}
 		} else {
 			statesList = utils.GetCraneStatesList(in.Filter.States)
-			request = &protos.QueryTasksInfoRequest{
+			request = &craneProtos.QueryTasksInfoRequest{
 				FilterTaskStates:            statesList,
 				FilterUsers:                 in.Filter.Users,
 				FilterAccounts:              accountList,
@@ -771,7 +848,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		}
 	} else {
 		// 没有筛选条件的请求体
-		request = &protos.QueryTasksInfoRequest{
+		request = &craneProtos.QueryTasksInfoRequest{
 			OptionIncludeCompletedTasks: true,
 			NumLimit:                    99999999,
 		}
@@ -797,9 +874,9 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		var gpusAlloc int32 = 0
 		var memAllocMb int64 = 0
 		// var endtime *timestamppb.Timestamp
-		if job.GetStatus() == protos.TaskStatus_Running {
+		if job.GetStatus() == craneProtos.TaskStatus_Running {
 			elapsedSeconds = time.Now().Unix() - job.GetStartTime().Seconds
-		} else if job.GetStatus() == protos.TaskStatus_Pending {
+		} else if job.GetStatus() == craneProtos.TaskStatus_Pending {
 			elapsedSeconds = 0
 		} else {
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
@@ -961,38 +1038,6 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		homedir = in.WorkingDirectory
 	}
 
-	// 请求体
-	// request := &protos.SubmitBatchTaskRequest{
-	// 	Task: &protos.TaskToCtld{
-	// 		TimeLimit:     durationpb.New(time.Duration(*in.TimeLimitMinutes*uint32(60)) * time.Second),
-	// 		PartitionName: in.Partition,
-	// 		Resources: &protos.Resources{
-	// 			AllocatableResource: &protos.AllocatableResource{
-	// 				CpuCoreLimit:       float64(in.CoreCount) * 1,
-	// 				MemoryLimitBytes:   memory * 1024 * 1024,
-	// 				MemorySwLimitBytes: memory * 1024 * 1024,
-	// 			},
-	// 		},
-	// 		Type:            protos.TaskType_Batch,
-	// 		Uid:             uint32(uid),
-	// 		Account:         in.Account,
-	// 		Name:            in.JobName,
-	// 		NodeNum:         in.NodeCount,
-	// 		NtasksPerNode:   1,
-	// 		CpusPerTask:     float64(in.CoreCount),
-	// 		RequeueIfFailed: false,
-	// 		Payload: &protos.TaskToCtld_BatchMeta{
-	// 			BatchMeta: &protos.BatchTaskAdditionalMeta{
-	// 				ShScript:          "#!/bin/bash\n" + craneOptions + in.Script,
-	// 				OutputFilePattern: stdout,
-	// 			},
-	// 		},
-	// 		Cwd: homedir, // 工作目录不存在的情况下不会生成输出文件
-	// 		Qos: *in.Qos,
-	// 	},
-	// }
-
-	// response, err := stubCraneCtld.SubmitBatchTask(context.Background(), request)
 	scriptString += "#CBATCH " + "-A " + in.Account + "\n"
 	scriptString += "#CBATCH " + "-p " + in.Partition + "\n"
 	if in.Qos != nil {
@@ -1019,11 +1064,6 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		scriptString += "#CBATCH " + "--output " + stdout + "\n"
 	}
 
-	// 确认crane是否支持错误输出
-	// if in.Stderr != nil {
-	// 	scriptString += "#CBATCH " + "--error " + *in.Stderr + "\n"
-	// }
-
 	if in.MemoryMb != nil {
 		scriptString += "#CBATCH " + "--mem " + strconv.Itoa(int(*in.MemoryMb)) + "M" + "\n"
 	}
@@ -1043,7 +1083,6 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
-	// filePath := homedir + "/" + string(b) + ".sh"
 	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -1055,7 +1094,6 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	writer.Flush()
 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
-	// submitResult, err := utils.LocalSubmitJob(scriptString, in.UserId)
 	os.Remove(filePath) // 删除掉提交脚本
 	if err != nil {
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
@@ -1066,6 +1104,53 @@ func (s *serverJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	jobId1, _ := strconv.Atoi(jobIdString[:len(jobIdString)-1])
 
 	return &protos.SubmitJobResponse{JobId: uint32(jobId1), GeneratedScript: scriptString}, nil
+}
+
+func SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest) (*protos.SubmitScriptAsJobResponse, error) {
+	// 获取传过来的文件内容
+	logger.Infof("Received request SubmitScriptAsJob: %v", in)
+	// 具体的提交逻辑
+	updateScript := "#!/bin/bash\n"
+	trimmedScript := strings.TrimLeft(in.Script, "\n") // 去除最前面的空行
+	// 通过换行符 "\n" 分割字符串
+	checkBool1 := strings.Contains(trimmedScript, "--chdir")
+	checkBool2 := strings.Contains(trimmedScript, " -D ")
+	if !checkBool1 && !checkBool2 {
+		chdirString := fmt.Sprintf("#SBATCH --chdir=%s\n", *in.ScriptFileFullPath) // 这个地方需要更新protos文件后再处理
+		updateScript = updateScript + chdirString
+		for _, value := range strings.Split(trimmedScript, "\n")[1:] {
+			updateScript = updateScript + value + "\n"
+		}
+		in.Script = updateScript
+	}
+	// 将这个保存成一个脚本文件，通过脚本文件进行提交
+	// 生成一个随机的文件名
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
+	}
+	defer file.Close()
+	writer := bufio.NewWriter(file)
+	writer.WriteString(in.Script)
+	writer.Flush()
+
+	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
+	os.Remove(filePath) // 删除生成的提交脚本
+	if err != nil {
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
+	}
+	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
+	jobIdString := responseList[len(responseList)-1]
+
+	jobId1, _ := strconv.Atoi(jobIdString[:len(jobIdString)-1])
+
+	return &protos.SubmitScriptAsJobResponse{JobId: uint32(jobId1)}, nil
 }
 
 func main() {
@@ -1100,7 +1185,7 @@ func main() {
 		log.Fatal("Cannot connect to CraneCtld: " + err.Error())
 	}
 	defer conn.Close()
-	stubCraneCtld = protos.NewCraneCtldClient(conn)
+	stubCraneCtld = craneProtos.NewCraneCtldClient(conn)
 
 	// 监听本地8972端口
 	lis, err := net.Listen("tcp", ":8972")

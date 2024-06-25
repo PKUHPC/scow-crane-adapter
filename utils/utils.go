@@ -12,7 +12,9 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 
+	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -24,6 +26,7 @@ import (
 )
 
 type Config struct {
+	ClusterName         string `yaml:"ClusterName"`
 	ControlMachine      string `yaml:"ControlMachine"`
 	CraneCtldListenPort string `yaml:"CraneCtldListenPort"`
 
@@ -89,10 +92,10 @@ func GetQos() ([]string, error) {
 		log.Fatal("Cannot connect to CraneCtld: " + err.Error())
 	}
 	defer conn.Close()
-	stubCraneCtld := protos.NewCraneCtldClient(conn)
-	request := &protos.QueryEntityInfoRequest{
+	stubCraneCtld := craneProtos.NewCraneCtldClient(conn)
+	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        uint32(os.Getuid()),
-		EntityType: protos.EntityType_Qos,
+		EntityType: craneProtos.EntityType_Qos,
 	}
 	response, err := stubCraneCtld.QueryEntityInfo(context.Background(), request)
 	if err != nil {
@@ -105,25 +108,25 @@ func GetQos() ([]string, error) {
 	return Qoslist, nil
 }
 
-func GetCraneStatesList(stateList []string) []protos.TaskStatus {
+func GetCraneStatesList(stateList []string) []craneProtos.TaskStatus {
 	var (
-		statesList []protos.TaskStatus
+		statesList []craneProtos.TaskStatus
 	)
 	for _, value := range stateList {
 		if value == "PENDING" || value == "PENDDING" {
-			statesList = append(statesList, protos.TaskStatus_Pending)
+			statesList = append(statesList, craneProtos.TaskStatus_Pending)
 		} else if value == "RUNNING" {
-			statesList = append(statesList, protos.TaskStatus_Running)
+			statesList = append(statesList, craneProtos.TaskStatus_Running)
 		} else if value == "CANCELED" {
-			statesList = append(statesList, protos.TaskStatus_Cancelled)
+			statesList = append(statesList, craneProtos.TaskStatus_Cancelled)
 		} else if value == "COMPLETED" {
-			statesList = append(statesList, protos.TaskStatus_Completed)
+			statesList = append(statesList, craneProtos.TaskStatus_Completed)
 		} else if value == "FAILED" || value == "NODE_FAIL" {
-			statesList = append(statesList, protos.TaskStatus_Failed)
+			statesList = append(statesList, craneProtos.TaskStatus_Failed)
 		} else if value == "TIMEOUT" {
-			statesList = append(statesList, protos.TaskStatus_ExceedTimeLimit)
+			statesList = append(statesList, craneProtos.TaskStatus_ExceedTimeLimit)
 		} else {
-			statesList = append(statesList, protos.TaskStatus_Invalid)
+			statesList = append(statesList, craneProtos.TaskStatus_Invalid)
 		}
 	}
 	return statesList
@@ -213,4 +216,23 @@ func LocalSubmitJob(scriptString string, username string) (string, error) {
 	}
 
 	return output.String(), nil
+}
+
+// 简单执行shell命令函数
+func RunCommand(command string) (string, error) {
+	cmd := exec.Command("bash", "-c", command)
+
+	// 创建一个 bytes.Buffer 用于捕获输出
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+
+	// 执行命令
+	err := cmd.Run()
+
+	if err != nil {
+		return output.String(), err
+	}
+
+	return strings.TrimSpace(output.String()), nil
 }
