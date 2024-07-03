@@ -76,7 +76,37 @@ func (s *serverConfig) GetAvailablePartitions(ctx context.Context, in *protos.Ge
 	// 先获取account的partition qos
 	// 在获取user的partition qos
 	// 查账户和用户之间有没有关联关系
-	return &protos.GetAvailablePartitionsResponse{}, nil
+	var (
+		partitions []*protos.Partition
+	)
+	qosList, _ := utils.GetQos()
+	qosListValue := utils.RemoveValue(qosList, "UNLIMITED")
+	if len(qosListValue) == 0 {
+		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
+	}
+
+	for _, part := range config.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
+		partitionName := part.Name
+		request := &craneProtos.QueryPartitionInfoRequest{
+			PartitionName: partitionName,
+		}
+		response, err := stubCraneCtld.QueryPartitionInfo(context.Background(), request)
+		if err != nil {
+			return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		}
+		partitionValue := response.GetPartitionInfo()[0]
+		logger.Infof("%v", response.GetPartitionInfo())
+		partitions = append(partitions, &protos.Partition{
+			Name:  partitionValue.GetName(),
+			MemMb: partitionValue.GetTotalMem() / (1024 * 1024),
+			// Cores: uint32(partitionValue.GetTotalCpus()),
+			Cores: uint32(partitionValue.GetTotalCpu()),
+			Nodes: partitionValue.GetTotalNodes(),
+			Qos:   qosListValue, // QOS是强行加进去的
+		})
+	}
+	logger.Infof("%v", partitions)
+	return &protos.GetAvailablePartitionsResponse{Partitions: partitions}, nil
 }
 
 // 先在这里实现getclusterinfo的逻辑
@@ -99,9 +129,9 @@ func (s *serverConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 			return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 		}
 		// 这里还要拿cqueue的值
-		runningJobCmd := fmt.Sprintf("cqueue -p %s -t r --noheader | wc -l", part.Name)              // 获取正在运行作业的个数
-		pendingJobCmd := fmt.Sprintf("cqueue -p %s -t p --noheader | wc -l", part.Name)              // 获取正在排队作业的个数
-		runningNodeCmd := fmt.Sprintf("cinfo -p %s -t alloc,mix | awk 'NR>1 {print $4}'", part.Name) // 获取正在排队作业的个数
+		runningJobCmd := fmt.Sprintf("cqueue -p %s -t r --noheader | wc -l", part.Name)                             // 获取正在运行作业的个数
+		pendingJobCmd := fmt.Sprintf("cqueue -p %s -t p --noheader | wc -l", part.Name)                             // 获取正在排队作业的个数
+		runningNodeCmd := fmt.Sprintf("cinfo -p %s -t alloc,mix | awk 'NR>1 {sum+=$4} END {print sum}'", part.Name) // 获取正在运行节点数
 
 		runningJobNumStr, err := utils.RunCommand(runningJobCmd) // 转化一下
 		if err != nil {
@@ -116,7 +146,6 @@ func (s *serverConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 			return nil, utils.RichError(codes.Internal, "CRANE_RUNCOMMAND_ERROR", err.Error())
 		}
 		runningJobNum, _ := strconv.Atoi(runningJobNumStr)
-		fmt.Println(runningJobNum, 7777)
 		pendingJobNum, _ := strconv.Atoi(pendingJobNumStr)
 		if runningNodeStr == "INFO[0000] No matching partitions were found for the given filter." {
 			runningNodes = 0
@@ -166,7 +195,7 @@ func (s *serverConfig) GetClusterConfig(ctx context.Context, in *protos.GetClust
 	qosList, _ := utils.GetQos()
 	qosListValue := utils.RemoveValue(qosList, "UNLIMITED")
 	if len(qosListValue) == 0 {
-		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos is not exists.")
+		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
 	}
 
 	for _, part := range config.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
@@ -204,7 +233,7 @@ func (s *serverUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	qosListValue := utils.RemoveValue(qosList, "UNLIMITED")
 
 	if len(qosListValue) == 0 {
-		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos is not exists.")
+		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
 	}
 
 	// 获取计算分区 配置qos
@@ -1160,13 +1189,6 @@ func main() {
 	logger.SetFormatter(&logrus.JSONFormatter{})
 	// 设置日志级别为Info
 	logger.SetLevel(logrus.InfoLevel)
-	// // 设置日志输出到控制台和文件中
-	// file, err := os.OpenFile("server.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer file.Close()
-	// 创建一个 lumberjack.Logger，用于日志轮转配置
 	logFile := &lumberjack.Logger{
 		Filename:   "server.log", // 日志文件路径
 		MaxSize:    10,           // 日志文件的最大大小（以MB为单位）
