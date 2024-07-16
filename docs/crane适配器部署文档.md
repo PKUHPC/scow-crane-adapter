@@ -51,9 +51,16 @@ git clone https://github.com/PKUHPC/scow-crane-adapter.git  #克隆代码
 # 在scow-crane-adapter目录下执行下面命令
 [root@crane01 scow-crane-adapter]# make protos
 
-# 执行完上面的命令后会在当前目录下生成gen目录和相关的proto文件
-[root@crane01 scow-crane-adapter]# ls gen/*
+# 执行完上面的命令后会在当前目录下生成gen/go目录和相关的proto文件
+[root@crane01 scow-crane-adapter]# ls gen/go/*
 account_grpc.pb.go  account.pb.go  config_grpc.pb.go  config.pb.go  Crane_grpc.pb.go  Crane.pb.go  CraneSubprocess.pb.go  job_grpc.pb.go  job.pb.go  PublicDefs.pb.go  user_grpc.pb.go  user.pb.go
+
+# 在scow-crane-adapter目录下执行下面命令
+[root@crane01 scow-crane-adapter]# make cranesched
+
+# 执行完上面的命令后会在当前目录下生成gen/目录和相关的proto文件
+[root@crane01 scow-crane-adapter]# ls gen/crane/*
+gen/crane/Crane.pb.go  gen/crane/CraneSubprocess.pb.go  gen/crane/Crane_grpc.pb.go  gen/crane/PublicDefs.pb.go
 ```
 
 ### **2.3 编译项目**
