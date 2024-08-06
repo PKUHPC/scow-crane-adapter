@@ -798,10 +798,10 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		startTimeFilter int64
 		endTimeFilter   int64
 		statesList      []craneProtos.TaskStatus
-		accountList     []string
-		request         *craneProtos.QueryTasksInfoRequest
-		jobsInfo        []*protos.JobInfo
-		totalNum        uint32
+		// accountList     []string
+		request  *craneProtos.QueryTasksInfoRequest
+		jobsInfo []*protos.JobInfo
+		totalNum uint32
 		// submitTimeTimestamp *timestamppb.Timestamp
 	)
 	logger.Infof("Received request GetJobs: %v", in)
@@ -824,7 +824,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              accountList,
+					FilterAccounts:              in.Filter.Accounts,
 					FilterEndTimeInterval:       endTimeInterval,
 					OptionIncludeCompletedTasks: true,
 					NumLimit:                    99999999,
@@ -838,7 +838,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              accountList,
+					FilterAccounts:              in.Filter.Accounts,
 					FilterEndTimeInterval:       endTimeInterval,
 					OptionIncludeCompletedTasks: true,
 					NumLimit:                    99999999,
@@ -851,7 +851,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              accountList,
+					FilterAccounts:              in.Filter.Accounts,
 					FilterEndTimeInterval:       endTimeInterval,
 					OptionIncludeCompletedTasks: true,
 					NumLimit:                    99999999,
@@ -860,7 +860,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				request = &craneProtos.QueryTasksInfoRequest{
 					FilterTaskStates:            statesList,
 					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              accountList,
+					FilterAccounts:              in.Filter.Accounts,
 					OptionIncludeCompletedTasks: true,
 					NumLimit:                    99999999,
 				}
@@ -870,7 +870,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			request = &craneProtos.QueryTasksInfoRequest{
 				FilterTaskStates:            statesList,
 				FilterUsers:                 in.Filter.Users,
-				FilterAccounts:              accountList,
+				FilterAccounts:              in.Filter.Accounts,
 				OptionIncludeCompletedTasks: true,
 				NumLimit:                    99999999,
 			}
@@ -883,6 +883,7 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		}
 	}
 	response, err := stubCraneCtld.QueryTasksInfo(context.Background(), request)
+
 	if err != nil {
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
@@ -1029,7 +1030,6 @@ func (s *serverJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		sortJobinfo := utils.SortJobInfo(sortKey, sortOrder, jobsInfo)
 		return &protos.GetJobsResponse{Jobs: sortJobinfo, TotalCount: &totalNum}, nil
 	}
-	logger.Infof("%v", jobsInfo)
 	return &protos.GetJobsResponse{Jobs: jobsInfo, TotalCount: &totalNum}, nil
 }
 
