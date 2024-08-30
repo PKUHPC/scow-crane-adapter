@@ -445,7 +445,7 @@ func (s *serverAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 		Account:                 in.AccountName,
 		Blocked:                 false,
 		AllowedPartitionQosList: allowedPartitionQosList,
-		AdminLevel:              craneProtos.UserInfo_Operator,
+		AdminLevel:              craneProtos.UserInfo_None,
 	}
 	requestAddUser := &craneProtos.AddUserRequest{
 		Uid:  0,
