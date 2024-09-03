@@ -14,18 +14,15 @@ import (
 	"strconv"
 	"strings"
 
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
-
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
+	craneProtos "scow-crane-adapter/gen/crane"
+	protos "scow-crane-adapter/gen/go"
 )
 
-type Config struct {
+type CraneConfig struct {
 	ClusterName         string `yaml:"ClusterName"`
 	ControlMachine      string `yaml:"ControlMachine"`
 	CraneCtldListenPort string `yaml:"CraneCtldListenPort"`
@@ -43,15 +40,17 @@ type Partition struct {
 	Nodes string `yaml:"nodes"`
 }
 
-var DefaultConfigPath = "/etc/crane/config.yaml"
+var (
+	DefaultConfigPath = "/etc/crane/config.yaml"
+)
 
-// 解析crane配置文件
-func ParseConfig(configFilePath string) *Config {
+// ParseConfig 解析crane配置文件
+func ParseConfig(configFilePath string) *CraneConfig {
 	confFile, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	config := &Config{}
+	config := &CraneConfig{}
 	err = yaml.Unmarshal(confFile, config)
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +58,7 @@ func ParseConfig(configFilePath string) *Config {
 	return config
 }
 
-// 通过os/user包去获取用户的uid
+// GetUidByUserName 通过os/user包去获取用户的uid
 func GetUidByUserName(userName string) (int, error) {
 	u, err := user.Lookup(userName)
 	if err != nil {
@@ -70,7 +69,7 @@ func GetUidByUserName(userName string) (int, error) {
 	return uid, nil
 }
 
-// rich error model 封装
+// RichError rich error model 封装
 func RichError(code codes.Code, reason string, message string) error {
 	errInfo := &errdetails.ErrorInfo{
 		Reason: reason,
@@ -80,24 +79,14 @@ func RichError(code codes.Code, reason string, message string) error {
 	return st.Err()
 }
 
-// 获取系统中Qos列表
+// GetQos 获取系统中Qos列表
 func GetQos() ([]string, error) {
-	var (
-		Qoslist []string
-	)
-	config := ParseConfig(DefaultConfigPath)
-	serverAddr := fmt.Sprintf("%s:%s", config.ControlMachine, config.CraneCtldListenPort)
-	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatal("Cannot connect to CraneCtld: " + err.Error())
-	}
-	defer conn.Close()
-	stubCraneCtld := craneProtos.NewCraneCtldClient(conn)
+	var Qoslist []string
 	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        uint32(os.Getuid()),
 		EntityType: craneProtos.EntityType_Qos,
 	}
-	response, err := stubCraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
 	if err != nil {
 		return []string{}, err
 	}
@@ -144,8 +133,8 @@ func GetUserHomedir(username string) (string, error) {
 	return homeDir, nil
 }
 
-func RemoveValue(list []string, value string) []string {
-	result := []string{}
+func RemoveValue[T comparable](list []T, value T) []T {
+	var result []T
 	for _, item := range list {
 		if item != value {
 			result = append(result, item)
@@ -198,7 +187,7 @@ func SortJobInfo(sortKey string, sortOrder string, jobInfo []*protos.JobInfo) []
 	return jobInfo
 }
 
-// 本地提交cbatch作业函数
+// LocalSubmitJob 本地提交cbatch作业函数
 func LocalSubmitJob(scriptString string, username string) (string, error) {
 	// 提交作业命令行
 	cmdLine := fmt.Sprintf("su - %s -c 'cbatch %s'", username, scriptString)
@@ -218,7 +207,7 @@ func LocalSubmitJob(scriptString string, username string) (string, error) {
 	return output.String(), nil
 }
 
-// 简单执行shell命令函数
+// RunCommand 简单执行shell命令函数
 func RunCommand(command string) (string, error) {
 	cmd := exec.Command("bash", "-c", command)
 

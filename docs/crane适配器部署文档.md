@@ -67,23 +67,23 @@ gen/crane/Crane.pb.go  gen/crane/CraneSubprocess.pb.go  gen/crane/Crane_grpc.pb.
 ```bash
 # 在代码根目录下执行make build生成二进制文件(scow-crane-adapter)
 [root@crane01 scow-crane-adapter]# make build 
-go build
+go build -o scow-crane-adapter ./cmd/main.go
 
 [root@crane01 scow-crane-adapter]# ls
-buf.gen.yaml  docs  gen  go.mod  go.sum  main.go  Makefile README scow-crane-adapter  tests  utils
+Makefile  README.md  buf.gen.yaml  buf.genCrane.yaml  cmd  config.yaml  docs  gen  go.mod  go.sum  pkg  protos  scow-crane-adapter  server.log  tests
 ```
 
 ## **3 部署Crane适配器（将服务器上生成的二进制文件拷贝至 Crane管理节点）**
 ### **4.1 将服务器上生成的执行程序拷贝至Crane管理节点的部署目录中**
 ```bash
 # 将服务器或虚拟机上生成的二进制文件拷贝至需要部署适配器的Crane管理节点上
-scp -f scow-crane-adapter  crane_mn:/adapter     
+scp -f scow-crane-adapter config.yaml crane_mn:/adapter     
 # crane_mn 为需要部署适配器的crane管理节点、/adapter目录为部署目录
 ```
 
 ### **4.3 启动Crane适配器**
 ```bash
 # 在Crane管理节点上启动服务
-cd /adapter && nohup ./scow-crane-adapter > server.log 2>&1 &
+cd /adapter && nohup ./scow-crane-adapter -c config.yaml > server.log 2>&1 &
 ```
 

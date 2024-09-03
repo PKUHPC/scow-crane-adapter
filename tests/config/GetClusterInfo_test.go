@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	// craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
 	"testing"
 
-	// "github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	protos "scow-crane-adapter/gen/go"
 )
 
 func TestGetClusterInfo(t *testing.T) {

@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	protos "scow-crane-adapter/gen/go"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	// "google.golang.org/protobuf/types/known/timestamppb"
+	protos "scow-crane-adapter/gen/go"
 )
 
 func TestGetJobs(t *testing.T) {
