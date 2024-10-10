@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
 	"os"
@@ -95,6 +96,177 @@ func GetQos() ([]string, error) {
 		Qoslist = append(Qoslist, value.GetName())
 	}
 	return Qoslist, nil
+}
+
+func GetAllQos() ([]string, error) {
+	qosList, err := GetQos()
+	if err != nil {
+		return []string{}, err
+	}
+	qosListValue := RemoveValue(qosList, "UNLIMITED")
+	if len(qosListValue) == 0 {
+		return nil, RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
+	}
+
+	return qosListValue, nil
+}
+
+func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
+	request := &craneProtos.QueryEntityInfoRequest{
+		Uid: 0,
+	}
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	}
+	return response.GetAccountList(), nil
+}
+
+func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
+	request := &craneProtos.QueryEntityInfoRequest{
+		Uid:        0,
+		EntityType: craneProtos.EntityType_Account,
+		Name:       accountName,
+	}
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	}
+	return response.GetAccountList()[0], nil
+}
+
+func GetAccountByUser(userName string) ([]string, error) {
+	var accountList []string
+	request := &craneProtos.QueryEntityInfoRequest{
+		Uid:        0,
+		EntityType: craneProtos.EntityType_User,
+		Name:       userName,
+	}
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	}
+
+	for _, list := range response.GetUserList() {
+		if strings.Contains(list.Account, "*") {
+			account := list.Account[:len(list.Account)-1]
+			accountList = append(accountList, account)
+		} else {
+			accountList = append(accountList, list.Account)
+		}
+	}
+	return accountList, nil
+}
+
+func GetAllUser() ([]*craneProtos.UserInfo, error) {
+	request := &craneProtos.QueryEntityInfoRequest{
+		Uid: 0,
+	}
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	}
+	return response.GetUserList(), nil
+}
+
+func GetAllUserBlockedMap() (map[string]bool, error) {
+	userBlocked := make(map[string]bool)
+	request := &craneProtos.QueryEntityInfoRequest{
+		Uid: 0,
+	}
+	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+	}
+
+	for _, info := range response.GetUserList() {
+		userBlocked[info.Name] = info.GetBlocked()
+	}
+	return userBlocked, nil
+}
+
+func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error) {
+	request := &craneProtos.QueryPartitionInfoRequest{
+		PartitionName: partitionName,
+	}
+	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
+	if err != nil {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+	}
+
+	return response.GetPartitionInfo()[0], nil
+}
+
+func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProtos.TaskStatus) ([]*craneProtos.TaskInfo, error) {
+	req := craneProtos.QueryTasksInfoRequest{
+		FilterPartitions:            partitionList,
+		FilterTaskStates:            statusList,
+		OptionIncludeCompletedTasks: false,
+	}
+
+	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+	}
+
+	return response.GetTaskInfoList(), nil
+}
+
+func GetTaskByAccountName(accountNames []string) ([]*craneProtos.TaskInfo, error) {
+	req := craneProtos.QueryTasksInfoRequest{
+		OptionIncludeCompletedTasks: true,
+		FilterAccounts:              accountNames,
+		NumLimit:                    99999999,
+	}
+
+	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
+	if err != nil {
+		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+
+	if !response.GetOk() {
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+	}
+
+	return response.GetTaskInfoList(), nil
+}
+
+func GetNodeByPartitionAndStatus(partitionList []string, controlStateList []craneProtos.CranedResourceState) (uint32, error) {
+	var nodeCount uint32
+	req := craneProtos.QueryClusterInfoRequest{
+		FilterPartitions:           partitionList,
+		FilterCranedResourceStates: controlStateList,
+	}
+
+	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
+	if err != nil {
+		return 0, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+
+	for _, partitionCraned := range response.Partitions {
+		for _, commonCranedStateList := range partitionCraned.CranedLists {
+			nodeCount += commonCranedStateList.Count
+		}
+	}
+	return nodeCount, nil
 }
 
 func GetCraneStatesList(stateList []string) []craneProtos.TaskStatus {
@@ -224,4 +396,124 @@ func RunCommand(command string) (string, error) {
 	}
 
 	return strings.TrimSpace(output.String()), nil
+}
+
+// GetSlurmClusterConfig 使用slurm命令获取partition的信息
+func GetSlurmClusterConfig(block bool, qosList []string) ([]*protos.Partition, error) {
+	var partitions []*protos.Partition
+
+	if block {
+		return partitions, nil
+	}
+
+	for _, part := range CConfig.Partitions {
+		partitionName := part.Name
+		request := &craneProtos.QueryPartitionInfoRequest{
+			PartitionName: partitionName,
+		}
+		response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
+		if err != nil {
+			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		}
+		partitionValue := response.GetPartitionInfo()[0]
+		logrus.Infof("%v", response.GetPartitionInfo())
+		partitions = append(partitions, &protos.Partition{
+			Name:  partitionValue.GetName(),
+			MemMb: partitionValue.GetResTotal().GetAllocatableRes().GetMemoryLimitBytes() / (1024 * 1024),
+			Cores: uint32(partitionValue.GetResTotal().GetAllocatableRes().GetCpuCoreLimit()),
+			Nodes: partitionValue.GetTotalNodes(),
+			Qos:   qosList,
+		})
+	}
+
+	return partitions, nil
+}
+
+// Contains reports whether v is present in s.
+func Contains[S ~[]E, E comparable](s S, v E) bool {
+	return Index(s, v) >= 0
+}
+
+// Index returns the index of the first occurrence of v in s,
+// or -1 if not present.
+func Index[S ~[]E, E comparable](s S, v E) int {
+	for i := range s {
+		if v == s[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+func ExtractNodeInfo(info *craneProtos.CranedInfo) *protos.NodeInfo {
+	var nodeState protos.NodeInfo_NodeState
+
+	nodeName := info.GetHostname()
+	partitions := info.GetPartitionNames()
+	state := info.GetResourceState()
+	switch state {
+	case craneProtos.CranedResourceState_CRANE_IDLE:
+		nodeState = protos.NodeInfo_IDLE
+	case craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_ALLOC:
+		nodeState = protos.NodeInfo_RUNNING
+	case craneProtos.CranedResourceState_CRANE_DOWN:
+		nodeState = protos.NodeInfo_NOT_AVAILABLE
+	default: // 其他不知道的状态默认为不可用的状态
+		nodeState = protos.NodeInfo_NOT_AVAILABLE
+	}
+	totalMem := info.GetResTotal().GetAllocatableResInNode().GetMemoryLimitBytes()
+	allocMem := info.GetResAlloc().GetAllocatableResInNode().GetMemoryLimitBytes()
+	totalCpuCores := info.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
+	allocCpuCores := info.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
+	totalGpusTypeMap := info.GetResTotal().GetDedicatedResInNode()
+	totalGpus := getGpuNums(totalGpusTypeMap)
+	allocGpusTypeMap := info.GetResAlloc().GetDedicatedResInNode()
+	allocGpus := getGpuNums(allocGpusTypeMap)
+	IdleGpuCountTypeMap := info.GetResAvail().GetDedicatedResInNode()
+	idleGpus := getGpuNums(IdleGpuCountTypeMap)
+
+	return &protos.NodeInfo{
+		NodeName:          nodeName,
+		Partitions:        partitions,
+		State:             nodeState,
+		CpuCoreCount:      uint32(totalCpuCores),
+		AllocCpuCoreCount: uint32(allocCpuCores),
+		IdleCpuCoreCount:  uint32(totalCpuCores) - uint32(allocCpuCores),
+		TotalMemMb:        uint32(totalMem),
+		AllocMemMb:        uint32(allocMem),
+		IdleMemMb:         uint32(totalMem) - uint32(allocMem),
+		GpuCount:          totalGpus,
+		AllocGpuCount:     allocGpus,
+		IdleGpuCount:      idleGpus,
+	}
+}
+
+func getGpuNums(data *craneProtos.DedicatedResourceInNode) uint32 {
+	if data == nil {
+		return 0
+	}
+
+	var typeCount int
+	for _, typeCountMap := range data.GetNameTypeMap() {
+		for _, slots := range typeCountMap.GetTypeSlotsMap() {
+			slotsSize := len(slots.Slots)
+			if slotsSize != 0 {
+				typeCount += slotsSize
+			}
+		}
+	}
+
+	return uint32(typeCount)
+}
+
+func GetAllPartirions() []string {
+	if CConfig.Partitions == nil {
+		return nil
+	}
+
+	var partitions []string
+	for _, partition := range CConfig.Partitions {
+		partitions = append(partitions, partition.Name)
+	}
+	return partitions
 }

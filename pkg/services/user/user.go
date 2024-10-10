@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -15,29 +16,27 @@ type ServerUser struct {
 }
 
 func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToAccountRequest) (*protos.AddUserToAccountResponse, error) {
-	var (
-		allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
-	)
+	var allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 	logrus.Infof("Received request AddUserToAccount: %v", in)
 
 	// 获取crane中QOS列表
-	qosList, _ := utils.GetQos()
-	qosListValue := utils.RemoveValue(qosList, "UNLIMITED")
-
-	if len(qosListValue) == 0 {
-		return nil, utils.RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
+	qosList, err := utils.GetAllQos()
+	if err != nil {
+		logrus.Errorf("AddUserToAccount Error getting QoS: %v", err)
+		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
 	}
 
 	// 获取计算分区 配置qos
 	for _, partition := range utils.CConfig.Partitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
 			PartitionName: partition.Name,
-			QosList:       qosListValue,
-			DefaultQos:    qosListValue[0],
+			QosList:       qosList,
+			DefaultQos:    qosList[0],
 		})
 	}
 	uid, err := utils.GetUidByUserName(in.UserId)
 	if err != nil {
+		logrus.Errorf("AddUserToAccount err: %v", err)
 		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", "The user is not exists.")
 	}
 	user := &craneProtos.UserInfo{
@@ -55,19 +54,21 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	}
 	response, err := utils.CraneCtld.AddUser(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("AddUserToAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("AddUserToAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
 		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.GetReason())
 	}
+	logrus.Infof("AddUserToAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.AddUserToAccountResponse{}, nil
 }
 
 func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.RemoveUserFromAccountRequest) (*protos.RemoveUserFromAccountResponse, error) {
-	// 记录日志
 	logrus.Infof("Received request RemoveUserFromAccount: %v", in)
 	request := &craneProtos.DeleteEntityRequest{
-		Uid:        0, // 操作者
+		Uid:        0,
 		EntityType: craneProtos.EntityType_User,
 		Account:    in.AccountName,
 		Name:       in.UserId,
@@ -75,16 +76,18 @@ func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.Remov
 
 	response, err := utils.CraneCtld.DeleteEntity(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("RemoveUserFromAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("RemoveUserFromAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
+	logrus.Infof("RemoveUserFromAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.RemoveUserFromAccountResponse{}, nil
 }
 
 func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUserInAccountRequest) (*protos.BlockUserInAccountResponse, error) {
-	// 记录日志
 	logrus.Infof("Received request BlockUserInAccount: %v", in)
 	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      true,
@@ -95,16 +98,18 @@ func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 	}
 	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("BlockUserInAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
+	logrus.Infof("BlockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.BlockUserInAccountResponse{}, nil
 }
 
 func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.UnblockUserInAccountRequest) (*protos.UnblockUserInAccountResponse, error) {
-	// 记录日志
 	logrus.Infof("Received request UnblockUserInAccount: %v", in)
 	request := &craneProtos.BlockAccountOrUserRequest{
 		Block:      false,
@@ -115,19 +120,18 @@ func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 	}
 	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("UnblockUserInAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
 		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
 	}
+	logrus.Infof("UnblockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.UnblockUserInAccountResponse{}, nil
 }
 
 func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *protos.QueryUserInAccountBlockStatusRequest) (*protos.QueryUserInAccountBlockStatusResponse, error) {
-	var (
-		blocked bool
-	)
-	// 记录日志
 	logrus.Infof("Received request QueryUserInAccountBlockStatus: %v", in)
 	request := &craneProtos.QueryEntityInfoRequest{
 		Uid:        0,
@@ -137,13 +141,15 @@ func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	}
 	response, err := utils.CraneCtld.QueryEntityInfo(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("QueryUserInAccountBlockStatus err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	for _, v := range response.GetUserList() {
-		blocked = v.GetBlocked()
-	}
 	if !response.GetOk() {
+		logrus.Errorf("QueryUserInAccountBlockStatus err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
 	}
+
+	blocked := response.GetUserList()[0].GetBlocked()
+	logrus.Tracef("QueryUserInAccountBlockStatus Blocked: %v", blocked)
 	return &protos.QueryUserInAccountBlockStatusResponse{Blocked: blocked}, nil
 }

@@ -13,8 +13,6 @@ type ServerVersion struct {
 
 // GetVersion means get version
 func (s *ServerVersion) GetVersion(ctx context.Context, in *protos.GetVersionRequest) (*protos.GetVersionResponse, error) {
-	// 记录日志
 	logrus.Infof("Received request GetVersion: %v", in)
-	return &protos.GetVersionResponse{Major: 1, Minor: 5, Patch: 0}, nil
-
+	return &protos.GetVersionResponse{Major: 1, Minor: 8, Patch: 0}, nil
 }
