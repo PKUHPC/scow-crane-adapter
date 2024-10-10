@@ -32,8 +32,10 @@ func (s *ServerJob) CancelJob(ctx context.Context, in *protos.CancelJobRequest) 
 	}
 	_, err := utils.CraneCtld.CancelTask(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("CancelJob failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Crane service call failed.")
 	}
+	logrus.Infof("CancelJob job: %v success", in.JobId)
 	return &protos.CancelJobResponse{}, nil
 }
 
@@ -51,11 +53,13 @@ func (s *ServerJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 	}
 	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("QueryJobTimeLimit failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	taskInfoList := response.GetTaskInfoList()
 	if len(taskInfoList) == 0 {
 		message := fmt.Sprintf("Task #%d was not found in crane.", in.JobId)
+		logrus.Errorf("QueryJobTimeLimit failed: %v", message)
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", message)
 	}
 	if response.GetOk() {
@@ -63,6 +67,7 @@ func (s *ServerJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 			timeLimit := taskInfo.GetTimeLimit()
 			seconds = uint64(timeLimit.GetSeconds())
 		}
+		logrus.Tracef("QueryJobTimeLimit job: %v, TimeLimitMinutes: %v", in.JobId, seconds/60)
 		return &protos.QueryJobTimeLimitResponse{TimeLimitMinutes: seconds / 60}, nil
 	}
 	return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Get job timelimit failed.")
@@ -82,12 +87,14 @@ func (s *ServerJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 
 	responseLimitTime, err := utils.CraneCtld.QueryTasksInfo(context.Background(), requestLimitTime)
 	if err != nil {
+		logrus.Errorf("ChangeJobTimeLimit failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 
 	taskInfoList := responseLimitTime.GetTaskInfoList()
 	if len(taskInfoList) == 0 {
 		message := fmt.Sprintf("Task #%d was not found in crane.", in.JobId)
+		logrus.Errorf("ChangeJobTimeLimit failed: %v", message)
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", message)
 	}
 	if responseLimitTime.GetOk() {
@@ -97,9 +104,8 @@ func (s *ServerJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 		}
 	}
 
-	// 这个地方需要做校验，如果小于0的话直接返回
+	// 如果小于0的话直接返回
 	if in.DeltaMinutes*60+int64(seconds) <= 0 {
-		// 直接返回
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Time limit should be greater than 0.")
 	}
 	// 修改时长限制的请求体
@@ -111,11 +117,14 @@ func (s *ServerJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJob
 	}
 	response, err := utils.CraneCtld.ModifyTask(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("ChangeJobTimeLimit failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if len(response.GetNotModifiedTasks()) != 0 {
+		logrus.Errorf("ChangeJobTimeLimit failed: %v", fmt.Errorf("JOB_NOT_FOUND"))
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", response.GetNotModifiedReasons()[0])
 	}
+	logrus.Tracef("ChangeJobTimeLimit success! job: %v, TimeLimitMinutes: %v", in.JobId, in.DeltaMinutes)
 	return &protos.ChangeJobTimeLimitResponse{}, nil
 }
 
@@ -133,12 +142,15 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	}
 	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
 	if err != nil {
+		logrus.Errorf("GetJobById failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("GetJobById failed: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
 	}
 	if len(response.GetTaskInfoList()) == 0 {
+		logrus.Errorf("GetJobById failed: %v", fmt.Errorf("JOB_NOT_FOUND"))
 		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", "The job not found in crane.")
 	}
 	// 获取作业信息
@@ -240,6 +252,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 			jobInfo.SubmitTime = TaskInfoList.GetStartTime()
 		}
 	}
+	logrus.Tracef("GetJobById job: %v", jobInfo)
 	return &protos.GetJobByIdResponse{Job: jobInfo}, nil
 }
 
@@ -335,9 +348,11 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
 
 	if err != nil {
+		logrus.Errorf("GetJobs failed: %v", fmt.Errorf("CRANE_CALL_FAILED"))
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
+		logrus.Errorf("GetJobs failed: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
 	}
 	if len(response.GetTaskInfoList()) == 0 {
@@ -480,20 +495,19 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		sortJobinfo := utils.SortJobInfo(sortKey, sortOrder, jobsInfo)
 		return &protos.GetJobsResponse{Jobs: sortJobinfo, TotalCount: &totalNum}, nil
 	}
+	logrus.Tracef("GetJobs jobs: %v", jobsInfo)
 	return &protos.GetJobsResponse{Jobs: jobsInfo, TotalCount: &totalNum}, nil
 }
 
 func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) (*protos.SubmitJobResponse, error) {
 	var (
-		// craneOptions string
-		stdout string
-		// memory       uint64
+		stdout          string
 		homedir         string
 		timeLimitString string
 		scriptString    = "#!/bin/bash\n"
 	)
 
-	logrus.Infof("Received request SubmitJob: %v", in)
+	logrus.Tracef("Received request SubmitJob: %v", in)
 
 	if in.Stdout != nil {
 		stdout = *in.Stdout
@@ -501,14 +515,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		stdout = "job.%j.out"
 	}
 
-	// if in.MemoryMb != nil {
-	// 	memory = *in.MemoryMb / uint64(in.NodeCount)
-	// } else {
-	// 	memory = 800
-	// }
-
 	// 拼凑成绝对路径的工作目录
-
 	isAbsolute := filepath.IsAbs(in.WorkingDirectory)
 	if !isAbsolute {
 		homedirTemp, _ := utils.GetUserHomedir(in.UserId)
@@ -565,6 +572,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
+		logrus.Errorf("SubmitJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
 		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
 	}
 	defer file.Close()
@@ -575,6 +583,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
 	os.Remove(filePath) // 删除掉提交脚本
 	if err != nil {
+		logrus.Errorf("SubmitJob failed: %v", err)
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
 	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
@@ -585,9 +594,9 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	return &protos.SubmitJobResponse{JobId: uint32(jobId1), GeneratedScript: scriptString}, nil
 }
 
-func SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest) (*protos.SubmitScriptAsJobResponse, error) {
+func (s *ServerJob) SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest) (*protos.SubmitScriptAsJobResponse, error) {
 	// 获取传过来的文件内容
-	logrus.Infof("Received request SubmitScriptAsJob: %v", in)
+	logrus.Tracef("Received request SubmitScriptAsJob: %v", in)
 	// 具体的提交逻辑
 	updateScript := "#!/bin/bash\n"
 	trimmedScript := strings.TrimLeft(in.Script, "\n") // 去除最前面的空行
@@ -612,6 +621,7 @@ func SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest)
 	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
+		logrus.Errorf("SubmitScriptAsJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
 		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
 	}
 	defer file.Close()
@@ -622,6 +632,7 @@ func SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest)
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
 	os.Remove(filePath) // 删除生成的提交脚本
 	if err != nil {
+		logrus.Errorf("SubmitScriptAsJob failed: %v", err)
 		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
 	}
 	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
