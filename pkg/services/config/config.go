@@ -128,13 +128,14 @@ func (s *ServerConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 		}
 		pendingJobNum := len(pendingJob)
 
-		// 获取正在运行节点数
-		runningNodes, err := utils.GetNodeByPartitionAndStatus([]string{partitionName}, []craneProtos.CranedResourceState{craneProtos.CranedResourceState_CRANE_ALLOC, craneProtos.CranedResourceState_CRANE_MIX})
+		idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, err := utils.GetNodeByPartition([]string{partitionName})
 		if err != nil {
 			logrus.Errorf("GetClusterInfo failed: %v", err)
 			return nil, utils.RichError(codes.Internal, "CRANE_RUNCOMMAND_ERROR", err.Error())
 		}
+		logrus.Tracef("GetClusterInfo idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount: %v, %v, %v, %v", idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount)
 
+		runningNodes := allocNodeCount + mixNodeCount
 		resultRatio := float64(runningNodes) / float64(partitionInfo.GetTotalNodes())
 		percentage := int(resultRatio * 100) // 保留整数
 		if partitionInfo.GetState() == craneProtos.PartitionState_PARTITION_UP {
@@ -151,7 +152,7 @@ func (s *ServerConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 			PartitionName:         partitionInfo.GetName(),
 			NodeCount:             partitionInfo.GetTotalNodes(),
 			RunningNodeCount:      runningNodes,
-			IdleNodeCount:         partitionInfo.GetAliveNodes() - runningNodes,
+			IdleNodeCount:         idleNodeCount,
 			NotAvailableNodeCount: partitionInfo.GetTotalNodes() - partitionInfo.GetAliveNodes(),
 			CpuCoreCount:          uint32(TotalCpu),
 			RunningCpuCount:       uint32(AllocCpu),

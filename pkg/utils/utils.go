@@ -249,11 +249,13 @@ func GetTaskByAccountName(accountNames []string) ([]*craneProtos.TaskInfo, error
 	return response.GetTaskInfoList(), nil
 }
 
-func GetNodeByPartitionAndStatus(partitionList []string, controlStateList []craneProtos.CranedResourceState) (uint32, error) {
+func GetNodeByPartitionAndStatus(partitionList []string, cranedStateList []craneProtos.CranedResourceState) (uint32, error) {
 	var nodeCount uint32
+	controlStateList := []craneProtos.CranedControlState{craneProtos.CranedControlState_CRANE_NONE, craneProtos.CranedControlState_CRANE_DRAIN}
 	req := craneProtos.QueryClusterInfoRequest{
 		FilterPartitions:           partitionList,
-		FilterCranedResourceStates: controlStateList,
+		FilterCranedResourceStates: cranedStateList,
+		FilterCranedControlStates:  controlStateList,
 	}
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
@@ -269,10 +271,44 @@ func GetNodeByPartitionAndStatus(partitionList []string, controlStateList []cran
 	return nodeCount, nil
 }
 
+func GetNodeByPartition(partitionList []string) (uint32, uint32, uint32, uint32, error) {
+	var idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount uint32
+
+	cranedStateList := []craneProtos.CranedResourceState{craneProtos.CranedResourceState_CRANE_IDLE, craneProtos.CranedResourceState_CRANE_ALLOC, craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_DOWN}
+	controlStateList := []craneProtos.CranedControlState{craneProtos.CranedControlState_CRANE_NONE, craneProtos.CranedControlState_CRANE_DRAIN}
+	req := craneProtos.QueryClusterInfoRequest{
+		FilterPartitions:           partitionList,
+		FilterCranedResourceStates: cranedStateList,
+		FilterCranedControlStates:  controlStateList,
+	}
+
+	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
+	if err != nil {
+		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+
+	for _, partitionCraned := range response.Partitions {
+		for _, commonCranedStateList := range partitionCraned.CranedLists {
+			if commonCranedStateList.Count > 0 {
+				switch commonCranedStateList.ResourceState {
+				case craneProtos.CranedResourceState_CRANE_IDLE:
+					idleNodeCount += commonCranedStateList.Count
+				case craneProtos.CranedResourceState_CRANE_ALLOC:
+					allocNodeCount += commonCranedStateList.Count
+				case craneProtos.CranedResourceState_CRANE_MIX:
+					mixNodeCount += commonCranedStateList.Count
+				case craneProtos.CranedResourceState_CRANE_DOWN:
+					downNodeCount += commonCranedStateList.Count
+				}
+			}
+		}
+	}
+
+	return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, nil
+}
+
 func GetCraneStatesList(stateList []string) []craneProtos.TaskStatus {
-	var (
-		statesList []craneProtos.TaskStatus
-	)
+	var statesList []craneProtos.TaskStatus
 	for _, value := range stateList {
 		if value == "PENDING" || value == "PENDDING" {
 			statesList = append(statesList, craneProtos.TaskStatus_Pending)
