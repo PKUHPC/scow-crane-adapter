@@ -21,6 +21,7 @@ import (
 
 type ServerJob struct {
 	protos.UnimplementedJobServiceServer
+	ModulePath string
 }
 
 func (s *ServerJob) CancelJob(ctx context.Context, in *protos.CancelJobRequest) (*protos.CancelJobResponse, error) {
@@ -534,6 +535,14 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	scriptString += "#CBATCH " + "-J " + in.JobName + "\n"
 	scriptString += "#CBATCH " + "-N " + strconv.Itoa(int(in.NodeCount)) + "\n"
 	scriptString += "#CBATCH " + "--ntasks-per-node " + strconv.Itoa(1) + "\n"
+	if in.GpuCount != 0 {
+		deviceType, err := utils.GetPartitionDeviceType(in.Partition)
+		if err != nil {
+			logrus.Errorf("SubmitJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
+			return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
+		}
+		scriptString += "#CBATCH " + "--gres " + deviceType + ":" + strconv.Itoa(int(in.GpuCount)) + "\n"
+	}
 	scriptString += "#CBATCH " + "-c " + strconv.Itoa(int(in.CoreCount)) + "\n"
 	if in.TimeLimitMinutes != nil {
 		// 要把时间换成字符串的形式
@@ -562,6 +571,10 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 	scriptString += "#CBATCH " + "--export ALL" + "\n"
 	scriptString += "#CBATCH " + "--get-user-env" + "\n"
+
+	modulePathString := fmt.Sprintf("source %s", s.ModulePath)
+	scriptString += "\n" + modulePathString + "\n"
+
 	scriptString += in.Script
 
 	// 将这个保存成一个脚本文件，通过脚本文件进行提交
@@ -581,6 +594,8 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	writer := bufio.NewWriter(file)
 	writer.WriteString(scriptString)
 	writer.Flush()
+
+	os.Chmod(filePath, 0777)
 
 	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
 	os.Remove(filePath) // 删除掉提交脚本

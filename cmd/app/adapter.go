@@ -79,7 +79,7 @@ func Run() {
 	) // 创建gRPC服务器
 
 	// 注册服务
-	protos.RegisterJobServiceServer(s, &job.ServerJob{})
+	protos.RegisterJobServiceServer(s, &job.ServerJob{ModulePath: GConfig.ModulePath})
 	protos.RegisterAccountServiceServer(s, &account.ServerAccount{})
 	protos.RegisterConfigServiceServer(s, &config.ServerConfig{})
 	protos.RegisterUserServiceServer(s, &user.ServerUser{})
