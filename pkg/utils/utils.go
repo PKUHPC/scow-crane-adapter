@@ -452,17 +452,42 @@ func GetSlurmClusterConfig(block bool, qosList []string) ([]*protos.Partition, e
 			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 		}
 		partitionValue := response.GetPartitionInfo()[0]
+		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
+		// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
+		logrus.Infof("totalGpusTypeMap %v", totalGpusTypeMap)
+		gpuCount := getGpuNumsFromPartition(totalGpusTypeMap)
+		logrus.Infof("gpuCount %v", gpuCount)
 		logrus.Infof("%v", response.GetPartitionInfo())
 		partitions = append(partitions, &protos.Partition{
 			Name:  partitionValue.GetName(),
 			MemMb: partitionValue.GetResTotal().GetAllocatableRes().GetMemoryLimitBytes() / (1024 * 1024),
 			Cores: uint32(partitionValue.GetResTotal().GetAllocatableRes().GetCpuCoreLimit()),
+			Gpus:  gpuCount,
 			Nodes: partitionValue.GetTotalNodes(),
 			Qos:   qosList,
 		})
 	}
 
 	return partitions, nil
+}
+
+func GetPartitionDeviceType(partitionName string) (string, error) {
+	var deviceType = ""
+	request := &craneProtos.QueryPartitionInfoRequest{
+		PartitionName: partitionName,
+	}
+	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
+	if err != nil {
+		return "", RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+	}
+	partitionValue := response.GetPartitionInfo()[0]
+	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
+
+	for key, _ := range deviceMap.GetNameTypeMap() {
+		deviceType = key
+	}
+
+	return deviceType, nil
 }
 
 // Contains reports whether v is present in s.
@@ -540,6 +565,23 @@ func getGpuNums(data *craneProtos.DedicatedResourceInNode) uint32 {
 	}
 
 	return uint32(typeCount)
+}
+
+// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
+func getGpuNumsFromPartition(data *craneProtos.DeviceMap) uint32 {
+	if data == nil {
+		return 0
+	}
+
+	var gpuCount int
+	for _, typeCountMap := range data.GetNameTypeMap() { //name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}
+		for _, count := range typeCountMap.GetTypeCountMap() {
+			gpuCount += int(count)
+		}
+
+	}
+
+	return uint32(gpuCount)
 }
 
 func GetAllPartirions() []string {
