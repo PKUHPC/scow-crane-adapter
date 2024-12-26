@@ -562,7 +562,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 
 	if in.MemoryMb != nil {
-		scriptString += "#CBATCH " + "--mem " + strconv.Itoa(int(*in.MemoryMb)) + "M" + "\n"
+		scriptString += "#CBATCH " + "--mem " + strconv.Itoa(int(*in.MemoryMb/uint64(in.NodeCount))) + "M" + "\n"
 	}
 	if len(in.ExtraOptions) != 0 {
 		for _, extraVale := range in.ExtraOptions {
