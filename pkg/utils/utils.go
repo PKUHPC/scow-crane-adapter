@@ -83,11 +83,10 @@ func RichError(code codes.Code, reason string, message string) error {
 // GetQos 获取系统中Qos列表
 func GetQos() ([]string, error) {
 	var Qoslist []string
-	request := &craneProtos.QueryEntityInfoRequest{
-		Uid:        uint32(os.Getuid()),
-		EntityType: craneProtos.EntityType_Qos,
+	request := &craneProtos.QueryQosInfoRequest{
+		Uid: uint32(os.Getuid()),
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryQosInfo(context.Background(), request)
 	if err != nil {
 		return []string{}, err
 	}
@@ -112,48 +111,46 @@ func GetAllQos() ([]string, error) {
 }
 
 func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
-	request := &craneProtos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryAccountInfoRequest{
 		Uid: 0,
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 	return response.GetAccountList(), nil
 }
 
 func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
-	request := &craneProtos.QueryEntityInfoRequest{
-		Uid:        0,
-		EntityType: craneProtos.EntityType_Account,
-		Name:       accountName,
+	request := &craneProtos.QueryAccountInfoRequest{
+		Uid:  0,
+		Name: accountName,
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 	return response.GetAccountList()[0], nil
 }
 
 func GetAccountByUser(userName string) ([]string, error) {
 	var accountList []string
-	request := &craneProtos.QueryEntityInfoRequest{
-		Uid:        0,
-		EntityType: craneProtos.EntityType_User,
-		Name:       userName,
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:  0,
+		Name: userName,
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 
 	for _, list := range response.GetUserList() {
@@ -168,30 +165,30 @@ func GetAccountByUser(userName string) ([]string, error) {
 }
 
 func GetAllUser() ([]*craneProtos.UserInfo, error) {
-	request := &craneProtos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryUserInfoRequest{
 		Uid: 0,
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 	return response.GetUserList(), nil
 }
 
 func GetAllUserBlockedMap() (map[string]bool, error) {
 	userBlocked := make(map[string]bool)
-	request := &craneProtos.QueryEntityInfoRequest{
+	request := &craneProtos.QueryUserInfoRequest{
 		Uid: 0,
 	}
-	response, err := CraneCtld.QueryEntityInfo(context.Background(), request)
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 
 	for _, info := range response.GetUserList() {
