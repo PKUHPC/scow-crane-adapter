@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -66,7 +67,7 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	}
 	if !response.GetOk() {
 		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetReason())
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 	logrus.Tracef("create account: %v success", in.AccountName)
 	// 账户创建成功后，将用户添加至账户中
@@ -101,7 +102,7 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	}
 	if !responseUser.GetOk() {
 		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", responseUser.GetReason())
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(responseUser.GetReason()), 10))
 	}
 	logrus.Tracef("add user : %v to account: %v success", in.OwnerUserId, in.AccountName)
 
@@ -127,7 +128,7 @@ func (s *ServerAccount) BlockAccount(ctx context.Context, in *protos.BlockAccoun
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
 	} else {
 		logrus.Infof("BlockAccount account: %v success", in.AccountName)
 		return &protos.BlockAccountResponse{}, nil
@@ -152,7 +153,7 @@ func (s *ServerAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAc
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
 	} else {
 		logrus.Infof("UnblockAccount account: %v success", in.AccountName)
 		return &protos.UnblockAccountResponse{}, nil
@@ -171,13 +172,12 @@ func (s *ServerAccount) GetAllAccountsWithUsers(ctx context.Context, in *protos.
 	// 获取所有账户信息
 	for _, account := range allAccount {
 		var userInfo []*protos.ClusterAccountInfo_UserInAccount
-		requestUser := &craneProtos.QueryEntityInfoRequest{
-			Uid:        0,
-			Account:    account.GetName(),
-			EntityType: craneProtos.EntityType_User,
+		requestUser := &craneProtos.QueryUserInfoRequest{
+			Uid:     0,
+			Account: account.GetName(),
 		}
 		// 获取单个账户下用户信息
-		responseUser, _ := utils.CraneCtld.QueryEntityInfo(context.Background(), requestUser)
+		responseUser, _ := utils.CraneCtld.QueryUserInfo(context.Background(), requestUser)
 		for _, user := range responseUser.GetUserList() {
 			userInfo = append(userInfo, &protos.ClusterAccountInfo_UserInAccount{
 				UserId:   user.GetName(),
@@ -240,19 +240,18 @@ func (s *ServerAccount) DeleteAccount(ctx context.Context, in *protos.DeleteAcco
 	}
 
 	// 创建删除账户请求体
-	deleteAccountRequest := &craneProtos.DeleteEntityRequest{
-		Uid:        uint32(os.Getuid()),
-		EntityType: craneProtos.EntityType_Account,
-		Account:    in.AccountName,
+	deleteAccountRequest := &craneProtos.DeleteAccountRequest{
+		Uid:  uint32(os.Getuid()),
+		Name: in.AccountName,
 	}
-	response, err := utils.CraneCtld.DeleteEntity(context.Background(), deleteAccountRequest)
+	response, err := utils.CraneCtld.DeleteAccount(context.Background(), deleteAccountRequest)
 	if err != nil {
 		logrus.Errorf("DeleteAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
 		logrus.Errorf("DeleteAccount failed: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetReason())
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
 	}
 	logrus.Infof("DeleteAccount: %v success", in.AccountName)
 	return &protos.DeleteAccountResponse{}, nil
@@ -280,7 +279,7 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockAccountWithPartitions failed: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
 	} else {
 		logrus.Infof("BlockAccountWithPartitions account: %v success", in.AccountName)
 		return &protos.BlockAccountWithPartitionsResponse{}, nil
@@ -308,7 +307,7 @@ func (s *ServerAccount) UnblockAccountWithPartitions(ctx context.Context, in *pr
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockAccountWithPartitions failed: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.GetReason())
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
 	} else {
 		logrus.Infof("UnblockAccountWithPartitions account: %v success", in.AccountName)
 		return &protos.UnblockAccountWithPartitionsResponse{}, nil
