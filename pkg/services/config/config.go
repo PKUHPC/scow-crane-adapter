@@ -3,11 +3,12 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/codes"
-	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
+
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
 )
 
 type ServerConfig struct {

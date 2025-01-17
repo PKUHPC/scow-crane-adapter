@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
+
+	protos "scow-crane-adapter/gen/go"
+	"scow-crane-adapter/pkg/utils"
+
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
+	craneUtil "github.com/PKUHPC/CraneSched-FrontEnd/pkg/util"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
-	"scow-crane-adapter/pkg/utils"
 )
 
 type ServerAccount struct {
@@ -67,7 +69,7 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	}
 	if !response.GetOk() {
 		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Tracef("create account: %v success", in.AccountName)
 	// 账户创建成功后，将用户添加至账户中
@@ -102,7 +104,7 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 	}
 	if !responseUser.GetOk() {
 		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(responseUser.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", craneUtil.ErrMsg(responseUser.GetReason()))
 	}
 	logrus.Tracef("add user : %v to account: %v success", in.OwnerUserId, in.AccountName)
 
@@ -128,7 +130,7 @@ func (s *ServerAccount) BlockAccount(ctx context.Context, in *protos.BlockAccoun
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	} else {
 		logrus.Infof("BlockAccount account: %v success", in.AccountName)
 		return &protos.BlockAccountResponse{}, nil
@@ -153,7 +155,7 @@ func (s *ServerAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAc
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	} else {
 		logrus.Infof("UnblockAccount account: %v success", in.AccountName)
 		return &protos.UnblockAccountResponse{}, nil
@@ -251,7 +253,7 @@ func (s *ServerAccount) DeleteAccount(ctx context.Context, in *protos.DeleteAcco
 	}
 	if !response.GetOk() {
 		logrus.Errorf("DeleteAccount failed: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Infof("DeleteAccount: %v success", in.AccountName)
 	return &protos.DeleteAccountResponse{}, nil
@@ -279,7 +281,7 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockAccountWithPartitions failed: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	} else {
 		logrus.Infof("BlockAccountWithPartitions account: %v success", in.AccountName)
 		return &protos.BlockAccountWithPartitionsResponse{}, nil
@@ -307,7 +309,7 @@ func (s *ServerAccount) UnblockAccountWithPartitions(ctx context.Context, in *pr
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockAccountWithPartitions failed: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	} else {
 		logrus.Infof("UnblockAccountWithPartitions account: %v success", in.AccountName)
 		return &protos.UnblockAccountWithPartitionsResponse{}, nil

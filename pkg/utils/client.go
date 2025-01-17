@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	craneProtos "scow-crane-adapter/gen/crane"
 )
 
 var (
