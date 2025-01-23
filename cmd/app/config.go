@@ -9,9 +9,9 @@ import (
 func GetCertPath() (string, string, string) {
 	currentPwd, _ := os.Getwd()
 	logrus.Tracef("current pwd: %s", currentPwd)
-	caCertPath := filepath.Join(currentPwd, "../../certs/ca.crt")
-	adapterCertPath := filepath.Join(currentPwd, "../../certs/adapter.crt")
-	adapterPrivateKeyPath := filepath.Join(currentPwd, "../../certs/adapter.key")
+	caCertPath := filepath.Join(currentPwd, "certs/ca.crt")
+	adapterCertPath := filepath.Join(currentPwd, "certs/adapter.crt")
+	adapterPrivateKeyPath := filepath.Join(currentPwd, "certs/adapter.key")
 	caCertPathExists, err := pathExists(caCertPath)
 	if err != nil {
 		logrus.Tracef("cert pwd: %s, %s, %s", caCertPath, adapterCertPath, adapterPrivateKeyPath)
