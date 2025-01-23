@@ -1,7 +1,10 @@
 package app
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 
 	protos "scow-crane-adapter/gen/go"
@@ -17,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -76,7 +80,41 @@ func Run() {
 	s := grpc.NewServer(
 		grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 		grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
-	) // 创建gRPC服务器
+	)
+
+	if GConfig.Ssl.Enabled {
+		caCertPath, adapterCertPath, adapterPrivateKeyPath := GetCertPath()
+		logrus.Tracef("caCertPath, adapterCertPath, adapterPrivateKeyPath: %s, %s, %s", caCertPath, adapterCertPath, adapterPrivateKeyPath)
+		pair, err := tls.LoadX509KeyPair(adapterCertPath, adapterPrivateKeyPath)
+		if err != nil {
+			fmt.Println("LoadX509KeyPair error", err)
+			return
+		}
+		// 创建一组根证书
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(caCertPath)
+		if err != nil {
+			fmt.Println("read ca pem error ", err)
+			return
+		}
+		// 解析证书
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			fmt.Println("AppendCertsFromPEM error ")
+			return
+		}
+
+		cred := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{pair},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    certPool,
+		})
+
+		s = grpc.NewServer(
+			grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
+			grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
+			grpc.Creds(cred),
+		)
+	}
 
 	// 注册服务
 	protos.RegisterJobServiceServer(s, &job.ServerJob{ModulePath: GConfig.ModulePath})
