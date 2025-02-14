@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
+	protos "scow-crane-adapter/gen/go"
+	"scow-crane-adapter/pkg/utils"
+
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
-	"scow-crane-adapter/pkg/utils"
 )
 
 type ServerJob struct {

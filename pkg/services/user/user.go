@@ -3,13 +3,15 @@ package user
 import (
 	"context"
 	"fmt"
-	"strconv"
+
+	protos "scow-crane-adapter/gen/go"
+	"scow-crane-adapter/pkg/utils"
+
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
+	craneUtil "github.com/PKUHPC/CraneSched-FrontEnd/pkg/util"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
-	"scow-crane-adapter/pkg/utils"
 )
 
 type ServerUser struct {
@@ -60,7 +62,7 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	}
 	if !response.GetOk() {
 		logrus.Errorf("AddUserToAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Infof("AddUserToAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.AddUserToAccountResponse{}, nil
@@ -81,7 +83,7 @@ func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.Remov
 	}
 	if !response.GetOk() {
 		logrus.Errorf("RemoveUserFromAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Infof("RemoveUserFromAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.RemoveUserFromAccountResponse{}, nil
@@ -103,7 +105,7 @@ func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Infof("BlockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.BlockUserInAccountResponse{}, nil
@@ -125,7 +127,7 @@ func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", craneUtil.ErrMsg(response.GetReason()))
 	}
 	logrus.Infof("UnblockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.UnblockUserInAccountResponse{}, nil
@@ -145,7 +147,7 @@ func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	}
 	if !response.GetOk() {
 		logrus.Errorf("QueryUserInAccountBlockStatus err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 
 	blocked := response.GetUserList()[0].GetBlocked()

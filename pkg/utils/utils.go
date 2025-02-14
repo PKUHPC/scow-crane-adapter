@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,12 +14,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
+	protos "scow-crane-adapter/gen/go"
+
+	craneProtos "github.com/PKUHPC/CraneSched-FrontEnd/generated/protos"
+	craneUtil "github.com/PKUHPC/CraneSched-FrontEnd/pkg/util"
+
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
 )
 
 type CraneConfig struct {
@@ -119,7 +123,7 @@ func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 	return response.GetAccountList(), nil
 }
@@ -134,7 +138,7 @@ func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 	return response.GetAccountList()[0], nil
 }
@@ -150,7 +154,7 @@ func GetAccountByUser(userName string) ([]string, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 
 	for _, list := range response.GetUserList() {
@@ -173,7 +177,7 @@ func GetAllUser() ([]*craneProtos.UserInfo, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 	return response.GetUserList(), nil
 }
@@ -188,7 +192,7 @@ func GetAllUserBlockedMap() (map[string]bool, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", craneUtil.ErrMsg(response.GetReason()))
 	}
 
 	for _, info := range response.GetUserList() {
@@ -357,7 +361,7 @@ func sortByKey(list []*protos.JobInfo, fieldName string, sortOrder string) bool 
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				return fieldValueI.Int() < fieldValueJ.Int()
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				return fieldValueI.Uint() > fieldValueJ.Uint()
+				return fieldValueI.Uint() < fieldValueJ.Uint()
 			case reflect.Float32, reflect.Float64:
 				return fieldValueI.Float() < fieldValueJ.Float()
 			case reflect.String:
@@ -477,6 +481,11 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	if err != nil {
 		return "", RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
+
+	if len(response.GetPartitionInfo()) == 0 {
+		return "", RichError(codes.NotFound, "PARTITION_NOT_FOUND", "Partition information with the specified name not found")
+	}
+
 	partitionValue := response.GetPartitionInfo()[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
 
@@ -547,21 +556,21 @@ func ExtractNodeInfo(info *craneProtos.CranedInfo) *protos.NodeInfo {
 }
 
 func getGpuNums(data *craneProtos.DedicatedResourceInNode) uint32 {
-	if data == nil {
+	if data == nil || len(data.GetNameTypeMap()) == 0 {
 		return 0
 	}
 
-	var typeCount int
+	var gpuCount int
 	for _, typeCountMap := range data.GetNameTypeMap() {
+		if len(typeCountMap.GetTypeSlotsMap()) == 0 {
+			continue
+		}
 		for _, slots := range typeCountMap.GetTypeSlotsMap() {
-			slotsSize := len(slots.Slots)
-			if slotsSize != 0 {
-				typeCount += slotsSize
-			}
+			gpuCount += len(slots.Slots)
 		}
 	}
 
-	return uint32(typeCount)
+	return uint32(gpuCount)
 }
 
 // device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
