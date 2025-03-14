@@ -148,6 +148,13 @@ func (s *ServerConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 		AvailCpu := partitionInfo.GetResAvail().GetAllocatableRes().GetCpuCoreLimit()
 		IdleCpu := TotalCpu - AllocCpu
 		NotAvailableCpu := TotalCpu - AvailCpu - AllocCpu
+
+		TotalGpu := utils.GetGpuNumsFromPartition(partitionInfo.GetResTotal().GetDeviceMap())
+		AllocGpu := utils.GetGpuNumsFromPartition(partitionInfo.GetResAlloc().GetDeviceMap())
+		AvailGpu := utils.GetGpuNumsFromPartition(partitionInfo.GetResAvail().GetDeviceMap())
+		IdleGpu := TotalGpu - AllocGpu
+		NotAvailableGpu := TotalGpu - AvailGpu - AllocGpu
+
 		partitions = append(partitions, &protos.PartitionInfo{
 			PartitionName:         partitionInfo.GetName(),
 			NodeCount:             partitionInfo.GetTotalNodes(),
@@ -158,6 +165,10 @@ func (s *ServerConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 			RunningCpuCount:       uint32(AllocCpu),
 			IdleCpuCount:          uint32(IdleCpu),
 			NotAvailableCpuCount:  uint32(NotAvailableCpu),
+			GpuCoreCount:          TotalGpu,
+			RunningGpuCount:       AllocGpu,
+			IdleGpuCount:          IdleGpu,
+			NotAvailableGpuCount:  NotAvailableGpu,
 			JobCount:              uint32(runningJobNum) + uint32(pendingJobNum),
 			RunningJobCount:       uint32(runningJobNum),
 			PendingJobCount:       uint32(pendingJobNum),
