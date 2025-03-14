@@ -6,8 +6,6 @@
 
 ## Build
 
-Requires [Buf]([Buf](https://buf.build/docs/installation/)).
-
 ```bash
 # Build
 make build

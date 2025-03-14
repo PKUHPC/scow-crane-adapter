@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
 	"os"
@@ -451,10 +450,7 @@ func GetSlurmClusterConfig(block bool, qosList []string) ([]*protos.Partition, e
 		partitionValue := response.GetPartitionInfo()[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
 		// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
-		logrus.Infof("totalGpusTypeMap %v", totalGpusTypeMap)
-		gpuCount := getGpuNumsFromPartition(totalGpusTypeMap)
-		logrus.Infof("gpuCount %v", gpuCount)
-		logrus.Infof("%v", response.GetPartitionInfo())
+		gpuCount := GetGpuNumsFromPartition(totalGpusTypeMap)
 		partitions = append(partitions, &protos.Partition{
 			Name:  partitionValue.GetName(),
 			MemMb: partitionValue.GetResTotal().GetAllocatableRes().GetMemoryLimitBytes() / (1024 * 1024),
@@ -564,8 +560,8 @@ func getGpuNums(data *craneProtos.DedicatedResourceInNode) uint32 {
 	return uint32(typeCount)
 }
 
-// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
-func getGpuNumsFromPartition(data *craneProtos.DeviceMap) uint32 {
+// GetGpuNumsFromPartition 获取加速卡的数量 device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
+func GetGpuNumsFromPartition(data *craneProtos.DeviceMap) uint32 {
 	if data == nil {
 		return 0
 	}
