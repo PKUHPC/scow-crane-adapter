@@ -14,12 +14,13 @@ import (
 	"strconv"
 	"strings"
 
+	craneProtos "scow-crane-adapter/gen/crane"
+	protos "scow-crane-adapter/gen/go"
+
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
-	craneProtos "scow-crane-adapter/gen/crane"
-	protos "scow-crane-adapter/gen/go"
 )
 
 type CraneConfig struct {
@@ -118,22 +119,30 @@ func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
 	}
 	return response.GetAccountList(), nil
 }
 
+// CheckAccount 检查账户名是否非法
+func CheckAccount(name string) error {
+	if len(name) > 30 {
+		return fmt.Errorf("name is too long (up to 30)")
+	}
+	return nil
+}
+
 func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 	request := &craneProtos.QueryAccountInfoRequest{
-		Uid:  0,
-		Name: accountName,
+		Uid:         0,
+		AccountList: []string{accountName},
 	}
 	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.RichErrorList[0].GetDescription())
 	}
 	return response.GetAccountList()[0], nil
 }
@@ -141,15 +150,15 @@ func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 func GetAccountByUser(userName string) ([]string, error) {
 	var accountList []string
 	request := &craneProtos.QueryUserInfoRequest{
-		Uid:  0,
-		Name: userName,
+		Uid:      0,
+		UserList: []string{userName},
 	}
 	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
 	}
 
 	for _, list := range response.GetUserList() {
@@ -172,28 +181,41 @@ func GetAllUser() ([]*craneProtos.UserInfo, error) {
 		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
 	}
 	return response.GetUserList(), nil
 }
 
-func GetAllUserBlockedMap() (map[string]bool, error) {
-	userBlocked := make(map[string]bool)
-	request := &craneProtos.QueryUserInfoRequest{
-		Uid: 0,
-	}
-	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
-	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+// GetAllAccountUserInfoMap 获取账户下每个用户的信息
+func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*craneProtos.AccountInfo][]*craneProtos.UserInfo, error) {
+	accountUserInfo := make(map[*craneProtos.AccountInfo][]*craneProtos.UserInfo)
+
+	for _, account := range allAccounts {
+		request := &craneProtos.QueryUserInfoRequest{
+			Uid:      0,
+			UserList: account.Users,
+		}
+		response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+		if err != nil {
+			return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		}
+		if !response.GetOk() {
+			var message string
+			for _, richError := range response.GetRichErrorList() {
+				message += richError.GetDescription() + "\n"
+			}
+			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", message)
+		}
+
+		for _, info := range response.GetUserList() {
+			if _, ok := accountUserInfo[account]; !ok {
+				accountUserInfo[account] = []*craneProtos.UserInfo{}
+			}
+			accountUserInfo[account] = append(accountUserInfo[account], info)
+		}
 	}
 
-	for _, info := range response.GetUserList() {
-		userBlocked[info.Name] = info.GetBlocked()
-	}
-	return userBlocked, nil
+	return accountUserInfo, nil
 }
 
 func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error) {
@@ -456,7 +478,7 @@ func GetSlurmClusterConfig(block bool, qosList []string) ([]*protos.Partition, e
 			MemMb: partitionValue.GetResTotal().GetAllocatableRes().GetMemoryLimitBytes() / (1024 * 1024),
 			Cores: uint32(partitionValue.GetResTotal().GetAllocatableRes().GetCpuCoreLimit()),
 			Gpus:  gpuCount,
-			Nodes: partitionValue.GetTotalNodes(),
+			Nodes: partitionValue.GetAliveNodes(),
 			Qos:   qosList,
 		})
 	}
@@ -577,7 +599,7 @@ func GetGpuNumsFromPartition(data *craneProtos.DeviceMap) uint32 {
 	return uint32(gpuCount)
 }
 
-func GetAllPartirions() []string {
+func GetAllPartitions() []string {
 	if CConfig.Partitions == nil {
 		return nil
 	}

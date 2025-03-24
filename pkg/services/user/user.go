@@ -60,7 +60,7 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	}
 	if !response.GetOk() {
 		logrus.Errorf("AddUserToAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(response.GetCode()), 10))
 	}
 	logrus.Infof("AddUserToAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.AddUserToAccountResponse{}, nil
@@ -69,9 +69,9 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.RemoveUserFromAccountRequest) (*protos.RemoveUserFromAccountResponse, error) {
 	logrus.Infof("Received request RemoveUserFromAccount: %v", in)
 	request := &craneProtos.DeleteUserRequest{
-		Uid:     0,
-		Account: in.AccountName,
-		Name:    in.UserId,
+		Uid:      0,
+		Account:  in.AccountName,
+		UserList: []string{in.UserId},
 	}
 
 	response, err := utils.CraneCtld.DeleteUser(context.Background(), request)
@@ -81,7 +81,7 @@ func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.Remov
 	}
 	if !response.GetOk() {
 		logrus.Errorf("RemoveUserFromAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
 	}
 	logrus.Infof("RemoveUserFromAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.RemoveUserFromAccountResponse{}, nil
@@ -93,7 +93,7 @@ func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 		Block:      true,
 		Uid:        0, // 操作者
 		EntityType: craneProtos.EntityType_User,
-		Name:       in.UserId,
+		EntityList: []string{in.UserId},
 		Account:    in.AccountName,
 	}
 	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
@@ -103,7 +103,7 @@ func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 	}
 	if !response.GetOk() {
 		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
 	}
 	logrus.Infof("BlockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.BlockUserInAccountResponse{}, nil
@@ -115,7 +115,7 @@ func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 		Block:      false,
 		Uid:        0,
 		EntityType: craneProtos.EntityType_User,
-		Name:       in.UserId,
+		EntityList: []string{in.UserId},
 		Account:    in.AccountName,
 	}
 	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
@@ -125,7 +125,7 @@ func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 	}
 	if !response.GetOk() {
 		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
 	}
 	logrus.Infof("UnblockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.UnblockUserInAccountResponse{}, nil
@@ -134,9 +134,9 @@ func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.Unbloc
 func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *protos.QueryUserInAccountBlockStatusRequest) (*protos.QueryUserInAccountBlockStatusResponse, error) {
 	logrus.Infof("Received request QueryUserInAccountBlockStatus: %v", in)
 	request := &craneProtos.QueryUserInfoRequest{
-		Uid:     0,
-		Name:    in.UserId,
-		Account: in.AccountName,
+		Uid:      0,
+		UserList: []string{in.UserId},
+		Account:  in.AccountName,
 	}
 	response, err := utils.CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
@@ -145,7 +145,7 @@ func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	}
 	if !response.GetOk() {
 		logrus.Errorf("QueryUserInAccountBlockStatus err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetReason()), 10))
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
 	}
 
 	blocked := response.GetUserList()[0].GetBlocked()
