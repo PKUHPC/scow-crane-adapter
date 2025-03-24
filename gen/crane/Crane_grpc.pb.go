@@ -46,6 +46,7 @@ const (
 	CraneCtld_QueryPartitionInfo_FullMethodName = "/crane.grpc.CraneCtld/QueryPartitionInfo"
 	CraneCtld_ModifyTask_FullMethodName         = "/crane.grpc.CraneCtld/ModifyTask"
 	CraneCtld_ModifyNode_FullMethodName         = "/crane.grpc.CraneCtld/ModifyNode"
+	CraneCtld_ModifyPartitionAcl_FullMethodName = "/crane.grpc.CraneCtld/ModifyPartitionAcl"
 	CraneCtld_AddAccount_FullMethodName         = "/crane.grpc.CraneCtld/AddAccount"
 	CraneCtld_AddUser_FullMethodName            = "/crane.grpc.CraneCtld/AddUser"
 	CraneCtld_AddQos_FullMethodName             = "/crane.grpc.CraneCtld/AddQos"
@@ -87,6 +88,7 @@ type CraneCtldClient interface {
 	QueryPartitionInfo(ctx context.Context, in *QueryPartitionInfoRequest, opts ...grpc.CallOption) (*QueryPartitionInfoReply, error)
 	ModifyTask(ctx context.Context, in *ModifyTaskRequest, opts ...grpc.CallOption) (*ModifyTaskReply, error)
 	ModifyNode(ctx context.Context, in *ModifyCranedStateRequest, opts ...grpc.CallOption) (*ModifyCranedStateReply, error)
+	ModifyPartitionAcl(ctx context.Context, in *ModifyPartitionAclRequest, opts ...grpc.CallOption) (*ModifyPartitionAclReply, error)
 	// RPCs called from cacctmgr
 	AddAccount(ctx context.Context, in *AddAccountRequest, opts ...grpc.CallOption) (*AddAccountReply, error)
 	AddUser(ctx context.Context, in *AddUserRequest, opts ...grpc.CallOption) (*AddUserReply, error)
@@ -212,6 +214,16 @@ func (c *craneCtldClient) ModifyNode(ctx context.Context, in *ModifyCranedStateR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ModifyCranedStateReply)
 	err := c.cc.Invoke(ctx, CraneCtld_ModifyNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) ModifyPartitionAcl(ctx context.Context, in *ModifyPartitionAclRequest, opts ...grpc.CallOption) (*ModifyPartitionAclReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModifyPartitionAclReply)
+	err := c.cc.Invoke(ctx, CraneCtld_ModifyPartitionAcl_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -392,6 +404,7 @@ type CraneCtldServer interface {
 	QueryPartitionInfo(context.Context, *QueryPartitionInfoRequest) (*QueryPartitionInfoReply, error)
 	ModifyTask(context.Context, *ModifyTaskRequest) (*ModifyTaskReply, error)
 	ModifyNode(context.Context, *ModifyCranedStateRequest) (*ModifyCranedStateReply, error)
+	ModifyPartitionAcl(context.Context, *ModifyPartitionAclRequest) (*ModifyPartitionAclReply, error)
 	// RPCs called from cacctmgr
 	AddAccount(context.Context, *AddAccountRequest) (*AddAccountReply, error)
 	AddUser(context.Context, *AddUserRequest) (*AddUserReply, error)
@@ -448,6 +461,9 @@ func (UnimplementedCraneCtldServer) ModifyTask(context.Context, *ModifyTaskReque
 }
 func (UnimplementedCraneCtldServer) ModifyNode(context.Context, *ModifyCranedStateRequest) (*ModifyCranedStateReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyNode not implemented")
+}
+func (UnimplementedCraneCtldServer) ModifyPartitionAcl(context.Context, *ModifyPartitionAclRequest) (*ModifyPartitionAclReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyPartitionAcl not implemented")
 }
 func (UnimplementedCraneCtldServer) AddAccount(context.Context, *AddAccountRequest) (*AddAccountReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddAccount not implemented")
@@ -679,6 +695,24 @@ func _CraneCtld_ModifyNode_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CraneCtldServer).ModifyNode(ctx, req.(*ModifyCranedStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_ModifyPartitionAcl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyPartitionAclRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).ModifyPartitionAcl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_ModifyPartitionAcl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).ModifyPartitionAcl(ctx, req.(*ModifyPartitionAclRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -995,6 +1029,10 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ModifyNode",
 			Handler:    _CraneCtld_ModifyNode_Handler,
+		},
+		{
+			MethodName: "ModifyPartitionAcl",
+			Handler:    _CraneCtld_ModifyPartitionAcl_Handler,
 		},
 		{
 			MethodName: "AddAccount",
