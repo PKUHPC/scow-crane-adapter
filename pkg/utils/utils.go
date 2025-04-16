@@ -452,15 +452,14 @@ func RunCommand(command string) (string, error) {
 	return strings.TrimSpace(output.String()), nil
 }
 
-// GetSlurmClusterConfig 使用slurm命令获取partition的信息
-func GetSlurmClusterConfig(block bool, qosList []string) ([]*protos.Partition, error) {
+// GetCraneClusterConfig 获取partition的信息, whitelistPartition为空时获取所有分区信息，不为空则获取白名单内的分区信息
+func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Partition, error) {
 	var partitions []*protos.Partition
 
-	if block {
-		return partitions, nil
-	}
-
 	for _, part := range CConfig.Partitions {
+		if !Contains(whitelistPartition, part.Name) && whitelistPartition != nil {
+			continue
+		}
 		partitionName := part.Name
 		request := &craneProtos.QueryPartitionInfoRequest{
 			PartitionName: partitionName,
