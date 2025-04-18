@@ -25,7 +25,7 @@ func (s *ServerConfig) GetClusterConfig(ctx context.Context, in *protos.GetClust
 		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
 	}
 
-	partitions, err = utils.GetSlurmClusterConfig(false, qosList)
+	partitions, err = utils.GetCraneClusterConfig(nil, qosList)
 	if err != nil {
 		logrus.Errorf("GetClusterConfig error: %v", err)
 		return nil, err
@@ -56,15 +56,13 @@ func (s *ServerConfig) GetAvailablePartitions(ctx context.Context, in *protos.Ge
 		return nil, err
 	}
 
-	// 获取系统Qos
-	qosList, err := utils.GetAllQos()
-	if err != nil {
-		logrus.Errorf("Error getting QoS: %v", err)
-		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
-	}
-	logrus.Tracef("GetAvailablePartitions qos: %v", qosList)
+	// 获取账户的allowPartitions
+	allowPartitions := account.GetAllowedPartitions()
 
-	partitions, err = utils.GetSlurmClusterConfig(account.Blocked, qosList)
+	// 获取账户的allowQos
+	allowQos := account.GetAllowedQosList()
+
+	partitions, err = utils.GetCraneClusterConfig(allowPartitions, allowQos)
 	if err != nil {
 		logrus.Errorf("GetAvailablePartitions err: %v", err)
 		return nil, err
