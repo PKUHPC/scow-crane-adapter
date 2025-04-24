@@ -7,11 +7,18 @@ ifeq ($(UNAME_M),aarch64)
 	ARCH := arm64
 endif
 
+COMMIT_ID := $(shell git rev-parse --short HEAD)
+BUILD_TIME := $(shell date +'%a, %d %b %Y %H:%M:%S %z')
+LDFLAGS := -ldflags \
+           "-X 'scow-crane-adapter/pkg/utils.GitCommit=$(COMMIT_ID)' \
+           -X 'scow-crane-adapter/pkg/utils.BuildTime=$(BUILD_TIME)'"
+
+
 protos:
 	buf generate --template buf.gen.yaml https://github.com/PKUHPC/scow-scheduler-adapter-interface.git#subdir=protos,tag=v1.8.0
 
 build:
-	CGO_BUILD=0 GOARCH=${ARCH} go build -o scow-crane-adapter-${ARCH} ./cmd/main.go
+	CGO_BUILD=0 GOARCH=${ARCH} go build $(LDFLAGS) -o scow-crane-adapter ./cmd/main.go
 
 test:
 	go test

@@ -30,8 +30,9 @@ var (
 
 func NewAdapterCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "scow-crane-adapter",
-		Short: "crane adapter for scow",
+		Use:     "scow-crane-adapter",
+		Short:   "crane adapter for scow",
+		Version: utils.GetVersion(),
 		Run: func(cmd *cobra.Command, args []string) {
 			Run()
 		},
@@ -60,6 +61,7 @@ func NewAdapterCommand() *cobra.Command {
 		logrus.Debugf("Using config:\n%+v", GConfig)
 	})
 
+	rootCmd.SetVersionTemplate(utils.VersionTemplate())
 	// Specify config file path
 	rootCmd.PersistentFlags().StringVarP(&FlagConfigFilePath, "config", "c", "", "Path to configuration file")
 
