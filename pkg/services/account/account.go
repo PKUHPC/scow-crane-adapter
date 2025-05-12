@@ -6,11 +6,13 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
+	sau "scow-crane-adapter/pkg/services/account/sync_account_user"
 	"scow-crane-adapter/pkg/utils"
 )
 
@@ -55,28 +57,12 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
 	}
 
-	AccountInfo := &craneProtos.AccountInfo{
-		Name:              in.AccountName,
-		Description:       "Create account in crane.",
-		AllowedPartitions: partitionList,
-		DefaultQos:        qosList[0],
-		AllowedQosList:    qosList,
-	}
-	// 创建账户请求体
-	request := &craneProtos.AddAccountRequest{
-		Uid:     uint32(os.Getuid()),
-		Account: AccountInfo,
-	}
-	response, err := utils.CraneCtld.AddAccount(context.Background(), request)
-	if err != nil {
-		logrus.Errorf("CreateAccount err: %v", err)
+	if err = utils.CreateAccount(in.AccountName, partitionList, qosList); err != nil {
+		logrus.Errorf("CreateAccount create account %v failed: %v", in.AccountName, err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if !response.GetOk() {
-		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", strconv.FormatInt(int64(response.GetCode()), 10))
-	}
 	logrus.Tracef("create account: %v success", in.AccountName)
+
 	// 账户创建成功后，将用户添加至账户中
 	for _, partition := range utils.CConfig.Partitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
@@ -90,27 +76,12 @@ func (s *ServerAccount) CreateAccount(ctx context.Context, in *protos.CreateAcco
 		logrus.Errorf("CreateAccount err: %v", err)
 		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", "The user is not exists.")
 	}
-	user := &craneProtos.UserInfo{
-		Uid:                     uint32(uid),
-		Name:                    in.OwnerUserId,
-		Account:                 in.AccountName,
-		Blocked:                 false,
-		AllowedPartitionQosList: allowedPartitionQosList,
-		AdminLevel:              craneProtos.UserInfo_None,
-	}
-	requestAddUser := &craneProtos.AddUserRequest{
-		Uid:  0,
-		User: user,
-	}
-	responseUser, err := utils.CraneCtld.AddUser(context.Background(), requestAddUser)
-	if err != nil {
-		logrus.Errorf("CreateAccount err: %v", err)
+
+	if err = utils.AddUserToAccount(uid, in.OwnerUserId, in.AccountName, allowedPartitionQosList); err != nil {
+		logrus.Errorf("CreateAccount add user %v to account %v failed: %v", in.OwnerUserId, in.AccountName, err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
-	if !responseUser.GetOk() {
-		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(responseUser.GetCode()), 10))
-	}
+
 	logrus.Tracef("add user : %v to account: %v success", in.OwnerUserId, in.AccountName)
 
 	logrus.Infof("CreateAccount create account: %v success", in.AccountName)
@@ -128,25 +99,13 @@ func (s *ServerAccount) BlockAccount(ctx context.Context, in *protos.BlockAccoun
 		return nil, utils.RichError(codes.Internal, "ACCOUNT_ILLEGAL", err.Error())
 	}
 
-	// 请求体 封锁账户
-	request := &craneProtos.BlockAccountOrUserRequest{
-		Block:      true,
-		EntityType: craneProtos.EntityType_Account,
-		EntityList: []string{in.AccountName},
-		Uid:        0,
+	if err := utils.BlockAccount(in.AccountName); err != nil {
+		logrus.Errorf("BlockAccount failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "BLOCK_ACCOUNT_FAILED", err.Error())
 	}
-	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
-	if err != nil {
-		logrus.Errorf("BlockAccount err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		logrus.Errorf("BlockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.RichErrorList[0].GetDescription())
-	} else {
-		logrus.Infof("BlockAccount account: %v success", in.AccountName)
-		return &protos.BlockAccountResponse{}, nil
-	}
+
+	logrus.Infof("BlockAccount account: %v success", in.AccountName)
+	return &protos.BlockAccountResponse{}, nil
 }
 
 func (s *ServerAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAccountRequest) (*protos.UnblockAccountResponse, error) {
@@ -160,25 +119,12 @@ func (s *ServerAccount) UnblockAccount(ctx context.Context, in *protos.UnblockAc
 		return nil, utils.RichError(codes.Internal, "ACCOUNT_ILLEGAL", err.Error())
 	}
 
-	//  解封账户请求体
-	request := &craneProtos.BlockAccountOrUserRequest{
-		Block:      false,
-		EntityType: craneProtos.EntityType_Account,
-		EntityList: []string{in.AccountName},
-		Uid:        0,
+	if err := utils.UnblockAccount(in.AccountName); err != nil {
+		logrus.Errorf("UnblockAccount failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "UNBLOCK_ACCOUNT_FAILED", err.Error())
 	}
-	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
-	if err != nil {
-		logrus.Errorf("UnblockAccount err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		logrus.Errorf("UnblockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", response.RichErrorList[0].GetDescription())
-	} else {
-		logrus.Infof("UnblockAccount account: %v success", in.AccountName)
-		return &protos.UnblockAccountResponse{}, nil
-	}
+	logrus.Infof("UnblockAccount account: %v success", in.AccountName)
+	return &protos.UnblockAccountResponse{}, nil
 }
 
 func (s *ServerAccount) GetAllAccountsWithUsers(ctx context.Context, in *protos.GetAllAccountsWithUsersRequest) (*protos.GetAllAccountsWithUsersResponse, error) {
@@ -231,6 +177,12 @@ func (s *ServerAccount) QueryAccountBlockStatus(ctx context.Context, in *protos.
 	if err != nil {
 		logrus.Errorf("QueryAccountBlockStatus err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
+	}
+
+	if account == nil {
+		err = fmt.Errorf("account %v not found", in.AccountName)
+		logrus.Errorf("QueryAccountBlockStatus err: %v", err)
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", err.Error())
 	}
 
 	// 获取所有分区
@@ -329,6 +281,12 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 
+	if account == nil {
+		err = fmt.Errorf("account %v not found", in.AccountName)
+		logrus.Errorf("BlockAccountWithPartitions err: %v", err)
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", err.Error())
+	}
+
 	// 获取账户的allowPartitions
 	allowPartitions := account.GetAllowedPartitions()
 
@@ -345,27 +303,9 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 		return &protos.BlockAccountWithPartitionsResponse{}, nil
 	}
 
-	// 封锁账户请求体
-	request := &craneProtos.ModifyAccountRequest{
-		ModifyField: craneProtos.ModifyField_Partition,
-		ValueList:   needBlockPartitions,
-		Name:        in.AccountName,
-		Type:        craneProtos.OperationType_Delete,
-		Uid:         0,
-	}
-
-	response, err := utils.CraneCtld.ModifyAccount(context.Background(), request)
-	if err != nil {
+	if err = utils.BlockAccountInPartitions(in.AccountName, needBlockPartitions); err != nil {
 		logrus.Errorf("BlockAccountWithPartitions err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		var message string
-		for _, richError := range response.GetRichErrorList() {
-			message += richError.GetDescription() + "\n"
-		}
-		logrus.Errorf("BlockAccountWithPartitions failed: %v", message)
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", message)
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 
 	logrus.Infof("BlockAccountWithPartitions account: %v success", in.AccountName)
@@ -390,6 +330,12 @@ func (s *ServerAccount) UnblockAccountWithPartitions(ctx context.Context, in *pr
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 
+	if account == nil {
+		err = fmt.Errorf("account %v not found", in.AccountName)
+		logrus.Errorf("UnblockAccountWithPartitions err: %v", err)
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", err.Error())
+	}
+
 	// 获取账户的allowPartitions
 	allowPartitions := account.GetAllowedPartitions()
 
@@ -406,27 +352,9 @@ func (s *ServerAccount) UnblockAccountWithPartitions(ctx context.Context, in *pr
 		return &protos.UnblockAccountWithPartitionsResponse{}, nil
 	}
 
-	// 封锁账户请求体
-	request := &craneProtos.ModifyAccountRequest{
-		ModifyField: craneProtos.ModifyField_Partition,
-		ValueList:   needUnblockPartitions,
-		Name:        in.AccountName,
-		Type:        craneProtos.OperationType_Add,
-		Uid:         0,
-	}
-
-	response, err := utils.CraneCtld.ModifyAccount(context.Background(), request)
-	if err != nil {
+	if err = utils.UnblockAccountInPartitions(in.AccountName, needUnblockPartitions); err != nil {
 		logrus.Errorf("UnblockAccountWithPartitions err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		var message string
-		for _, richError := range response.GetRichErrorList() {
-			message += richError.GetDescription() + "\n"
-		}
-		logrus.Errorf("UnblockAccountWithPartitions failed: %v", message)
-		return nil, utils.RichError(codes.AlreadyExists, "ACCOUNT_ALREADY_EXISTS", message)
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 
 	logrus.Infof("UnblockAccountWithPartitions account: %v success", in.AccountName)
@@ -451,6 +379,12 @@ func (s *ServerAccount) QueryAccountBlockStatusWithPartitions(ctx context.Contex
 	if err != nil {
 		logrus.Errorf("QueryAccountBlockStatusWithPartitions err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
+	}
+
+	if account == nil {
+		err = fmt.Errorf("account %v not found", in.AccountName)
+		logrus.Errorf("QueryAccountBlockStatusWithPartitions err: %v", err)
+		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", err.Error())
 	}
 
 	// 获取计算分区信息
@@ -573,4 +507,65 @@ func (s *ServerAccount) GetAllAccountsWithUsersAndBlockedDetails(ctx context.Con
 
 	logrus.Tracef("GetAllAccountsWithUsersAndBlockedDetails response: %v", acctInfo)
 	return &protos.GetAllAccountsWithUsersAndBlockedDetailsResponse{Accounts: acctInfo}, nil
+}
+
+func (s *ServerAccount) SyncAccountUserInfo(ctx context.Context, in *protos.SyncAccountUserInfoRequest) (*protos.SyncAccountUserInfoResponse, error) {
+	var syncResults []*protos.SyncAccountUserInfoResponse_SyncOperationResult
+	start := time.Now()
+	logrus.Infof("Start SyncAccountUserInfo, SyncAccounts: %v", in.SyncAccounts)
+	logrus.Infof("Start SyncAccountUserInfo, Timeout Millisecond: %v", *in.TimeoutMilliseconds)
+
+	if in.SyncAccounts == nil || len(in.SyncAccounts) == 0 {
+		logrus.Infof("SyncAccountUserInfo SyncAccounts is nil, no synchronization is required")
+		return nil, nil
+	}
+
+	// 设置带超时的context
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Duration(*in.TimeoutMilliseconds)*time.Millisecond)
+	defer cancel()
+
+	isCompleted := true
+
+outerLoop:
+	for i, syncAccount := range in.SyncAccounts {
+		// 每次循环前检查超时
+		select {
+		case <-ctx.Done():
+			logrus.Warnf("Sync timeout，%d/%d accounts processed", i, len(in.SyncAccounts))
+			isCompleted = false
+			break outerLoop // 超时了，跳出循环不在执行，返回已处理的结果和未完成状态
+		default:
+		}
+
+		logrus.Tracef("SyncAccountUserInfo, snyc index: %v", i)
+		if *syncAccount.Deleted {
+			message := fmt.Sprintf("account %v is deleted, no sync required", syncAccount.AccountName)
+			logrus.Infof("[SyncAccountUser] %v", message)
+			continue
+		}
+
+		results := sau.SyncAccountUser(syncAccount)
+		for _, result := range results {
+			if result == nil {
+				continue
+			}
+			syncResults = append(syncResults, result)
+		}
+	}
+
+	// 等待结果收集完成或超时
+	if isCompleted {
+		// 计算耗时（毫秒）
+		elapsed := time.Since(start).Milliseconds()
+		logrus.Infof("SyncAccountUserInfo completed, used time: %d, timelimit: %d", elapsed, *in.TimeoutMilliseconds)
+		logrus.Infof("SyncAccountUserInfo completed, results: %d", len(syncResults))
+	} else {
+		// 计算耗时（毫秒）
+		elapsed := time.Since(start).Milliseconds()
+		logrus.Infof("SyncAccountUserInfo timeout, used time: %d, timelimit: %d", elapsed, *in.TimeoutMilliseconds)
+		logrus.Warnf("SyncAccountUserInfo timeout, returning %d completed results", len(syncResults))
+	}
+
+	return &protos.SyncAccountUserInfoResponse{SyncResults: syncResults, CompletelyExecuted: isCompleted}, nil
 }

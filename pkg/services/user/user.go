@@ -68,42 +68,20 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 
 func (s *ServerUser) RemoveUserFromAccount(ctx context.Context, in *protos.RemoveUserFromAccountRequest) (*protos.RemoveUserFromAccountResponse, error) {
 	logrus.Infof("Received request RemoveUserFromAccount: %v", in)
-	request := &craneProtos.DeleteUserRequest{
-		Uid:      0,
-		Account:  in.AccountName,
-		UserList: []string{in.UserId},
+	if err := utils.DeleteUserFromAccount(in.UserId, in.AccountName); err != nil {
+		logrus.Errorf("RemoveUserFromAccount err: %v", err)
+		return nil, utils.RichError(codes.Internal, "CRANE_CALL_FAILED", err.Error())
 	}
 
-	response, err := utils.CraneCtld.DeleteUser(context.Background(), request)
-	if err != nil {
-		logrus.Errorf("RemoveUserFromAccount err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		logrus.Errorf("RemoveUserFromAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
-	}
 	logrus.Infof("RemoveUserFromAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.RemoveUserFromAccountResponse{}, nil
 }
 
 func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUserInAccountRequest) (*protos.BlockUserInAccountResponse, error) {
 	logrus.Infof("Received request BlockUserInAccount: %v", in)
-	request := &craneProtos.BlockAccountOrUserRequest{
-		Block:      true,
-		Uid:        0, // 操作者
-		EntityType: craneProtos.EntityType_User,
-		EntityList: []string{in.UserId},
-		Account:    in.AccountName,
-	}
-	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
+	err := utils.BlockUserInAccount(in.UserId, in.AccountName)
 	if err != nil {
-		logrus.Errorf("BlockUserInAccount err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
+		return nil, utils.RichError(codes.Internal, "CRANE_CALL_FAILED", err.Error())
 	}
 	logrus.Infof("BlockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.BlockUserInAccountResponse{}, nil
@@ -111,21 +89,9 @@ func (s *ServerUser) BlockUserInAccount(ctx context.Context, in *protos.BlockUse
 
 func (s *ServerUser) UnblockUserInAccount(ctx context.Context, in *protos.UnblockUserInAccountRequest) (*protos.UnblockUserInAccountResponse, error) {
 	logrus.Infof("Received request UnblockUserInAccount: %v", in)
-	request := &craneProtos.BlockAccountOrUserRequest{
-		Block:      false,
-		Uid:        0,
-		EntityType: craneProtos.EntityType_User,
-		EntityList: []string{in.UserId},
-		Account:    in.AccountName,
-	}
-	response, err := utils.CraneCtld.BlockAccountOrUser(context.Background(), request)
+	err := utils.UnblockUserInAccount(in.UserId, in.AccountName)
 	if err != nil {
-		logrus.Errorf("UnblockUserInAccount err: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
-	}
-	if !response.GetOk() {
-		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
-		return nil, utils.RichError(codes.NotFound, "ASSOCIATION_NOT_EXISTS", response.GetRichErrorList()[0].GetDescription())
+		return nil, utils.RichError(codes.Internal, "CRANE_CALL_FAILED", err.Error())
 	}
 	logrus.Infof("UnblockUserInAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.UnblockUserInAccountResponse{}, nil
@@ -151,4 +117,38 @@ func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	blocked := response.GetUserList()[0].GetBlocked()
 	logrus.Tracef("QueryUserInAccountBlockStatus Blocked: %v", blocked)
 	return &protos.QueryUserInAccountBlockStatusResponse{Blocked: blocked}, nil
+}
+
+func (s *ServerUser) DeleteUser(ctx context.Context, in *protos.DeleteUserRequest) (*protos.DeleteUserResponse, error) {
+	// 检查用户名是否在
+	exist, err := utils.SelectUserExists(in.UserId)
+	if err != nil {
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "SQL_QUERY_FAILED", err.Error())
+	}
+	if !exist {
+		err = fmt.Errorf("user %s not found", in.UserId)
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", err.Error())
+	}
+
+	// 该用户作业的判断
+	hasJobs, err := utils.HasUnfinishedJobsByUserName(in.UserId)
+	if err != nil {
+		logrus.Errorf("DeleteUser failed: get jobs by user %v failed: %v", in.UserId, err)
+		return nil, utils.RichError(codes.Internal, "SQL_QUERY_FAILED", err.Error())
+	}
+
+	if !hasJobs {
+		if err = utils.DeleteUser(in.UserId); err != nil {
+			logrus.Errorf("DeleteUser: %v failed: %v", in.UserId, err)
+			return nil, err
+		}
+		logrus.Infof("Delete User: %v sucess!", in.UserId)
+		return &protos.DeleteUserResponse{}, nil
+	} else {
+		err = fmt.Errorf("DeleteUser failed: Exist running jobs")
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, err
+	}
 }

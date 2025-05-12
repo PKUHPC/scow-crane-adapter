@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
 	"os"
@@ -82,19 +83,19 @@ func RichError(code codes.Code, reason string, message string) error {
 
 // GetQos 获取系统中Qos列表
 func GetQos() ([]string, error) {
-	var Qoslist []string
+	var qosList []string
 	request := &craneProtos.QueryQosInfoRequest{
 		Uid: uint32(os.Getuid()),
 	}
 	response, err := CraneCtld.QueryQosInfo(context.Background(), request)
 	if err != nil {
-		return []string{}, err
+		return qosList, err
 	}
 	Qos := response.GetQosList()
 	for _, value := range Qos {
-		Qoslist = append(Qoslist, value.GetName())
+		qosList = append(qosList, value.GetName())
 	}
-	return Qoslist, nil
+	return qosList, nil
 }
 
 func GetAllQos() ([]string, error) {
@@ -104,7 +105,7 @@ func GetAllQos() ([]string, error) {
 	}
 	qosListValue := RemoveValue(qosList, "UNLIMITED")
 	if len(qosListValue) == 0 {
-		return nil, RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
+		return nil, fmt.Errorf("qos is nil")
 	}
 
 	return qosListValue, nil
@@ -116,10 +117,10 @@ func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
 	}
 	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("failed get accounts")
 	}
 	return response.GetAccountList(), nil
 }
@@ -132,6 +133,147 @@ func CheckAccount(name string) error {
 	return nil
 }
 
+func CreateAccount(accountName string, partitionList, qosList []string) error {
+	AccountInfo := &craneProtos.AccountInfo{
+		Name:              accountName,
+		Description:       "Create account in crane.",
+		AllowedPartitions: partitionList,
+		DefaultQos:        qosList[0],
+		AllowedQosList:    qosList,
+	}
+	// 创建账户请求体
+	request := &craneProtos.AddAccountRequest{
+		Uid:     uint32(os.Getuid()),
+		Account: AccountInfo,
+	}
+	response, err := CraneCtld.AddAccount(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("CreateAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
+		return fmt.Errorf("failed create account %v", accountName)
+	}
+	return nil
+}
+
+func AddUserToAccount(uid int, userName, accountName string, allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos) error {
+	userInfo := &craneProtos.UserInfo{
+		Uid:                     uint32(uid),
+		Name:                    userName,
+		Account:                 accountName,
+		Blocked:                 false,
+		AllowedPartitionQosList: allowedPartitionQosList,
+		AdminLevel:              craneProtos.UserInfo_None,
+	}
+	requestAddUser := &craneProtos.AddUserRequest{
+		Uid:  0,
+		User: userInfo,
+	}
+	responseUser, err := CraneCtld.AddUser(context.Background(), requestAddUser)
+	if err != nil {
+		logrus.Errorf("CreateAccount err: %v", err)
+		return err
+	}
+	if !responseUser.GetOk() {
+		logrus.Errorf("CreateAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
+		return fmt.Errorf("failed add user %v to account %v", userName, accountName)
+	}
+	return nil
+}
+
+// SelectUserExists 查询用户的存在情况，并返回错误
+func SelectUserExists(userName string) (bool, error) {
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:      0,
+		UserList: []string{userName},
+	}
+
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("Failed to show the user %v, error: %v", userName, err)
+		return false, err
+	}
+	if !response.GetOk() {
+		return false, nil
+	}
+	return true, nil
+}
+
+func DeleteUserFromAccount(userId, accountName string) error {
+	request := &craneProtos.DeleteUserRequest{
+		Uid:      0,
+		Account:  accountName,
+		UserList: []string{userId},
+	}
+
+	response, err := CraneCtld.DeleteUser(context.Background(), request)
+	if err != nil {
+		return err
+	}
+	if !response.GetOk() {
+		return fmt.Errorf("the user %v has been deleted in account %v", userId, accountName)
+	}
+	return nil
+}
+
+func DeleteUser(userId string) error {
+	request := &craneProtos.DeleteUserRequest{
+		Uid:      0,
+		UserList: []string{userId},
+	}
+
+	response, err := CraneCtld.DeleteUser(context.Background(), request)
+	if err != nil {
+		return err
+	}
+	if !response.GetOk() {
+		return fmt.Errorf("the user has been deleted")
+	}
+	return nil
+}
+
+func BlockUserInAccount(userId, accountName string) error {
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      true,
+		Uid:        0,
+		EntityType: craneProtos.EntityType_User,
+		EntityList: []string{userId},
+		Account:    accountName,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("BlockUserInAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
+		return fmt.Errorf("failed block user %v in account %v", userId, accountName)
+	}
+	return nil
+}
+
+func UnblockUserInAccount(userId, accountName string) error {
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      false,
+		Uid:        0,
+		EntityType: craneProtos.EntityType_User,
+		EntityList: []string{userId},
+		Account:    accountName,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("UnblockUserInAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
+		return fmt.Errorf("failed unblock user %v in account %v", userId, accountName)
+	}
+	return nil
+}
+
 func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 	request := &craneProtos.QueryAccountInfoRequest{
 		Uid:         0,
@@ -139,10 +281,10 @@ func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 	}
 	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.RichErrorList[0].GetDescription())
+		return nil, fmt.Errorf("failed get account %v", accountName)
 	}
 	return response.GetAccountList()[0], nil
 }
@@ -155,10 +297,10 @@ func GetAccountByUser(userName string) ([]string, error) {
 	}
 	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("failed get account by user %v", userName)
 	}
 
 	for _, list := range response.GetUserList() {
@@ -172,18 +314,23 @@ func GetAccountByUser(userName string) ([]string, error) {
 	return accountList, nil
 }
 
-func GetAllUser() ([]*craneProtos.UserInfo, error) {
+func GetAccountUserBlockedInfo(accountName string) (map[string]bool, error) {
 	request := &craneProtos.QueryUserInfoRequest{
-		Uid: 0,
+		Uid:     0,
+		Account: accountName,
 	}
 	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("account %v have not user", accountName)
 	}
-	return response.GetUserList(), nil
+	blockedInfo := make(map[string]bool)
+	for _, ui := range response.GetUserList() {
+		blockedInfo[ui.Name] = ui.Blocked
+	}
+	return blockedInfo, nil
 }
 
 // GetAllAccountUserInfoMap 获取账户下每个用户的信息
@@ -197,14 +344,14 @@ func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*cran
 		}
 		response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 		if err != nil {
-			return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+			return nil, err
 		}
 		if !response.GetOk() {
 			var message string
 			for _, richError := range response.GetRichErrorList() {
 				message += richError.GetDescription() + "\n"
 			}
-			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", message)
+			return nil, fmt.Errorf("failed get account user info: %v", message)
 		}
 
 		for _, info := range response.GetUserList() {
@@ -218,13 +365,106 @@ func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*cran
 	return accountUserInfo, nil
 }
 
+func BlockAccount(accountName string) error {
+	// 封锁账户请求体
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      true,
+		EntityType: craneProtos.EntityType_Account,
+		EntityList: []string{accountName},
+		Uid:        0,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("BlockAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("BlockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
+		return fmt.Errorf("failed block account in partitions: %v", response.RichErrorList[0].GetDescription())
+	}
+
+	return nil
+}
+
+func UnblockAccount(accountName string) error {
+	// 解封账户请求体
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      false,
+		EntityType: craneProtos.EntityType_Account,
+		EntityList: []string{accountName},
+		Uid:        0,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("UnblockAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("UnblockAccount err: %v", fmt.Errorf("ACCOUNT_ALREADY_EXISTS"))
+		return fmt.Errorf("failed unblock account in partitions: %v", response.RichErrorList[0].GetDescription())
+	}
+	return nil
+}
+
+func BlockAccountInPartitions(accountName string, partitions []string) error {
+	// 封锁账户请求体
+	request := &craneProtos.ModifyAccountRequest{
+		ModifyField: craneProtos.ModifyField_Partition,
+		ValueList:   partitions,
+		Name:        accountName,
+		Type:        craneProtos.OperationType_Delete,
+		Uid:         0,
+	}
+
+	response, err := CraneCtld.ModifyAccount(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("BlockAccountWithPartitions err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		var message string
+		for _, richError := range response.GetRichErrorList() {
+			message += richError.GetDescription() + "\n"
+		}
+		logrus.Errorf("BlockAccountWithPartitions failed: %v", message)
+		return fmt.Errorf("failed block account in partitions: %v", message)
+	}
+	return nil
+}
+
+func UnblockAccountInPartitions(accountName string, partitions []string) error {
+	// 解封账户请求体
+	request := &craneProtos.ModifyAccountRequest{
+		ModifyField: craneProtos.ModifyField_Partition,
+		ValueList:   partitions,
+		Name:        accountName,
+		Type:        craneProtos.OperationType_Add,
+		Uid:         0,
+	}
+
+	response, err := CraneCtld.ModifyAccount(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("UnblockAccountWithPartitions err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		var message string
+		for _, richError := range response.GetRichErrorList() {
+			message += richError.GetDescription() + "\n"
+		}
+		logrus.Errorf("UnblockAccountWithPartitions failed: %v", message)
+		return fmt.Errorf("failed unblock account in partitions: %v", message)
+	}
+	return nil
+}
+
 func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error) {
 	request := &craneProtos.QueryPartitionInfoRequest{
 		PartitionName: partitionName,
 	}
 	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		return nil, err
 	}
 
 	return response.GetPartitionInfo()[0], nil
@@ -239,10 +479,10 @@ func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProto
 
 	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+		return nil, fmt.Errorf("the partitions %v not have task", partitionList)
 	}
 
 	return response.GetTaskInfoList(), nil
@@ -257,11 +497,11 @@ func GetTaskByAccountName(accountNames []string) ([]*craneProtos.TaskInfo, error
 
 	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+		return nil, fmt.Errorf("the account %v not have task", accountNames)
 	}
 
 	return response.GetTaskInfoList(), nil
@@ -278,7 +518,7 @@ func GetNodeByPartitionAndStatus(partitionList []string, cranedStateList []crane
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
 	if err != nil {
-		return 0, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return 0, err
 	}
 
 	for _, partitionCraned := range response.Partitions {
@@ -302,7 +542,7 @@ func GetNodeByPartition(partitionList []string) (uint32, uint32, uint32, uint32,
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
 	if err != nil {
-		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, err
 	}
 
 	for _, partitionCraned := range response.Partitions {
@@ -466,7 +706,7 @@ func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Part
 		}
 		response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 		if err != nil {
-			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+			return nil, err
 		}
 		partitionValue := response.GetPartitionInfo()[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
@@ -492,7 +732,7 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	}
 	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 	if err != nil {
-		return "", RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		return "", err
 	}
 	partitionValue := response.GetPartitionInfo()[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
@@ -608,4 +848,65 @@ func GetAllPartitions() []string {
 		partitions = append(partitions, partition.Name)
 	}
 	return partitions
+}
+
+func HasUnfinishedJobsByUserName(userName string) (bool, error) {
+	request := &craneProtos.QueryTasksInfoRequest{
+		FilterUsers:                 []string{userName},
+		OptionIncludeCompletedTasks: false,
+	}
+	response, err := CraneCtld.QueryTasksInfo(context.Background(), request)
+
+	if err != nil {
+		return false, err
+	}
+	if !response.GetOk() {
+		return false, nil
+	}
+
+	if len(response.GetTaskInfoList()) != 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func GetAccountAssociatedUser(accountName string, excludeUserList []string) ([]string, error) {
+	var userList []string
+
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:     0,
+		Account: accountName,
+	}
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	if !response.GetOk() {
+		return nil, fmt.Errorf("the account %v not have user", accountName)
+	}
+	for _, ui := range response.GetUserList() {
+		if Contains(excludeUserList, ui.Name) {
+			continue
+		}
+		userList = append(userList, ui.Name)
+	}
+
+	return userList, nil
+}
+
+// SliceSubtract a排除b
+func SliceSubtract[T comparable](a, b []T) []T {
+	exclude := make(map[T]struct{})
+	for _, item := range b {
+		exclude[item] = struct{}{}
+	}
+
+	var result []T
+	for _, item := range a {
+		if _, ok := exclude[item]; !ok {
+			result = append(result, item)
+		}
+	}
+	return result
 }
