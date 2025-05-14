@@ -609,3 +609,17 @@ func GetAllPartitions() []string {
 	}
 	return partitions
 }
+
+// GetGpuNumsFromJob 获取加速卡的数量 device_map:{name_type_map:{key:"BI" value:{total:8}}}
+func GetGpuNumsFromJob(data *craneProtos.DeviceMap) int32 {
+	if data == nil {
+		return 0
+	}
+
+	var gpuCount int32
+	for _, typeCountMap := range data.GetNameTypeMap() { //name_type_map:{key:"BI" value:{total:8}}
+		gpuCount += int32(typeCountMap.GetTotal())
+	}
+
+	return gpuCount
+}
