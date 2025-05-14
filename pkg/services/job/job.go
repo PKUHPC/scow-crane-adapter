@@ -374,8 +374,6 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		var reason string = "no reason"
 		var nodeNum int32
 		var endTime *timestamppb.Timestamp
-		var gpusAlloc int32 = 0
-		var memAllocMb int64 = 0
 		if job.GetStatus() == craneProtos.TaskStatus_Running {
 			elapsedSeconds = time.Now().Unix() - job.GetStartTime().Seconds
 		} else if job.GetStatus() == craneProtos.TaskStatus_Pending {
@@ -385,6 +383,13 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		}
 		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
 		cpusAllocInt32 := int32(cpusAlloc)
+
+		jobMemAllocMb := job.GetResView().GetAllocatableRes().MemoryLimitBytes
+		memAllocMb := int64(jobMemAllocMb / (1024 * 1024))
+
+		jobGpusAlloc := job.GetResView().GetDeviceMap()
+		gpusAlloc := utils.GetGpuNumsFromJob(jobGpusAlloc)
+
 		nodeList := job.GetCranedList()
 
 		if job.GetStatus().String() == "Completed" {
@@ -435,6 +440,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				GpusAlloc:        &gpusAlloc,
 				MemAllocMb:       &memAllocMb,
 			})
+			logrus.Tracef("GetJobs: jobsInfo %v", jobsInfo)
 		} else {
 			subJobInfo := &protos.JobInfo{}
 			for _, field := range in.Fields {
@@ -479,6 +485,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.MemAllocMb = &memAllocMb
 				}
 			}
+			logrus.Tracef("GetJobs: jobsInfo %v", jobsInfo)
 			jobsInfo = append(jobsInfo, subJobInfo)
 		}
 	}
