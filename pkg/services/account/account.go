@@ -521,7 +521,7 @@ func (s *ServerAccount) GetAllAccountsWithUsersAndBlockedDetails(ctx context.Con
 
 		for _, user := range users {
 			userInfo = append(userInfo, &protos.ClusterAccountInfoWithBlockedDetails_UserInAccount{
-				UserId:   strconv.Itoa(int(user.GetUid())),
+				UserId:   user.GetName(),
 				UserName: user.GetName(),
 				Blocked:  user.GetBlocked(),
 			})
