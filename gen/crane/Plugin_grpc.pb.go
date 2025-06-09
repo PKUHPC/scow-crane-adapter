@@ -36,11 +36,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CranePluginD_StartHook_FullMethodName         = "/crane.grpc.plugin.CranePluginD/StartHook"
-	CranePluginD_EndHook_FullMethodName           = "/crane.grpc.plugin.CranePluginD/EndHook"
-	CranePluginD_NodeEventHook_FullMethodName     = "/crane.grpc.plugin.CranePluginD/NodeEventHook"
-	CranePluginD_CreateCgroupHook_FullMethodName  = "/crane.grpc.plugin.CranePluginD/CreateCgroupHook"
-	CranePluginD_DestroyCgroupHook_FullMethodName = "/crane.grpc.plugin.CranePluginD/DestroyCgroupHook"
+	CranePluginD_StartHook_FullMethodName            = "/crane.grpc.plugin.CranePluginD/StartHook"
+	CranePluginD_EndHook_FullMethodName              = "/crane.grpc.plugin.CranePluginD/EndHook"
+	CranePluginD_NodeEventHook_FullMethodName        = "/crane.grpc.plugin.CranePluginD/NodeEventHook"
+	CranePluginD_UpdatePowerStateHook_FullMethodName = "/crane.grpc.plugin.CranePluginD/UpdatePowerStateHook"
+	CranePluginD_RegisterCranedHook_FullMethodName   = "/crane.grpc.plugin.CranePluginD/RegisterCranedHook"
+	CranePluginD_CreateCgroupHook_FullMethodName     = "/crane.grpc.plugin.CranePluginD/CreateCgroupHook"
+	CranePluginD_DestroyCgroupHook_FullMethodName    = "/crane.grpc.plugin.CranePluginD/DestroyCgroupHook"
 )
 
 // CranePluginDClient is the client API for CranePluginD service.
@@ -51,6 +53,8 @@ type CranePluginDClient interface {
 	StartHook(ctx context.Context, in *StartHookRequest, opts ...grpc.CallOption) (*StartHookReply, error)
 	EndHook(ctx context.Context, in *EndHookRequest, opts ...grpc.CallOption) (*EndHookReply, error)
 	NodeEventHook(ctx context.Context, in *NodeEventHookRequest, opts ...grpc.CallOption) (*NodeEventHookReply, error)
+	UpdatePowerStateHook(ctx context.Context, in *UpdatePowerStateHookRequest, opts ...grpc.CallOption) (*UpdatePowerStateHookReply, error)
+	RegisterCranedHook(ctx context.Context, in *RegisterCranedHookRequest, opts ...grpc.CallOption) (*RegisterCranedHookReply, error)
 	// ----------------------------------- Called from Craned ----------------------------------------------------
 	CreateCgroupHook(ctx context.Context, in *CreateCgroupHookRequest, opts ...grpc.CallOption) (*CreateCgroupHookReply, error)
 	DestroyCgroupHook(ctx context.Context, in *DestroyCgroupHookRequest, opts ...grpc.CallOption) (*DestroyCgroupHookReply, error)
@@ -94,6 +98,26 @@ func (c *cranePluginDClient) NodeEventHook(ctx context.Context, in *NodeEventHoo
 	return out, nil
 }
 
+func (c *cranePluginDClient) UpdatePowerStateHook(ctx context.Context, in *UpdatePowerStateHookRequest, opts ...grpc.CallOption) (*UpdatePowerStateHookReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdatePowerStateHookReply)
+	err := c.cc.Invoke(ctx, CranePluginD_UpdatePowerStateHook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cranePluginDClient) RegisterCranedHook(ctx context.Context, in *RegisterCranedHookRequest, opts ...grpc.CallOption) (*RegisterCranedHookReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterCranedHookReply)
+	err := c.cc.Invoke(ctx, CranePluginD_RegisterCranedHook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *cranePluginDClient) CreateCgroupHook(ctx context.Context, in *CreateCgroupHookRequest, opts ...grpc.CallOption) (*CreateCgroupHookReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCgroupHookReply)
@@ -122,6 +146,8 @@ type CranePluginDServer interface {
 	StartHook(context.Context, *StartHookRequest) (*StartHookReply, error)
 	EndHook(context.Context, *EndHookRequest) (*EndHookReply, error)
 	NodeEventHook(context.Context, *NodeEventHookRequest) (*NodeEventHookReply, error)
+	UpdatePowerStateHook(context.Context, *UpdatePowerStateHookRequest) (*UpdatePowerStateHookReply, error)
+	RegisterCranedHook(context.Context, *RegisterCranedHookRequest) (*RegisterCranedHookReply, error)
 	// ----------------------------------- Called from Craned ----------------------------------------------------
 	CreateCgroupHook(context.Context, *CreateCgroupHookRequest) (*CreateCgroupHookReply, error)
 	DestroyCgroupHook(context.Context, *DestroyCgroupHookRequest) (*DestroyCgroupHookReply, error)
@@ -142,6 +168,12 @@ func (UnimplementedCranePluginDServer) EndHook(context.Context, *EndHookRequest)
 }
 func (UnimplementedCranePluginDServer) NodeEventHook(context.Context, *NodeEventHookRequest) (*NodeEventHookReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeEventHook not implemented")
+}
+func (UnimplementedCranePluginDServer) UpdatePowerStateHook(context.Context, *UpdatePowerStateHookRequest) (*UpdatePowerStateHookReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePowerStateHook not implemented")
+}
+func (UnimplementedCranePluginDServer) RegisterCranedHook(context.Context, *RegisterCranedHookRequest) (*RegisterCranedHookReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterCranedHook not implemented")
 }
 func (UnimplementedCranePluginDServer) CreateCgroupHook(context.Context, *CreateCgroupHookRequest) (*CreateCgroupHookReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCgroupHook not implemented")
@@ -223,6 +255,42 @@ func _CranePluginD_NodeEventHook_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CranePluginD_UpdatePowerStateHook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePowerStateHookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CranePluginDServer).UpdatePowerStateHook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CranePluginD_UpdatePowerStateHook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CranePluginDServer).UpdatePowerStateHook(ctx, req.(*UpdatePowerStateHookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CranePluginD_RegisterCranedHook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterCranedHookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CranePluginDServer).RegisterCranedHook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CranePluginD_RegisterCranedHook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CranePluginDServer).RegisterCranedHook(ctx, req.(*RegisterCranedHookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CranePluginD_CreateCgroupHook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCgroupHookRequest)
 	if err := dec(in); err != nil {
@@ -277,6 +345,14 @@ var CranePluginD_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NodeEventHook",
 			Handler:    _CranePluginD_NodeEventHook_Handler,
+		},
+		{
+			MethodName: "UpdatePowerStateHook",
+			Handler:    _CranePluginD_UpdatePowerStateHook_Handler,
+		},
+		{
+			MethodName: "RegisterCranedHook",
+			Handler:    _CranePluginD_RegisterCranedHook_Handler,
 		},
 		{
 			MethodName: "CreateCgroupHook",

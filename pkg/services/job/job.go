@@ -19,6 +19,10 @@ import (
 	"scow-crane-adapter/pkg/utils"
 )
 
+const (
+	MaxSafeInteger = 1<<53 - 1 // 2⁵³ - 1
+)
+
 type ServerJob struct {
 	protos.UnimplementedJobServiceServer
 	ModulePath string
@@ -137,7 +141,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	)
 	logrus.Infof("Received request GetJobById: %v", in)
 	request := &craneProtos.QueryTasksInfoRequest{
-		FilterTaskIds:               []uint32{uint32(in.JobId)},
+		FilterTaskIds:               []uint32{in.JobId},
 		OptionIncludeCompletedTasks: true,
 	}
 	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
@@ -172,7 +176,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 
 	// 获取cpu核分配数
 	// cpusAlloc := TaskInfoList.GetAllocCpus()
-	cpusAlloc := TaskInfoList.GetResView().GetAllocatableRes().CpuCoreLimit
+	cpusAlloc := TaskInfoList.GetReqResView().GetAllocatableRes().GetCpuCoreLimit()
 	cpusAllocInt32 := int32(cpusAlloc)
 	// 获取节点列表
 	nodeList := TaskInfoList.GetCranedList()
@@ -381,13 +385,13 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		} else {
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
 		}
-		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
+		cpusAlloc := job.GetAllocatedResView().GetAllocatableRes().GetCpuCoreLimit()
 		cpusAllocInt32 := int32(cpusAlloc)
 
-		jobMemAllocMb := job.GetResView().GetAllocatableRes().MemoryLimitBytes
+		jobMemAllocMb := job.GetAllocatedResView().GetAllocatableRes().MemoryLimitBytes
 		memAllocMb := int64(jobMemAllocMb / (1024 * 1024))
 
-		jobGpusAlloc := job.GetResView().GetDeviceMap()
+		jobGpusAlloc := job.GetAllocatedResView().GetDeviceMap()
 		gpusAlloc := utils.GetGpuNumsFromJob(jobGpusAlloc)
 
 		nodeList := job.GetCranedList()
@@ -418,6 +422,13 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			reason = "Ivalid"
 		}
 		nodeNum = int32(job.GetNodeNum())
+
+		var timeLimitMinutes int64
+		if job.GetTimeLimit() == nil {
+			timeLimitMinutes = MaxSafeInteger
+		} else {
+			timeLimitMinutes = job.GetTimeLimit().Seconds / 60
+		}
 		if len(in.Fields) == 0 {
 			jobsInfo = append(jobsInfo, &protos.JobInfo{
 				JobId:            job.GetTaskId(),
@@ -428,7 +439,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				StartTime:        job.GetStartTime(),
 				EndTime:          endTime,
 				NodesAlloc:       &nodeNum,
-				TimeLimitMinutes: job.GetTimeLimit().Seconds / 60,
+				TimeLimitMinutes: timeLimitMinutes,
 				WorkingDirectory: job.GetCwd(),
 				State:            state,
 				NodeList:         &nodeList,
@@ -462,7 +473,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				case "end_time":
 					subJobInfo.EndTime = endTime
 				case "time_limit_minutes":
-					subJobInfo.TimeLimitMinutes = job.GetTimeLimit().Seconds / 60
+					subJobInfo.TimeLimitMinutes = timeLimitMinutes
 				case "working_directory":
 					subJobInfo.WorkingDirectory = job.GetCwd()
 				case "cpus_alloc":

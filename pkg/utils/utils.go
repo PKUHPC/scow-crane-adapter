@@ -227,7 +227,7 @@ func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error
 		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 
-	return response.GetPartitionInfo()[0], nil
+	return response.PartitionInfoList[0], nil
 }
 
 func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProtos.TaskStatus) ([]*craneProtos.TaskInfo, error) {
@@ -468,7 +468,7 @@ func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Part
 		if err != nil {
 			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 		}
-		partitionValue := response.GetPartitionInfo()[0]
+		partitionValue := response.PartitionInfoList[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
 		// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
 		gpuCount := GetGpuNumsFromPartition(totalGpusTypeMap)
@@ -494,7 +494,7 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	if err != nil {
 		return "", RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
-	partitionValue := response.GetPartitionInfo()[0]
+	partitionValue := response.PartitionInfoList[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
 
 	for key, _ := range deviceMap.GetNameTypeMap() {
@@ -536,14 +536,19 @@ func ExtractNodeInfo(info *craneProtos.CranedInfo) *protos.NodeInfo {
 	default: // 其他不知道的状态默认为不可用的状态
 		nodeState = protos.NodeInfo_NOT_AVAILABLE
 	}
-	totalMem := info.GetResTotal().GetAllocatableResInNode().GetMemoryLimitBytes()
-	allocMem := info.GetResAlloc().GetAllocatableResInNode().GetMemoryLimitBytes()
+
+	totalMem := info.GetResTotal().GetAllocatableResInNode().GetMemoryLimitBytes() / 1024 * 1024
+	allocMem := info.GetResAlloc().GetAllocatableResInNode().GetMemoryLimitBytes() / 1024 * 1024
+
 	totalCpuCores := info.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
 	allocCpuCores := info.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
+
 	totalGpusTypeMap := info.GetResTotal().GetDedicatedResInNode()
 	totalGpus := getGpuNums(totalGpusTypeMap)
+
 	allocGpusTypeMap := info.GetResAlloc().GetDedicatedResInNode()
 	allocGpus := getGpuNums(allocGpusTypeMap)
+
 	IdleGpuCountTypeMap := info.GetResAvail().GetDedicatedResInNode()
 	idleGpus := getGpuNums(IdleGpuCountTypeMap)
 
