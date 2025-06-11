@@ -536,10 +536,13 @@ func ExtractNodeInfo(info *craneProtos.CranedInfo) *protos.NodeInfo {
 	default: // 其他不知道的状态默认为不可用的状态
 		nodeState = protos.NodeInfo_NOT_AVAILABLE
 	}
-	totalMem := info.GetResTotal().GetAllocatableResInNode().GetMemoryLimitBytes()
-	allocMem := info.GetResAlloc().GetAllocatableResInNode().GetMemoryLimitBytes()
+
+	totalMem := info.GetResTotal().GetAllocatableResInNode().GetMemoryLimitBytes() / (1024 * 1024)
+	allocMem := info.GetResAlloc().GetAllocatableResInNode().GetMemoryLimitBytes() / (1024 * 1024)
+
 	totalCpuCores := info.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
 	allocCpuCores := info.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
+
 	totalGpusTypeMap := info.GetResTotal().GetDedicatedResInNode()
 	totalGpus := getGpuNums(totalGpusTypeMap)
 	allocGpusTypeMap := info.GetResAlloc().GetDedicatedResInNode()
