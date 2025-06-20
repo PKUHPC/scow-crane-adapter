@@ -309,6 +309,11 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 		}
 	}
 
+	if len(needBlockPartitions) == 0 {
+		logrus.Infof("BlockAccountWithPartitions account %v no need block in partitions %v", in.AccountName, in.BlockedPartitions)
+		return &protos.BlockAccountWithPartitionsResponse{}, nil
+	}
+
 	if err = utils.BlockAccountWithPartition(in.AccountName, needBlockPartitions); err != nil {
 		logrus.Errorf("BlockAccount err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
@@ -358,6 +363,11 @@ func (s *ServerAccount) UnblockAccountWithPartitions(ctx context.Context, in *pr
 		if !utils.Contains(allowPartitions, partition) {
 			needUnblockPartitions = append(needUnblockPartitions, partition)
 		}
+	}
+
+	if len(needUnblockPartitions) == 0 {
+		logrus.Infof("UnblockAccountWithPartitions account %v no need unblock in partitions %v", in.AccountName, in.UnblockedPartitions)
+		return &protos.UnblockAccountWithPartitionsResponse{}, nil
 	}
 
 	// 还需添加账户的allowPartitions
