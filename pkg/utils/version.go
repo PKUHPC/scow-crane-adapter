@@ -3,7 +3,7 @@ package utils
 import "fmt"
 
 const (
-	Version = "1.8.4"
+	Version = "1.9.0"
 )
 
 var (

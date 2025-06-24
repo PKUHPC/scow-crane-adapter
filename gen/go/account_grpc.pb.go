@@ -41,6 +41,7 @@ const (
 	AccountService_UnblockAccountWithPartitions_FullMethodName             = "/scow.scheduler_adapter.AccountService/UnblockAccountWithPartitions"
 	AccountService_QueryAccountBlockStatusWithPartitions_FullMethodName    = "/scow.scheduler_adapter.AccountService/QueryAccountBlockStatusWithPartitions"
 	AccountService_GetAllAccountsWithUsersAndBlockedDetails_FullMethodName = "/scow.scheduler_adapter.AccountService/GetAllAccountsWithUsersAndBlockedDetails"
+	AccountService_SyncAccountUserInfo_FullMethodName                      = "/scow.scheduler_adapter.AccountService/SyncAccountUserInfo"
 )
 
 // AccountServiceClient is the client API for AccountService service.
@@ -132,6 +133,14 @@ type AccountServiceClient interface {
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsersAndBlockedDetails(ctx context.Context, in *GetAllAccountsWithUsersAndBlockedDetailsRequest, opts ...grpc.CallOption) (*GetAllAccountsWithUsersAndBlockedDetailsResponse, error)
+	//
+	// description: sync accounts and related users
+	// special case:
+	// - If processing time exceeds timeout_seconds specified in the request:
+	// the operation will be terminated
+	// only data processed before timeout will be returned
+	// the completely_executed field in the response will be set to false
+	SyncAccountUserInfo(ctx context.Context, in *SyncAccountUserInfoRequest, opts ...grpc.CallOption) (*SyncAccountUserInfoResponse, error)
 }
 
 type accountServiceClient struct {
@@ -252,6 +261,16 @@ func (c *accountServiceClient) GetAllAccountsWithUsersAndBlockedDetails(ctx cont
 	return out, nil
 }
 
+func (c *accountServiceClient) SyncAccountUserInfo(ctx context.Context, in *SyncAccountUserInfoRequest, opts ...grpc.CallOption) (*SyncAccountUserInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SyncAccountUserInfoResponse)
+	err := c.cc.Invoke(ctx, AccountService_SyncAccountUserInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AccountServiceServer is the server API for AccountService service.
 // All implementations should embed UnimplementedAccountServiceServer
 // for forward compatibility.
@@ -341,6 +360,14 @@ type AccountServiceServer interface {
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsersAndBlockedDetails(context.Context, *GetAllAccountsWithUsersAndBlockedDetailsRequest) (*GetAllAccountsWithUsersAndBlockedDetailsResponse, error)
+	//
+	// description: sync accounts and related users
+	// special case:
+	// - If processing time exceeds timeout_seconds specified in the request:
+	// the operation will be terminated
+	// only data processed before timeout will be returned
+	// the completely_executed field in the response will be set to false
+	SyncAccountUserInfo(context.Context, *SyncAccountUserInfoRequest) (*SyncAccountUserInfoResponse, error)
 }
 
 // UnimplementedAccountServiceServer should be embedded to have
@@ -382,6 +409,9 @@ func (UnimplementedAccountServiceServer) QueryAccountBlockStatusWithPartitions(c
 }
 func (UnimplementedAccountServiceServer) GetAllAccountsWithUsersAndBlockedDetails(context.Context, *GetAllAccountsWithUsersAndBlockedDetailsRequest) (*GetAllAccountsWithUsersAndBlockedDetailsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllAccountsWithUsersAndBlockedDetails not implemented")
+}
+func (UnimplementedAccountServiceServer) SyncAccountUserInfo(context.Context, *SyncAccountUserInfoRequest) (*SyncAccountUserInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncAccountUserInfo not implemented")
 }
 func (UnimplementedAccountServiceServer) testEmbeddedByValue() {}
 
@@ -601,6 +631,24 @@ func _AccountService_GetAllAccountsWithUsersAndBlockedDetails_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_SyncAccountUserInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncAccountUserInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).SyncAccountUserInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_SyncAccountUserInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).SyncAccountUserInfo(ctx, req.(*SyncAccountUserInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AccountService_ServiceDesc is the grpc.ServiceDesc for AccountService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -651,6 +699,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllAccountsWithUsersAndBlockedDetails",
 			Handler:    _AccountService_GetAllAccountsWithUsersAndBlockedDetails_Handler,
+		},
+		{
+			MethodName: "SyncAccountUserInfo",
+			Handler:    _AccountService_SyncAccountUserInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

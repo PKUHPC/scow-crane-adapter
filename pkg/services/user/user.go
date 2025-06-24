@@ -152,3 +152,37 @@ func (s *ServerUser) QueryUserInAccountBlockStatus(ctx context.Context, in *prot
 	logrus.Tracef("QueryUserInAccountBlockStatus Blocked: %v", blocked)
 	return &protos.QueryUserInAccountBlockStatusResponse{Blocked: blocked}, nil
 }
+
+func (s *ServerUser) DeleteUser(ctx context.Context, in *protos.DeleteUserRequest) (*protos.DeleteUserResponse, error) {
+	// 检查用户名是否在
+	exist, err := utils.SelectUserExists(in.UserId)
+	if err != nil {
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "SQL_QUERY_FAILED", err.Error())
+	}
+	if !exist {
+		err = fmt.Errorf("user %s not found", in.UserId)
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, utils.RichError(codes.NotFound, "USER_NOT_FOUND", err.Error())
+	}
+
+	// 该用户作业的判断
+	hasJobs, err := utils.HasUnfinishedJobsByUserName(in.UserId)
+	if err != nil {
+		logrus.Errorf("DeleteUser failed: get jobs by user %v failed: %v", in.UserId, err)
+		return nil, utils.RichError(codes.Internal, "SQL_QUERY_FAILED", err.Error())
+	}
+
+	if !hasJobs {
+		if err = utils.DeleteUser(in.UserId); err != nil {
+			logrus.Errorf("DeleteUser: %v failed: %v", in.UserId, err)
+			return nil, err
+		}
+		logrus.Infof("Delete User: %v sucess!", in.UserId)
+		return &protos.DeleteUserResponse{}, nil
+	} else {
+		err = fmt.Errorf("DeleteUser failed: Exist running jobs")
+		logrus.Errorf("DeleteUser failed: %v", err)
+		return nil, err
+	}
+}
