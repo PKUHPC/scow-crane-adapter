@@ -63,8 +63,7 @@ func ParseConfig(configFilePath string) *CraneConfig {
 func GetUidByUserName(userName string) (int, error) {
 	u, err := user.Lookup(userName)
 	if err != nil {
-		fmt.Printf("Failed to lookup user: %s\n", err)
-		return 0, err
+		return 0, fmt.Errorf("Failed to lookup user: %s\n", err)
 	}
 	uid, _ := strconv.Atoi(u.Uid)
 	return uid, nil
@@ -82,7 +81,7 @@ func RichError(code codes.Code, reason string, message string) error {
 
 // GetQos 获取系统中Qos列表
 func GetQos() ([]string, error) {
-	var Qoslist []string
+	var qosList []string
 	request := &craneProtos.QueryQosInfoRequest{
 		Uid: uint32(os.Getuid()),
 	}
@@ -92,9 +91,9 @@ func GetQos() ([]string, error) {
 	}
 	Qos := response.GetQosList()
 	for _, value := range Qos {
-		Qoslist = append(Qoslist, value.GetName())
+		qosList = append(qosList, value.GetName())
 	}
-	return Qoslist, nil
+	return qosList, nil
 }
 
 func GetAllQos() ([]string, error) {
@@ -104,7 +103,7 @@ func GetAllQos() ([]string, error) {
 	}
 	qosListValue := RemoveValue(qosList, "UNLIMITED")
 	if len(qosListValue) == 0 {
-		return nil, RichError(codes.NotFound, "QOS_NOT_FOUND", "The qos not exists.")
+		return nil, fmt.Errorf("qos is nil")
 	}
 
 	return qosListValue, nil
@@ -116,10 +115,10 @@ func GetAllAccount() ([]*craneProtos.AccountInfo, error) {
 	}
 	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("failed get accounts: %v", response.GetRichErrorList()[0].GetDescription())
 	}
 	return response.GetAccountList(), nil
 }
@@ -139,10 +138,10 @@ func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 	}
 	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", response.RichErrorList[0].GetDescription())
+		return nil, fmt.Errorf("failed get account %v, error: %v", accountName, response.RichErrorList[0].GetDescription())
 	}
 	return response.GetAccountList()[0], nil
 }
@@ -155,10 +154,10 @@ func GetAccountByUser(userName string) ([]string, error) {
 	}
 	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("failed get account by user %v, error: %v", userName, response.GetRichErrorList()[0].GetDescription())
 	}
 
 	for _, list := range response.GetUserList() {
@@ -178,10 +177,10 @@ func GetAllUser() ([]*craneProtos.UserInfo, error) {
 	}
 	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", response.GetRichErrorList()[0].GetDescription())
+		return nil, fmt.Errorf("get all user error: %v", response.GetRichErrorList()[0].GetDescription())
 	}
 	return response.GetUserList(), nil
 }
@@ -197,14 +196,14 @@ func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*cran
 		}
 		response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 		if err != nil {
-			return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+			return nil, err
 		}
 		if !response.GetOk() {
 			var message string
 			for _, richError := range response.GetRichErrorList() {
 				message += richError.GetDescription() + "\n"
 			}
-			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", message)
+			return nil, fmt.Errorf("failed get account user info: %v", message)
 		}
 
 		for _, info := range response.GetUserList() {
@@ -224,7 +223,7 @@ func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error
 	}
 	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 	if err != nil {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		return nil, err
 	}
 
 	return response.GetPartitionInfo()[0], nil
@@ -239,10 +238,10 @@ func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProto
 
 	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+		return nil, fmt.Errorf("the partitions %v not have task", partitionList)
 	}
 
 	return response.GetTaskInfoList(), nil
@@ -257,11 +256,11 @@ func GetTaskByAccountName(accountNames []string) ([]*craneProtos.TaskInfo, error
 
 	response, err := CraneCtld.QueryTasksInfo(context.Background(), &req)
 	if err != nil {
-		return nil, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return nil, err
 	}
 
 	if !response.GetOk() {
-		return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
+		return nil, fmt.Errorf("the account %v not have task", accountNames)
 	}
 
 	return response.GetTaskInfoList(), nil
@@ -278,7 +277,7 @@ func GetNodeByPartitionAndStatus(partitionList []string, cranedStateList []crane
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
 	if err != nil {
-		return 0, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return 0, err
 	}
 
 	for _, partitionCraned := range response.Partitions {
@@ -302,7 +301,7 @@ func GetNodeByPartition(partitionList []string) (uint32, uint32, uint32, uint32,
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
 	if err != nil {
-		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, err
 	}
 
 	for _, partitionCraned := range response.Partitions {
@@ -466,7 +465,7 @@ func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Part
 		}
 		response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 		if err != nil {
-			return nil, RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+			return nil, err
 		}
 		partitionValue := response.GetPartitionInfo()[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
@@ -492,7 +491,7 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	}
 	response, err := CraneCtld.QueryPartitionInfo(context.Background(), request)
 	if err != nil {
-		return "", RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
+		return "", err
 	}
 	partitionValue := response.GetPartitionInfo()[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
@@ -625,4 +624,20 @@ func GetGpuNumsFromJob(data *craneProtos.DeviceMap) int32 {
 	}
 
 	return gpuCount
+}
+
+// SliceSubtract a排除b
+func SliceSubtract[T comparable](a, b []T) []T {
+	exclude := make(map[T]struct{})
+	for _, item := range b {
+		exclude[item] = struct{}{}
+	}
+
+	var result []T
+	for _, item := range a {
+		if _, ok := exclude[item]; !ok {
+			result = append(result, item)
+		}
+	}
+	return result
 }

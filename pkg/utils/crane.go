@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -26,8 +27,16 @@ func getUsersByAccountName(accountName string) ([]*craneProtos.UserInfo, error) 
 	return response.UserList, nil
 }
 
-func AddUserToAccount(accountName, userName string, qosList []string) error {
+func AddUserToAccount(accountName, userName string) error {
 	var allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
+
+	// 获取系统QOS
+	qosList, err := GetAllQos()
+	if err != nil {
+		logrus.Errorf("Error getting QoS: %v", err)
+		return fmt.Errorf("error getting QoS: %v", err)
+	}
+
 	// 账户创建成功后，将用户添加至账户中
 	for _, partition := range CConfig.Partitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
@@ -59,6 +68,58 @@ func AddUserToAccount(accountName, userName string, qosList []string) error {
 	}
 	if !responseUser.GetOk() {
 		return fmt.Errorf("add user failed, code: %v ", strconv.FormatInt(int64(responseUser.GetCode()), 10))
+	}
+	return nil
+}
+
+// SelectAccountExists 查询账户的存在情况，并返回错误
+func SelectAccountExists(account string) (bool, error) {
+	request := &craneProtos.QueryAccountInfoRequest{
+		Uid:         0,
+		AccountList: []string{account},
+	}
+	response, err := CraneCtld.QueryAccountInfo(context.Background(), request)
+	if err != nil {
+		return false, fmt.Errorf("qury account %s failed: %v", account, err)
+	}
+	if !response.GetOk() {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func CreateAccount(accountName string) error {
+	var partitionList []string
+	// 获取计算分区信息
+	for _, partition := range CConfig.Partitions {
+		partitionList = append(partitionList, partition.Name)
+	}
+	// 获取系统QOS
+	qosList, err := GetAllQos()
+	if err != nil {
+		return err
+	}
+
+	AccountInfo := &craneProtos.AccountInfo{
+		Name:              accountName,
+		Description:       "Create account in crane.",
+		AllowedPartitions: partitionList,
+		DefaultQos:        qosList[0],
+		AllowedQosList:    qosList,
+	}
+	// 创建账户请求体
+	request := &craneProtos.AddAccountRequest{
+		Uid:     uint32(os.Getuid()),
+		Account: AccountInfo,
+	}
+	response, err := CraneCtld.AddAccount(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("CreateAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		return fmt.Errorf("create account error: %v", strconv.FormatInt(int64(response.GetCode()), 10))
 	}
 	return nil
 }
@@ -199,4 +260,159 @@ func modifyUserAllowedPartitions(accountName string, partitions []string) error 
 
 	logrus.Infof("modify account %v users partitions success", accountName)
 	return nil
+}
+
+// SelectUserExists 查询用户的存在情况，并返回错误
+func SelectUserExists(userName string) (bool, error) {
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:      0,
+		UserList: []string{userName},
+	}
+
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("Failed to show the user %v, error: %v", userName, err)
+		return false, err
+	}
+	if !response.GetOk() {
+		return false, nil
+	}
+	return true, nil
+}
+
+func DeleteUserFromAccount(userId, accountName string) error {
+	request := &craneProtos.DeleteUserRequest{
+		Uid:      0,
+		Account:  accountName,
+		UserList: []string{userId},
+	}
+
+	response, err := CraneCtld.DeleteUser(context.Background(), request)
+	if err != nil {
+		return err
+	}
+	if !response.GetOk() {
+		return fmt.Errorf("the user %v has been deleted in account %v", userId, accountName)
+	}
+	return nil
+}
+
+func DeleteUser(userId string) error {
+	request := &craneProtos.DeleteUserRequest{
+		Uid:      0,
+		UserList: []string{userId},
+	}
+
+	response, err := CraneCtld.DeleteUser(context.Background(), request)
+	if err != nil {
+		return err
+	}
+	if !response.GetOk() {
+		return fmt.Errorf("the user has been deleted")
+	}
+	return nil
+}
+
+func BlockUserInAccount(userId, accountName string) error {
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      true,
+		Uid:        0,
+		EntityType: craneProtos.EntityType_User,
+		EntityList: []string{userId},
+		Account:    accountName,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("BlockUserInAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("BlockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
+		return fmt.Errorf("failed block user %v in account %v", userId, accountName)
+	}
+	return nil
+}
+
+func UnblockUserInAccount(userId, accountName string) error {
+	request := &craneProtos.BlockAccountOrUserRequest{
+		Block:      false,
+		Uid:        0,
+		EntityType: craneProtos.EntityType_User,
+		EntityList: []string{userId},
+		Account:    accountName,
+	}
+	response, err := CraneCtld.BlockAccountOrUser(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("UnblockUserInAccount err: %v", err)
+		return err
+	}
+	if !response.GetOk() {
+		logrus.Errorf("UnblockUserInAccount err: %v", fmt.Errorf("ASSOCIATION_NOT_EXISTS"))
+		return fmt.Errorf("failed unblock user %v in account %v", userId, accountName)
+	}
+	return nil
+}
+
+func HasUnfinishedJobsByUserName(userName string) (bool, error) {
+	request := &craneProtos.QueryTasksInfoRequest{
+		FilterUsers:                 []string{userName},
+		OptionIncludeCompletedTasks: false,
+	}
+	response, err := CraneCtld.QueryTasksInfo(context.Background(), request)
+
+	if err != nil {
+		return false, err
+	}
+	if !response.GetOk() {
+		return false, nil
+	}
+
+	if len(response.GetTaskInfoList()) != 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func GetAccountAssociatedUser(accountName string, excludeUserList []string) ([]string, error) {
+	var userList []string
+
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:     0,
+		Account: accountName,
+	}
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	if !response.GetOk() {
+		return nil, fmt.Errorf("the account %v not have user", accountName)
+	}
+	for _, ui := range response.GetUserList() {
+		if Contains(excludeUserList, ui.Name) {
+			continue
+		}
+		userList = append(userList, ui.Name)
+	}
+
+	return userList, nil
+}
+
+func GetAccountUserBlockedInfo(accountName string) (map[string]bool, error) {
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:     0,
+		Account: accountName,
+	}
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	if !response.GetOk() {
+		return nil, fmt.Errorf("account %v have not user", accountName)
+	}
+	blockedInfo := make(map[string]bool)
+	for _, ui := range response.GetUserList() {
+		blockedInfo[ui.Name] = ui.Blocked
+	}
+	return blockedInfo, nil
 }
