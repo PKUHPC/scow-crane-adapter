@@ -1,0 +1,116 @@
+name: Test, Build and Publish Projects
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags:
+      - "v**"
+    branches:
+      - master
+
+# 全局权限配置（作用于所有jobs）
+permissions:
+  contents: read
+  packages: read
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  test:
+    name: Test packages
+    runs-on: "pkuhpc-k8s-runners"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 动态安装最新稳定版Go
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.5'  # 显式指定（与build一致）
+          check-latest: true
+
+      # 代码格式化检查
+      - name: Run go fmt
+        run: go fmt ./...
+
+      # 运行单元测试
+  #      - name: Run tests
+  #        run: go test -v ./pkg/...
+
+  build:
+    needs: test
+    runs-on: "pkuhpc-k8s-runners"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      - name: Build and Export Filesystem
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-args: |
+            HTTPS_PROXY=${{ vars.HTTPS_PROXY }}
+          file: ./hack/Dockerfile
+          platforms: linux/amd64  # 指定架构（可选）
+          outputs: type=local,dest=./output  # 关键配置：导出到本地目录
+          tags: my-app:latest  # 标签仅用于日志显示，实际不会生成镜像
+
+      - name: Debug
+        run: |
+          ls -l ./output/app/
+
+      # 上传构建产物供部署阶段使用
+      - name: Upload adapter
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: scow-crane-adapter
+          path: ./output/app/
+
+  deploy-slurm:
+    name: Deploy to Crane Server
+    runs-on: "pkuhpc-k8s-runners"
+    needs:
+      - test
+      - build
+    # if: github.ref == 'refs/heads/master'
+
+    steps:
+      - uses: actions/checkout@v4  # 获取代码库固有文件
+      - uses: actions/download-artifact@v4
+        with:
+          name: scow-crane-adapter
+          path: ./
+
+      - name: Install SSH dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass  
+
+      # 传输文件
+      - name: Copy file to crane Login node
+        env:
+          SSH_HOST: ${{ secrets.CRANE_LOGIN_SSH_HOST }}
+          PASSWORD: ${{ secrets.CRANE_LOGIN_PASSWORD }}
+        run: |
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./hack/trans_adapter.sh root@$SSH_HOST:/tmp/
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./hack/deploy_adapter.sh root@$SSH_HOST:/tmp/
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./scow-crane-adapter root@$SSH_HOST:/tmp/
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./config.yaml root@$SSH_HOST:/tmp/
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./adapter.service root@$SSH_HOST:/tmp/
+
+      # 执行命令
+      - name: Execute commands via SSH
+        env:
+          SSH_HOST: ${{ secrets.CRANE_LOGIN_SSH_HOST }}
+          PASSWORD: ${{ secrets.CRANE_LOGIN_PASSWORD }}
+        run: |
+          sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no root@$SSH_HOST "chmod +x /tmp/trans_adapter.sh"
+          sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no root@$SSH_HOST "bash -x /tmp/trans_adapter.sh"
