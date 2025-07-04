@@ -69,6 +69,17 @@ func UnBlockAccount(syncData *pb.SyncAccountInfo) *pb.SyncAccountUserInfoRespons
 		return UnblockAccountFailedOperation(syncData.AccountName, message)
 	}
 
+	executeUnblock, executeBlock := false, false
+	if len(unblockPartition) > 0 && account.Blocked {
+		executeUnblock = true
+		// 先将账户的Blocked字段置为false
+		if err = utils.UnblockAccount(account.Name); err != nil {
+			message = fmt.Sprintf("unblock account %v failed: %v", syncData.AccountName, err)
+			logrus.Errorf("[SyncAccountUser] %v", message)
+			return UnblockAccountFailedOperation(syncData.AccountName, message)
+		}
+	}
+
 	// 获取账户的allowPartitions
 	allowPartitions := account.GetAllowedPartitions()
 	logrus.Infof("allow Partitions: %v", allowPartitions)
@@ -89,7 +100,6 @@ func UnBlockAccount(syncData *pb.SyncAccountInfo) *pb.SyncAccountUserInfoRespons
 		}
 	}
 
-	executeUnblock, executeBlock := false, false
 	if len(needUnblockPartitions) != 0 {
 		executeUnblock = true
 		logrus.Infof("need Unblock Partitions: %v", needUnblockPartitions)
