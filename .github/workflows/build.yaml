@@ -74,13 +74,13 @@ jobs:
           name: scow-crane-adapter
           path: ./output/app/
 
-  deploy-slurm:
+  deploy-crane:
     name: Deploy to Crane Server
     runs-on: "pkuhpc-k8s-runners"
     needs:
       - test
       - build
-    # if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4  # 获取代码库固有文件
