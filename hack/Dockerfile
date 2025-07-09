@@ -1,8 +1,17 @@
 # 使用指定的阿里云CR镜像作为基础镜像
-FROM crpi-7a6qgvce1ic8faue.cn-hangzhou.personal.cr.aliyuncs.com/qinguangrui/rockylinux:8.9-go AS builder
+FROM crpi-7a6qgvce1ic8faue.cn-hangzhou.personal.cr.aliyuncs.com/qinguangrui/rockylinux:8.9 AS builder
 
 # 设置工作目录
 WORKDIR /app
+
+# 安装必要的系统工具和依赖
+RUN dnf install -y wget tar gzip make git gcc && \
+    dnf clean all
+
+# 下载并安装 Go 1.23.5
+RUN wget https://mirrors.aliyun.com/golang/go1.23.5.linux-amd64.tar.gz -O /tmp/go.tar.gz && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
 
 # 设置 Go 环境变量
 ENV GOPATH /go
