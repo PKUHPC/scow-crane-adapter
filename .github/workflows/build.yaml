@@ -16,6 +16,9 @@ permissions:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+env:
+  ARTIFACT_PATH: /data/file/packages/${{ github.repository }}/${{ contains(github.ref, 'refs/tags/') && github.ref_name || 'master' }}
+
 jobs:
   test:
     name: Test packages
@@ -62,17 +65,25 @@ jobs:
           outputs: type=local,dest=./output  # 关键配置：导出到本地目录
           tags: my-app:latest  # 标签仅用于日志显示，实际不会生成镜像
 
-      - name: Debug
-        run: |
-          ls -l ./output/app/
-
       # 上传构建产物供部署阶段使用
-      - name: Upload adapter
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: scow-crane-adapter
-          path: ./output/app/
+      - name: Upload to File Server
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+        env:
+          SSH_HOST: ${{ secrets.FILE_SERVER_SSH_HOST }}
+          PASSWORD: ${{ secrets.FILE_SERVER_PASSWORD }}
+        run: |
+          echo $ARTIFACT_PATH
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass  
+          # 创建远程目录
+          sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no root@$SSH_HOST "mkdir -p $ARTIFACT_PATH"
+          # 上传构建产物
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no ./output/app/scow-crane-adapter root@$SSH_HOST:$ARTIFACT_PATH/
+          # 生成并上传版本信息文件
+          echo "Build Time: $(date)" > version.info
+          echo "Commit: $GITHUB_SHA" >> version.info
+          echo "Trigger: $GITHUB_REF" >> version.info
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no version.info root@$SSH_HOST:$ARTIFACT_PATH/
 
   deploy-crane:
     name: Deploy to Crane Server
@@ -80,19 +91,23 @@ jobs:
     needs:
       - test
       - build
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
 
     steps:
       - uses: actions/checkout@v4  # 获取代码库固有文件
-      - uses: actions/download-artifact@v4
-        with:
-          name: scow-crane-adapter
-          path: ./
 
       - name: Install SSH dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y openssh-client sshpass  
+
+      # 从文件服务器下载
+      - name: Download from File Server
+        env:
+          SSH_HOST: ${{ secrets.FILE_SERVER_SSH_HOST }}
+          PASSWORD: ${{ secrets.FILE_SERVER_PASSWORD }}
+        run: |
+          sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no root@$SSH_HOST:$ARTIFACT_PATH/scow-crane-adapter ./
 
       # 传输文件
       - name: Copy file to crane Login node
