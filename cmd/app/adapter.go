@@ -82,6 +82,7 @@ func Run() {
 	s := grpc.NewServer(
 		grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 		grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
+		grpc.UnaryInterceptor(utils.UnaryServerLatencyInterceptor),
 	)
 
 	if GConfig.Ssl.Enabled {
@@ -114,6 +115,7 @@ func Run() {
 		s = grpc.NewServer(
 			grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 			grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
+			grpc.UnaryInterceptor(utils.UnaryServerLatencyInterceptor),
 			grpc.Creds(cred),
 		)
 	}
