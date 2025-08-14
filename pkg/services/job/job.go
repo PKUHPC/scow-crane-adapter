@@ -172,7 +172,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 
 	// 获取cpu核分配数
 	// cpusAlloc := TaskInfoList.GetAllocCpus()
-	cpusAlloc := TaskInfoList.GetResView().GetAllocatableRes().CpuCoreLimit
+	cpusAlloc := TaskInfoList.GetReqResView().GetAllocatableRes().CpuCoreLimit
 	cpusAllocInt32 := int32(cpusAlloc)
 	// 获取节点列表
 	nodeList := TaskInfoList.GetCranedList()
@@ -371,7 +371,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	for _, job := range response.GetTaskInfoList() {
 		var elapsedSeconds int64
 		var state string
-		var reason string = "no reason"
+		var reason = "no reason"
 		var nodeNum int32
 		var endTime *timestamppb.Timestamp
 		if job.GetStatus() == craneProtos.TaskStatus_Running {
@@ -381,13 +381,16 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		} else {
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
 		}
-		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
-		cpusAllocInt32 := int32(cpusAlloc)
+		cpusReq := job.GetReqResView().GetAllocatableRes().CpuCoreLimit
+		jobMemReqMb := job.GetReqResView().GetAllocatableRes().MemoryLimitBytes
+		memReqMb := int64(jobMemReqMb / (1024 * 1024))
 
-		jobMemAllocMb := job.GetResView().GetAllocatableRes().MemoryLimitBytes
+		cpusAlloc := job.GetAllocatedResView().GetAllocatableRes().CpuCoreLimit
+		cpusAllocInt32 := int32(cpusAlloc)
+		jobMemAllocMb := job.GetAllocatedResView().GetAllocatableRes().MemoryLimitBytes
 		memAllocMb := int64(jobMemAllocMb / (1024 * 1024))
 
-		jobGpusAlloc := job.GetResView().GetDeviceMap()
+		jobGpusAlloc := job.GetAllocatedResView().GetDeviceMap()
 		gpusAlloc := utils.GetGpuNumsFromJob(jobGpusAlloc)
 
 		nodeList := job.GetCranedList()
@@ -431,13 +434,16 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				TimeLimitMinutes: job.GetTimeLimit().Seconds / 60,
 				WorkingDirectory: job.GetCwd(),
 				State:            state,
+				NodesReq:         int32(len(job.GetReqNodes())),
 				NodeList:         &nodeList,
+				CpusReq:          int32(cpusReq),
 				CpusAlloc:        &cpusAllocInt32,
 				ElapsedSeconds:   &elapsedSeconds,
 				Qos:              job.GetQos(),
 				Reason:           &reason,
 				SubmitTime:       job.GetStartTime(), // 没有提交时间，用开始时间来代替
 				GpusAlloc:        &gpusAlloc,
+				MemReqMb:         memReqMb,
 				MemAllocMb:       &memAllocMb,
 			})
 			logrus.Tracef("GetJobs: jobsInfo %v", jobsInfo)
@@ -465,6 +471,12 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.TimeLimitMinutes = job.GetTimeLimit().Seconds / 60
 				case "working_directory":
 					subJobInfo.WorkingDirectory = job.GetCwd()
+				case "cpus_req":
+					subJobInfo.CpusReq = int32(cpusReq)
+				case "mem_req_mb":
+					subJobInfo.MemReqMb = memReqMb
+				case "nodes_req":
+					subJobInfo.NodesReq = int32(len(job.GetReqNodes()))
 				case "cpus_alloc":
 					subJobInfo.CpusAlloc = &cpusAllocInt32
 				case "state":
