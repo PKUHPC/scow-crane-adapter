@@ -14,10 +14,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
 )
+
+const maxUint = 4294967295
 
 type ServerJob struct {
 	protos.UnimplementedJobServiceServer
@@ -369,9 +372,9 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	}
 	totalNum = uint32(len(response.GetTaskInfoList()))
 	for _, job := range response.GetTaskInfoList() {
-		var elapsedSeconds int64
+		var elapsedSeconds, timeLimitMinutes int64
 		var state string
-		var reason string = "no reason"
+		var reason = "no reason"
 		var nodeNum int32
 		var endTime *timestamppb.Timestamp
 		if job.GetStatus() == craneProtos.TaskStatus_Running {
@@ -418,6 +421,19 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			reason = "Ivalid"
 		}
 		nodeNum = int32(job.GetNodeNum())
+
+		if job.GetTimeLimit() == nil || (job.GetTimeLimit().Seconds == 0 && job.GetTimeLimit().Nanos == 0) {
+			timeLimitMinutes = maxUint
+		} else {
+			timeLimitMinutes = job.GetTimeLimit().Seconds / 60
+			// 因为scow数据库中该值是uint类型的，当作业的TimeLimit大于该值时会插入该作业数据到数据库失败
+			if timeLimitMinutes > maxUint {
+				timeLimitMinutes = maxUint
+			}
+		}
+
+		logrus.Infof("timeLimitMinutes: %d", timeLimitMinutes)
+
 		if len(in.Fields) == 0 {
 			jobsInfo = append(jobsInfo, &protos.JobInfo{
 				JobId:            job.GetTaskId(),
@@ -428,7 +444,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				StartTime:        job.GetStartTime(),
 				EndTime:          endTime,
 				NodesAlloc:       &nodeNum,
-				TimeLimitMinutes: job.GetTimeLimit().Seconds / 60,
+				TimeLimitMinutes: timeLimitMinutes,
 				WorkingDirectory: job.GetCwd(),
 				State:            state,
 				NodeList:         &nodeList,
@@ -462,7 +478,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				case "end_time":
 					subJobInfo.EndTime = endTime
 				case "time_limit_minutes":
-					subJobInfo.TimeLimitMinutes = job.GetTimeLimit().Seconds / 60
+					subJobInfo.TimeLimitMinutes = timeLimitMinutes
 				case "working_directory":
 					subJobInfo.WorkingDirectory = job.GetCwd()
 				case "cpus_alloc":
