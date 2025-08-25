@@ -346,18 +346,6 @@ func GetCraneStatesList(stateList []string) []craneProtos.TaskStatus {
 	return statesList
 }
 
-func GetUserHomedir(username string) (string, error) {
-	// 获取指定用户名的用户信息
-	u, err := user.Lookup(username)
-	if err != nil {
-		return "", err
-	}
-
-	// 获取家目录
-	homeDir := u.HomeDir
-	return homeDir, nil
-}
-
 func RemoveValue[T comparable](list []T, value T) []T {
 	var result []T
 	for _, item := range list {

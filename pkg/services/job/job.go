@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	
+
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
@@ -528,10 +528,8 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 
 func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) (*protos.SubmitJobResponse, error) {
 	var (
-		stdout          string
-		homedir         string
-		timeLimitString string
-		scriptString    = "#!/bin/bash\n"
+		stdout, timeLimitString string
+		scriptString            = "#!/bin/bash\n"
 	)
 	logrus.Tracef("Received request SubmitJob: %v", in)
 
@@ -541,13 +539,12 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		stdout = "job.%j.out"
 	}
 
-	// 拼凑成绝对路径的工作目录
-	isAbsolute := filepath.IsAbs(in.WorkingDirectory)
-	if !isAbsolute {
-		homedirTemp, _ := utils.GetUserHomedir(in.UserId)
-		homedir = homedirTemp + "/" + in.WorkingDirectory
-	} else {
-		homedir = in.WorkingDirectory
+	// 工作目录由scow传过来一个绝对路径
+	workdir := in.WorkingDirectory
+	if !filepath.IsAbs(workdir) {
+		err := fmt.Errorf("workdir %s is not absolute path", workdir)
+		logrus.Errorf("SubmitJob failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "WORKDIR_IS_NOT_ABSOLUTE_PATH", err.Error())
 	}
 
 	scriptString += "#CBATCH " + "-A " + in.Account + "\n"
@@ -579,7 +576,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 		}
 		scriptString += "#CBATCH " + "--time " + timeLimitString + "\n"
 	}
-	scriptString += "#CBATCH " + "--chdir " + homedir + "\n"
+	scriptString += "#CBATCH " + "--chdir " + workdir + "\n"
 	if in.Stdout != nil {
 		scriptString += "#CBATCH " + "--output " + stdout + "\n"
 	}
