@@ -43,8 +43,12 @@ jobs:
   #        run: go test -v ./pkg/...
 
   build:
+    name: Build adapter
     needs: test
     runs-on: "pkuhpc-k8s-runners"
+
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +88,25 @@ jobs:
           echo "Commit: $GITHUB_SHA" >> version.info
           echo "Trigger: $GITHUB_REF" >> version.info
           sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no version.info root@$SSH_HOST:$ARTIFACT_PATH/
+          
+      - name: Prepare scow-crane-adapter
+        if: github.ref_type == 'tag'
+        run: |
+          mkdir release
+          cp ./output/app/scow-crane-adapter release/
+
+      - name: Display structure of downloaded files
+        if: github.ref_type == 'tag'
+        run: ls -R
+        working-directory: release
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          generate_release_notes: true
+          files: |
+            release/scow-crane-adapter
 
   deploy-crane:
     name: Deploy to Crane Server
