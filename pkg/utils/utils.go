@@ -10,9 +10,11 @@ import (
 	"os/exec"
 	"os/user"
 	"reflect"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
@@ -191,8 +193,8 @@ func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*cran
 
 	for _, account := range allAccounts {
 		request := &craneProtos.QueryUserInfoRequest{
-			Uid:      0,
-			UserList: account.Users,
+			Uid:     0,
+			Account: account.Name,
 		}
 		response, err := CraneCtld.QueryUserInfo(context.Background(), request)
 		if err != nil {
@@ -215,6 +217,92 @@ func GetAllAccountUserInfoMap(allAccounts []*craneProtos.AccountInfo) (map[*cran
 	}
 
 	return accountUserInfo, nil
+}
+
+func GetAllAccountUserInfoConcurrently(allAccounts []*craneProtos.AccountInfo) (map[*craneProtos.AccountInfo][]*craneProtos.UserInfo, error) {
+	var (
+		wg              sync.WaitGroup
+		mu              sync.Mutex
+		accountUserInfo = make(map[*craneProtos.AccountInfo][]*craneProtos.UserInfo)
+		errChan         = make(chan error, 1)
+	)
+
+	// 动态计算并发数：CPU核心数 * 2（I/O密集型任务的常用倍数）
+	poolSize := runtime.NumCPU() * 2
+	if poolSize < 10 {
+		poolSize = 10
+	}
+
+	// 如果账户数量较少，使用更小的并发数
+	if len(allAccounts) < poolSize {
+		poolSize = len(allAccounts)
+	}
+
+	// 限制最大并发数，避免资源耗尽
+	if poolSize > 50 {
+		poolSize = 50
+	}
+	accountChan := make(chan *craneProtos.AccountInfo, len(allAccounts))
+
+	// 启动worker协程
+	for i := 0; i < poolSize; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for account := range accountChan {
+				// 查询用户信息
+				request := &craneProtos.QueryUserInfoRequest{
+					Uid:     0,
+					Account: account.Name,
+				}
+				response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+				if err != nil {
+					select {
+					case errChan <- fmt.Errorf("account %s query error: %v", account.Name, err):
+					default:
+					}
+					return
+				}
+
+				if !response.GetOk() {
+					var message string
+					for _, richError := range response.GetRichErrorList() {
+						message += richError.GetDescription() + "\n"
+					}
+					select {
+					case errChan <- fmt.Errorf("account %s query failed: %v", account.Name, message):
+					default:
+					}
+					return
+				}
+
+				// 加锁更新结果
+				mu.Lock()
+				if _, ok := accountUserInfo[account]; !ok {
+					accountUserInfo[account] = []*craneProtos.UserInfo{}
+				}
+				accountUserInfo[account] = append(accountUserInfo[account], response.GetUserList()...)
+				mu.Unlock()
+			}
+		}()
+	}
+
+	// 发送任务到channel
+	for _, account := range allAccounts {
+		accountChan <- account
+	}
+	close(accountChan)
+
+	// 等待所有worker完成
+	wg.Wait()
+
+	// 检查是否有错误
+	select {
+	case err := <-errChan:
+		return nil, err
+	default:
+		return accountUserInfo, nil
+	}
 }
 
 func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error) {
@@ -628,4 +716,16 @@ func SliceSubtract[T comparable](a, b []T) []T {
 		}
 	}
 	return result
+}
+
+func GetUserHomedir(username string) (string, error) {
+	// 获取指定用户名的用户信息
+	u, err := user.Lookup(username)
+	if err != nil {
+		return "", err
+	}
+
+	// 获取家目录
+	homeDir := u.HomeDir
+	return homeDir, nil
 }

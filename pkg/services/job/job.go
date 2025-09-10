@@ -542,9 +542,8 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	// 工作目录由scow传过来一个绝对路径
 	workdir := in.WorkingDirectory
 	if !filepath.IsAbs(workdir) {
-		err := fmt.Errorf("workdir %s is not absolute path", workdir)
-		logrus.Errorf("SubmitJob failed: %v", err)
-		return nil, utils.RichError(codes.Internal, "WORKDIR_IS_NOT_ABSOLUTE_PATH", err.Error())
+		homedirTemp, _ := utils.GetUserHomedir(in.UserId)
+		workdir = homedirTemp + "/" + in.WorkingDirectory
 	}
 
 	scriptString += "#CBATCH " + "-A " + in.Account + "\n"

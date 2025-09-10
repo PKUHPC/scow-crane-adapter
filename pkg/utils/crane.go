@@ -292,7 +292,7 @@ func DeleteUserFromAccount(userId, accountName string) error {
 		return err
 	}
 	if !response.GetOk() {
-		return fmt.Errorf("the user %v has been deleted in account %v", userId, accountName)
+		return fmt.Errorf("failed to delete user %v in account %v", userId, accountName)
 	}
 	return nil
 }

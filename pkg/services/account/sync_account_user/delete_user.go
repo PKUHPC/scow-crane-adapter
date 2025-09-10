@@ -50,15 +50,9 @@ func DeleteUserInAccount(users []*pb.SyncAccountInfo_UserInAccount, accountName 
 			continue
 		}
 
-		// 删除用户
+		// 从账户中移除用户
 		if err = utils.DeleteUserFromAccount(user, accountName); err != nil {
 			message = fmt.Sprintf("remove user %v from account %v, delete associate failed: %v", user, accountName, err)
-			logrus.Errorf("[SyncAccountUser] %v", message)
-			responseInfo = append(responseInfo, RemoveUserFromAccountFailedOperation(accountName, user, message))
-			continue
-		}
-		if err = utils.DeleteUser(user); err != nil {
-			message = fmt.Sprintf("remove user %v from account %v, delete user failed: %v", user, accountName, err)
 			logrus.Errorf("[SyncAccountUser] %v", message)
 			responseInfo = append(responseInfo, RemoveUserFromAccountFailedOperation(accountName, user, message))
 			continue

@@ -18,7 +18,7 @@ protos:
 	buf generate --template buf.gen.yaml https://github.com/PKUHPC/scow-scheduler-adapter-interface.git#subdir=protos,tag=v1.9.0
 
 build:
-	GOARCH=${ARCH} go build $(LDFLAGS) -o scow-crane-adapter ./cmd/main.go
+	CGO_ENABLED=1 GOARCH=${ARCH} go build $(LDFLAGS) -o scow-crane-adapter ./cmd/main.go
 
 test:
 	go test
