@@ -197,7 +197,7 @@ func (s *ServerAccount) QueryAccountBlockStatus(ctx context.Context, in *protos.
 		})
 	}
 
-	logrus.Tracef("GetAllAccountsWithUsers Accounts: %v", accountStatusInPartition)
+	logrus.Tracef("QueryAccountBlockStatus Accounts: %v", accountStatusInPartition)
 	return &protos.QueryAccountBlockStatusResponse{Blocked: false, AccountBlockedDetails: accountStatusInPartition}, nil
 }
 
@@ -417,7 +417,7 @@ func (s *ServerAccount) GetAllAccountsWithUsersAndBlockedDetails(ctx context.Con
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
 	}
 	// 2. 获取所有账户的用户信息
-	accountUserInfoMap, err := utils.GetAllAccountUserInfoMap(allAccount)
+	accountUserInfoMap, err := utils.GetAllAccountUserInfoConcurrently(allAccount)
 	if err != nil {
 		logrus.Errorf("GetAllAccountsWithUsersAndBlockedDetails err: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_INTERNAL_ERROR", err.Error())
