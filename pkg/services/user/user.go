@@ -59,8 +59,12 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		logrus.Errorf("AddUserToAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(response.GetCode()), 10))
+		if response.GetCode() == craneProtos.ErrCode_ERR_USER_ALREADY_EXISTS {
+			logrus.Errorf("AddUserToAccount err: %v", response.GetCode())
+			return nil, utils.RichError(codes.AlreadyExists, "USER_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetCode()), 10))
+		}
+		logrus.Errorf("AddUserToAccount err: %v", response.GetCode())
+		return nil, utils.RichError(codes.Internal, "FAILED_ADD_USER_TO_ACCOUNT", strconv.FormatInt(int64(response.GetCode()), 10))
 	}
 	logrus.Infof("AddUserToAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.AddUserToAccountResponse{}, nil
