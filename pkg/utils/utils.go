@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
@@ -43,8 +44,21 @@ type Partition struct {
 	Nodes string `yaml:"nodes"`
 }
 
+// DatabaseConfig MongoDB 配置结构体
+type DatabaseConfig struct {
+	CraneEmbeddedDbBackend string `yaml:"CraneEmbeddedDbBackend"`
+	CraneCtldDbPath        string `yaml:"CraneCtldDbPath"`
+	DbUser                 string `yaml:"DbUser"`
+	DbPassword             string `yaml:"DbPassword"`
+	DbHost                 string `yaml:"DbHost"`
+	DbPort                 int    `yaml:"DbPort"`
+	DbReplSetName          string `yaml:"DbReplSetName"`
+	DbName                 string `yaml:"DbName"`
+}
+
 var (
-	DefaultConfigPath = "/etc/crane/config.yaml"
+	DefaultConfigPath  = "/etc/crane/config.yaml"
+	DefaultMongoDBPath = "/etc/crane/database.yaml"
 )
 
 // ParseConfig 解析crane配置文件
@@ -59,6 +73,34 @@ func ParseConfig(configFilePath string) *CraneConfig {
 		log.Fatal(err)
 	}
 	return config
+}
+
+// LoadDBConfig 读取MongoDB配置文件
+func LoadDBConfig(configPath string) (*DatabaseConfig, error) {
+	// 获取绝对路径
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to obtain absolute path: %v", err)
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("the configuration file does not exist: %v", absPath)
+	}
+
+	// 读取文件内容
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read configuration file: %v", err)
+	}
+
+	// 解析 YAML
+	config := &DatabaseConfig{}
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %v", err)
+	}
+
+	return config, nil
 }
 
 // GetUidByUserName 通过os/user包去获取用户的uid

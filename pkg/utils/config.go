@@ -7,9 +7,14 @@ type SslConfig struct {
 	AdapterPrivateKeyPath string `yaml:"adapterPrivateKeyPath"`
 }
 
+type MonitorConfig struct {
+	Port int `yaml:"port"`
+}
+
 type Config struct {
-	BindPort   int       `mapstructure:"bind-port"`
-	LogLevel   string    `mapstructure:"log-level"`
-	ModulePath string    `mapstructure:"module-path"`
-	Ssl        SslConfig `yaml:"ssl"`
+	BindPort   int           `mapstructure:"bind-port"`
+	LogLevel   string        `mapstructure:"log-level"`
+	ModulePath string        `mapstructure:"module-path"`
+	Ssl        SslConfig     `yaml:"ssl"`
+	Monitor    MonitorConfig `yaml:"monitor"`
 }
