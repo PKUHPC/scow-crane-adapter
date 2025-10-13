@@ -1,9 +1,10 @@
 package app
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 func GetCertPath() (string, string, string) {
