@@ -25,5 +25,5 @@ func (s *ServerVersion) GetVersion(ctx context.Context, in *protos.GetVersionReq
 		return &protos.GetVersionResponse{Major: uint32(major), Minor: uint32(minor), Patch: uint32(patch)}, nil
 	}
 	logrus.Infof("versionSlice: %v", versionSlice)
-	return &protos.GetVersionResponse{Major: 1, Minor: 9, Patch: 1}, nil
+	return &protos.GetVersionResponse{Major: 1, Minor: 9, Patch: 3}, nil
 }

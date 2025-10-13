@@ -6,8 +6,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	protos "scow-crane-adapter/gen/go"
+	"scow-crane-adapter/pkg/monitor"
 	"scow-crane-adapter/pkg/services/account"
 	"scow-crane-adapter/pkg/services/app"
 	"scow-crane-adapter/pkg/services/config"
@@ -15,17 +24,12 @@ import (
 	"scow-crane-adapter/pkg/services/user"
 	"scow-crane-adapter/pkg/services/version"
 	"scow-crane-adapter/pkg/utils"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 var (
 	FlagConfigFilePath string
 	GConfig            utils.Config
+	defaultMonitorPort = 8973
 )
 
 func NewAdapterCommand() *cobra.Command {
@@ -76,13 +80,27 @@ func NewAdapterCommand() *cobra.Command {
 }
 
 func Run() {
-	// 初始化CraneCtld客户端及鹤思配置文件
-	utils.InitClientAndCraneConfig()
+	// 初始化CraneCtld客户端及鹤思配置文件、MongoDB客户端及配置文件
+	utils.InitClientAndConfig()
+
+	// 启动系统指标采集
+	monitor.StartSystemMetricsCollector()
+
+	monitorPort := GConfig.Monitor.Port
+	if monitorPort == 0 {
+		monitorPort = defaultMonitorPort
+	}
+	monitorPortString := fmt.Sprintf(":%d", monitorPort)
+	// 暴露Prometheus指标端点
+	go func() {
+		http.Handle("/metrics", monitor.MetricsHandlerWithMonitoring(promhttp.Handler()))
+		http.ListenAndServe(monitorPortString, nil)
+	}()
 
 	s := grpc.NewServer(
 		grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 		grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
-		grpc.UnaryInterceptor(utils.UnaryServerLatencyInterceptor),
+		grpc.UnaryInterceptor(monitor.MetricsInterceptor()),
 	)
 
 	if GConfig.Ssl.Enabled {
@@ -115,7 +133,7 @@ func Run() {
 		s = grpc.NewServer(
 			grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 			grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
-			grpc.UnaryInterceptor(utils.UnaryServerLatencyInterceptor),
+			grpc.UnaryInterceptor(monitor.MetricsInterceptor()),
 			grpc.Creds(cred),
 		)
 	}
