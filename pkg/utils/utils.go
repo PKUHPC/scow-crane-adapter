@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
 	"os"
@@ -27,16 +28,25 @@ import (
 )
 
 type CraneConfig struct {
-	ClusterName         string `yaml:"ClusterName"`
-	ControlMachine      string `yaml:"ControlMachine"`
-	CraneCtldListenPort string `yaml:"CraneCtldListenPort"`
+	ClusterName         string      `yaml:"ClusterName"`
+	ControlMachine      string      `yaml:"ControlMachine"`
+	CraneCtldListenPort string      `yaml:"CraneCtldListenPort"`
+	TlsConfig           TLSConfig   `yaml:"TLS"`
+	Partitions          []Partition `yaml:"Partitions"`
+}
 
-	UseTls             bool        `yaml:"UseTls"`
-	ServerCertFilePath string      `yaml:"ServerCertFilePath"`
-	ServerKeyFilePath  string      `yaml:"ServerKeyFilePath"`
-	CaCertFilePath     string      `yaml:"CaCertFilePath"`
-	DomainSuffix       string      `yaml:"DomainSuffix"`
-	Partitions         []Partition `yaml:"Partitions"`
+type TLSConfig struct {
+	Enabled              bool   `yaml:"Enabled"`
+	ExternalCertFilePath string `yaml:"ExternalCertFilePath"`
+	CaFilePath           string `yaml:"CaFilePath"`
+	DomainSuffix         string `yaml:"DomainSuffix"`
+	UserTlsCertPath      string `yaml:"UserTlsCertPath"`
+}
+
+type ConfigNodesList struct {
+	Name   string `yaml:"name"`
+	CPU    int    `yaml:"cpu"`
+	Memory string `yaml:"memory"`
 }
 
 type Partition struct {
@@ -356,7 +366,7 @@ func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error
 		return nil, err
 	}
 
-	return response.GetPartitionInfo()[0], nil
+	return response.GetPartitionInfoList()[0], nil
 }
 
 func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProtos.TaskStatus) ([]*craneProtos.TaskInfo, error) {
@@ -585,7 +595,7 @@ func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Part
 		if err != nil {
 			return nil, err
 		}
-		partitionValue := response.GetPartitionInfo()[0]
+		partitionValue := response.GetPartitionInfoList()[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
 		// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
 		gpuCount := GetGpuNumsFromPartition(totalGpusTypeMap)
@@ -611,7 +621,7 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	partitionValue := response.GetPartitionInfo()[0]
+	partitionValue := response.GetPartitionInfoList()[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
 
 	for key, _ := range deviceMap.GetNameTypeMap() {
@@ -738,7 +748,9 @@ func GetGpuNumsFromJob(data *craneProtos.DeviceMap) int32 {
 
 	var gpuCount int32
 	for _, typeCountMap := range data.GetNameTypeMap() { //name_type_map:{key:"BI" value:{total:8}}
-		gpuCount += int32(typeCountMap.GetTotal())
+		for _, value := range typeCountMap.GetTypeCountMap() {
+			gpuCount += int32(value)
+		}
 	}
 
 	return gpuCount
@@ -770,4 +782,40 @@ func GetUserHomedir(username string) (string, error) {
 	// 获取家目录
 	homeDir := u.HomeDir
 	return homeDir, nil
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil || !os.IsNotExist(err)
+}
+
+func RemoveFileIfExists(path string) bool {
+	if _, err := os.Stat(path); err == nil {
+		err := os.Remove(path)
+		if err != nil {
+			logrus.Errorf("Failed to remove file %s: %v", path, err)
+			return false
+		}
+	}
+	return true
+}
+
+func SaveFileWithPermissions(path string, content []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	err := os.WriteFile(path, content, perm)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(path, perm)
+	if err != nil {
+		return err
+	}
+	return nil
 }

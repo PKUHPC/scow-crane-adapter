@@ -2,12 +2,13 @@ package version
 
 import (
 	"context"
-	"scow-crane-adapter/pkg/utils"
 	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	protos "scow-crane-adapter/gen/go"
+
+	"scow-crane-adapter/pkg/utils"
 )
 
 type ServerVersion struct {

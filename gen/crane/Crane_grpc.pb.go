@@ -28,6 +28,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -36,32 +37,38 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CraneCtld_TaskStatusChange_FullMethodName   = "/crane.grpc.CraneCtld/TaskStatusChange"
-	CraneCtld_CranedRegister_FullMethodName     = "/crane.grpc.CraneCtld/CranedRegister"
-	CraneCtld_CforedStream_FullMethodName       = "/crane.grpc.CraneCtld/CforedStream"
-	CraneCtld_CancelTask_FullMethodName         = "/crane.grpc.CraneCtld/CancelTask"
-	CraneCtld_SubmitBatchTask_FullMethodName    = "/crane.grpc.CraneCtld/SubmitBatchTask"
-	CraneCtld_SubmitBatchTasks_FullMethodName   = "/crane.grpc.CraneCtld/SubmitBatchTasks"
-	CraneCtld_QueryCranedInfo_FullMethodName    = "/crane.grpc.CraneCtld/QueryCranedInfo"
-	CraneCtld_QueryPartitionInfo_FullMethodName = "/crane.grpc.CraneCtld/QueryPartitionInfo"
-	CraneCtld_ModifyTask_FullMethodName         = "/crane.grpc.CraneCtld/ModifyTask"
-	CraneCtld_ModifyNode_FullMethodName         = "/crane.grpc.CraneCtld/ModifyNode"
-	CraneCtld_ModifyPartitionAcl_FullMethodName = "/crane.grpc.CraneCtld/ModifyPartitionAcl"
-	CraneCtld_AddAccount_FullMethodName         = "/crane.grpc.CraneCtld/AddAccount"
-	CraneCtld_AddUser_FullMethodName            = "/crane.grpc.CraneCtld/AddUser"
-	CraneCtld_AddQos_FullMethodName             = "/crane.grpc.CraneCtld/AddQos"
-	CraneCtld_DeleteAccount_FullMethodName      = "/crane.grpc.CraneCtld/DeleteAccount"
-	CraneCtld_DeleteUser_FullMethodName         = "/crane.grpc.CraneCtld/DeleteUser"
-	CraneCtld_DeleteQos_FullMethodName          = "/crane.grpc.CraneCtld/DeleteQos"
-	CraneCtld_QueryAccountInfo_FullMethodName   = "/crane.grpc.CraneCtld/QueryAccountInfo"
-	CraneCtld_QueryUserInfo_FullMethodName      = "/crane.grpc.CraneCtld/QueryUserInfo"
-	CraneCtld_QueryQosInfo_FullMethodName       = "/crane.grpc.CraneCtld/QueryQosInfo"
-	CraneCtld_ModifyAccount_FullMethodName      = "/crane.grpc.CraneCtld/ModifyAccount"
-	CraneCtld_ModifyUser_FullMethodName         = "/crane.grpc.CraneCtld/ModifyUser"
-	CraneCtld_ModifyQos_FullMethodName          = "/crane.grpc.CraneCtld/ModifyQos"
-	CraneCtld_BlockAccountOrUser_FullMethodName = "/crane.grpc.CraneCtld/BlockAccountOrUser"
-	CraneCtld_QueryClusterInfo_FullMethodName   = "/crane.grpc.CraneCtld/QueryClusterInfo"
-	CraneCtld_QueryTasksInfo_FullMethodName     = "/crane.grpc.CraneCtld/QueryTasksInfo"
+	CraneCtld_CancelTask_FullMethodName             = "/crane.grpc.CraneCtld/CancelTask"
+	CraneCtld_SubmitBatchTask_FullMethodName        = "/crane.grpc.CraneCtld/SubmitBatchTask"
+	CraneCtld_SubmitBatchTasks_FullMethodName       = "/crane.grpc.CraneCtld/SubmitBatchTasks"
+	CraneCtld_QueryCranedInfo_FullMethodName        = "/crane.grpc.CraneCtld/QueryCranedInfo"
+	CraneCtld_QueryPartitionInfo_FullMethodName     = "/crane.grpc.CraneCtld/QueryPartitionInfo"
+	CraneCtld_QueryReservationInfo_FullMethodName   = "/crane.grpc.CraneCtld/QueryReservationInfo"
+	CraneCtld_ModifyTask_FullMethodName             = "/crane.grpc.CraneCtld/ModifyTask"
+	CraneCtld_ModifyNode_FullMethodName             = "/crane.grpc.CraneCtld/ModifyNode"
+	CraneCtld_ModifyPartitionAcl_FullMethodName     = "/crane.grpc.CraneCtld/ModifyPartitionAcl"
+	CraneCtld_EnableAutoPowerControl_FullMethodName = "/crane.grpc.CraneCtld/EnableAutoPowerControl"
+	CraneCtld_ModifyTasksExtraAttrs_FullMethodName  = "/crane.grpc.CraneCtld/ModifyTasksExtraAttrs"
+	CraneCtld_AddAccount_FullMethodName             = "/crane.grpc.CraneCtld/AddAccount"
+	CraneCtld_AddUser_FullMethodName                = "/crane.grpc.CraneCtld/AddUser"
+	CraneCtld_AddQos_FullMethodName                 = "/crane.grpc.CraneCtld/AddQos"
+	CraneCtld_DeleteAccount_FullMethodName          = "/crane.grpc.CraneCtld/DeleteAccount"
+	CraneCtld_DeleteUser_FullMethodName             = "/crane.grpc.CraneCtld/DeleteUser"
+	CraneCtld_DeleteQos_FullMethodName              = "/crane.grpc.CraneCtld/DeleteQos"
+	CraneCtld_QueryAccountInfo_FullMethodName       = "/crane.grpc.CraneCtld/QueryAccountInfo"
+	CraneCtld_QueryUserInfo_FullMethodName          = "/crane.grpc.CraneCtld/QueryUserInfo"
+	CraneCtld_QueryQosInfo_FullMethodName           = "/crane.grpc.CraneCtld/QueryQosInfo"
+	CraneCtld_ModifyAccount_FullMethodName          = "/crane.grpc.CraneCtld/ModifyAccount"
+	CraneCtld_ModifyUser_FullMethodName             = "/crane.grpc.CraneCtld/ModifyUser"
+	CraneCtld_ModifyQos_FullMethodName              = "/crane.grpc.CraneCtld/ModifyQos"
+	CraneCtld_BlockAccountOrUser_FullMethodName     = "/crane.grpc.CraneCtld/BlockAccountOrUser"
+	CraneCtld_ResetUserCredential_FullMethodName    = "/crane.grpc.CraneCtld/ResetUserCredential"
+	CraneCtld_QueryTxnLog_FullMethodName            = "/crane.grpc.CraneCtld/QueryTxnLog"
+	CraneCtld_QueryClusterInfo_FullMethodName       = "/crane.grpc.CraneCtld/QueryClusterInfo"
+	CraneCtld_QueryTasksInfo_FullMethodName         = "/crane.grpc.CraneCtld/QueryTasksInfo"
+	CraneCtld_CreateReservation_FullMethodName      = "/crane.grpc.CraneCtld/CreateReservation"
+	CraneCtld_DeleteReservation_FullMethodName      = "/crane.grpc.CraneCtld/DeleteReservation"
+	CraneCtld_PowerStateChange_FullMethodName       = "/crane.grpc.CraneCtld/PowerStateChange"
+	CraneCtld_SignUserCertificate_FullMethodName    = "/crane.grpc.CraneCtld/SignUserCertificate"
 )
 
 // CraneCtldClient is the client API for CraneCtld service.
@@ -73,11 +80,6 @@ const (
 //	We need to distinguish the message sender
 //	and have some kind of authentication
 type CraneCtldClient interface {
-	// RPCs called from Craned
-	TaskStatusChange(ctx context.Context, in *TaskStatusChangeRequest, opts ...grpc.CallOption) (*TaskStatusChangeReply, error)
-	CranedRegister(ctx context.Context, in *CranedRegisterRequest, opts ...grpc.CallOption) (*CranedRegisterReply, error)
-	// RPCs called from Cfored
-	CforedStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply], error)
 	// RPCs called from ccancel
 	CancelTask(ctx context.Context, in *CancelTaskRequest, opts ...grpc.CallOption) (*CancelTaskReply, error)
 	// RPCs called from cbatch
@@ -86,9 +88,12 @@ type CraneCtldClient interface {
 	// PRCs called from ccontrol
 	QueryCranedInfo(ctx context.Context, in *QueryCranedInfoRequest, opts ...grpc.CallOption) (*QueryCranedInfoReply, error)
 	QueryPartitionInfo(ctx context.Context, in *QueryPartitionInfoRequest, opts ...grpc.CallOption) (*QueryPartitionInfoReply, error)
+	QueryReservationInfo(ctx context.Context, in *QueryReservationInfoRequest, opts ...grpc.CallOption) (*QueryReservationInfoReply, error)
 	ModifyTask(ctx context.Context, in *ModifyTaskRequest, opts ...grpc.CallOption) (*ModifyTaskReply, error)
 	ModifyNode(ctx context.Context, in *ModifyCranedStateRequest, opts ...grpc.CallOption) (*ModifyCranedStateReply, error)
 	ModifyPartitionAcl(ctx context.Context, in *ModifyPartitionAclRequest, opts ...grpc.CallOption) (*ModifyPartitionAclReply, error)
+	EnableAutoPowerControl(ctx context.Context, in *EnableAutoPowerControlRequest, opts ...grpc.CallOption) (*EnableAutoPowerControlReply, error)
+	ModifyTasksExtraAttrs(ctx context.Context, in *ModifyTasksExtraAttrsRequest, opts ...grpc.CallOption) (*ModifyTasksExtraAttrsReply, error)
 	// RPCs called from cacctmgr
 	AddAccount(ctx context.Context, in *AddAccountRequest, opts ...grpc.CallOption) (*AddAccountReply, error)
 	AddUser(ctx context.Context, in *AddUserRequest, opts ...grpc.CallOption) (*AddUserReply, error)
@@ -103,10 +108,18 @@ type CraneCtldClient interface {
 	ModifyUser(ctx context.Context, in *ModifyUserRequest, opts ...grpc.CallOption) (*ModifyUserReply, error)
 	ModifyQos(ctx context.Context, in *ModifyQosRequest, opts ...grpc.CallOption) (*ModifyQosReply, error)
 	BlockAccountOrUser(ctx context.Context, in *BlockAccountOrUserRequest, opts ...grpc.CallOption) (*BlockAccountOrUserReply, error)
+	ResetUserCredential(ctx context.Context, in *ResetUserCredentialRequest, opts ...grpc.CallOption) (*ResetUserCredentialReply, error)
+	QueryTxnLog(ctx context.Context, in *QueryTxnLogRequest, opts ...grpc.CallOption) (*QueryTxnLogReply, error)
 	// RPCs called from cinfo
 	QueryClusterInfo(ctx context.Context, in *QueryClusterInfoRequest, opts ...grpc.CallOption) (*QueryClusterInfoReply, error)
 	// common RPCs
 	QueryTasksInfo(ctx context.Context, in *QueryTasksInfoRequest, opts ...grpc.CallOption) (*QueryTasksInfoReply, error)
+	CreateReservation(ctx context.Context, in *CreateReservationRequest, opts ...grpc.CallOption) (*CreateReservationReply, error)
+	DeleteReservation(ctx context.Context, in *DeleteReservationRequest, opts ...grpc.CallOption) (*DeleteReservationReply, error)
+	// RPC called form plugin
+	PowerStateChange(ctx context.Context, in *PowerStateChangeRequest, opts ...grpc.CallOption) (*PowerStateChangeReply, error)
+	// RPCS called from PKI request
+	SignUserCertificate(ctx context.Context, in *SignUserCertificateRequest, opts ...grpc.CallOption) (*SignUserCertificateResponse, error)
 }
 
 type craneCtldClient struct {
@@ -116,39 +129,6 @@ type craneCtldClient struct {
 func NewCraneCtldClient(cc grpc.ClientConnInterface) CraneCtldClient {
 	return &craneCtldClient{cc}
 }
-
-func (c *craneCtldClient) TaskStatusChange(ctx context.Context, in *TaskStatusChangeRequest, opts ...grpc.CallOption) (*TaskStatusChangeReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TaskStatusChangeReply)
-	err := c.cc.Invoke(ctx, CraneCtld_TaskStatusChange_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *craneCtldClient) CranedRegister(ctx context.Context, in *CranedRegisterRequest, opts ...grpc.CallOption) (*CranedRegisterReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CranedRegisterReply)
-	err := c.cc.Invoke(ctx, CraneCtld_CranedRegister_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *craneCtldClient) CforedStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &CraneCtld_ServiceDesc.Streams[0], CraneCtld_CforedStream_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamCforedRequest, StreamCtldReply]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type CraneCtld_CforedStreamClient = grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply]
 
 func (c *craneCtldClient) CancelTask(ctx context.Context, in *CancelTaskRequest, opts ...grpc.CallOption) (*CancelTaskReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -200,6 +180,16 @@ func (c *craneCtldClient) QueryPartitionInfo(ctx context.Context, in *QueryParti
 	return out, nil
 }
 
+func (c *craneCtldClient) QueryReservationInfo(ctx context.Context, in *QueryReservationInfoRequest, opts ...grpc.CallOption) (*QueryReservationInfoReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueryReservationInfoReply)
+	err := c.cc.Invoke(ctx, CraneCtld_QueryReservationInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *craneCtldClient) ModifyTask(ctx context.Context, in *ModifyTaskRequest, opts ...grpc.CallOption) (*ModifyTaskReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ModifyTaskReply)
@@ -224,6 +214,26 @@ func (c *craneCtldClient) ModifyPartitionAcl(ctx context.Context, in *ModifyPart
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ModifyPartitionAclReply)
 	err := c.cc.Invoke(ctx, CraneCtld_ModifyPartitionAcl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) EnableAutoPowerControl(ctx context.Context, in *EnableAutoPowerControlRequest, opts ...grpc.CallOption) (*EnableAutoPowerControlReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnableAutoPowerControlReply)
+	err := c.cc.Invoke(ctx, CraneCtld_EnableAutoPowerControl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) ModifyTasksExtraAttrs(ctx context.Context, in *ModifyTasksExtraAttrsRequest, opts ...grpc.CallOption) (*ModifyTasksExtraAttrsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModifyTasksExtraAttrsReply)
+	err := c.cc.Invoke(ctx, CraneCtld_ModifyTasksExtraAttrs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -360,6 +370,26 @@ func (c *craneCtldClient) BlockAccountOrUser(ctx context.Context, in *BlockAccou
 	return out, nil
 }
 
+func (c *craneCtldClient) ResetUserCredential(ctx context.Context, in *ResetUserCredentialRequest, opts ...grpc.CallOption) (*ResetUserCredentialReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetUserCredentialReply)
+	err := c.cc.Invoke(ctx, CraneCtld_ResetUserCredential_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) QueryTxnLog(ctx context.Context, in *QueryTxnLogRequest, opts ...grpc.CallOption) (*QueryTxnLogReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueryTxnLogReply)
+	err := c.cc.Invoke(ctx, CraneCtld_QueryTxnLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *craneCtldClient) QueryClusterInfo(ctx context.Context, in *QueryClusterInfoRequest, opts ...grpc.CallOption) (*QueryClusterInfoReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(QueryClusterInfoReply)
@@ -380,6 +410,46 @@ func (c *craneCtldClient) QueryTasksInfo(ctx context.Context, in *QueryTasksInfo
 	return out, nil
 }
 
+func (c *craneCtldClient) CreateReservation(ctx context.Context, in *CreateReservationRequest, opts ...grpc.CallOption) (*CreateReservationReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateReservationReply)
+	err := c.cc.Invoke(ctx, CraneCtld_CreateReservation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) DeleteReservation(ctx context.Context, in *DeleteReservationRequest, opts ...grpc.CallOption) (*DeleteReservationReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteReservationReply)
+	err := c.cc.Invoke(ctx, CraneCtld_DeleteReservation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) PowerStateChange(ctx context.Context, in *PowerStateChangeRequest, opts ...grpc.CallOption) (*PowerStateChangeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PowerStateChangeReply)
+	err := c.cc.Invoke(ctx, CraneCtld_PowerStateChange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldClient) SignUserCertificate(ctx context.Context, in *SignUserCertificateRequest, opts ...grpc.CallOption) (*SignUserCertificateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SignUserCertificateResponse)
+	err := c.cc.Invoke(ctx, CraneCtld_SignUserCertificate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CraneCtldServer is the server API for CraneCtld service.
 // All implementations should embed UnimplementedCraneCtldServer
 // for forward compatibility.
@@ -389,11 +459,6 @@ func (c *craneCtldClient) QueryTasksInfo(ctx context.Context, in *QueryTasksInfo
 //	We need to distinguish the message sender
 //	and have some kind of authentication
 type CraneCtldServer interface {
-	// RPCs called from Craned
-	TaskStatusChange(context.Context, *TaskStatusChangeRequest) (*TaskStatusChangeReply, error)
-	CranedRegister(context.Context, *CranedRegisterRequest) (*CranedRegisterReply, error)
-	// RPCs called from Cfored
-	CforedStream(grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]) error
 	// RPCs called from ccancel
 	CancelTask(context.Context, *CancelTaskRequest) (*CancelTaskReply, error)
 	// RPCs called from cbatch
@@ -402,9 +467,12 @@ type CraneCtldServer interface {
 	// PRCs called from ccontrol
 	QueryCranedInfo(context.Context, *QueryCranedInfoRequest) (*QueryCranedInfoReply, error)
 	QueryPartitionInfo(context.Context, *QueryPartitionInfoRequest) (*QueryPartitionInfoReply, error)
+	QueryReservationInfo(context.Context, *QueryReservationInfoRequest) (*QueryReservationInfoReply, error)
 	ModifyTask(context.Context, *ModifyTaskRequest) (*ModifyTaskReply, error)
 	ModifyNode(context.Context, *ModifyCranedStateRequest) (*ModifyCranedStateReply, error)
 	ModifyPartitionAcl(context.Context, *ModifyPartitionAclRequest) (*ModifyPartitionAclReply, error)
+	EnableAutoPowerControl(context.Context, *EnableAutoPowerControlRequest) (*EnableAutoPowerControlReply, error)
+	ModifyTasksExtraAttrs(context.Context, *ModifyTasksExtraAttrsRequest) (*ModifyTasksExtraAttrsReply, error)
 	// RPCs called from cacctmgr
 	AddAccount(context.Context, *AddAccountRequest) (*AddAccountReply, error)
 	AddUser(context.Context, *AddUserRequest) (*AddUserReply, error)
@@ -419,10 +487,18 @@ type CraneCtldServer interface {
 	ModifyUser(context.Context, *ModifyUserRequest) (*ModifyUserReply, error)
 	ModifyQos(context.Context, *ModifyQosRequest) (*ModifyQosReply, error)
 	BlockAccountOrUser(context.Context, *BlockAccountOrUserRequest) (*BlockAccountOrUserReply, error)
+	ResetUserCredential(context.Context, *ResetUserCredentialRequest) (*ResetUserCredentialReply, error)
+	QueryTxnLog(context.Context, *QueryTxnLogRequest) (*QueryTxnLogReply, error)
 	// RPCs called from cinfo
 	QueryClusterInfo(context.Context, *QueryClusterInfoRequest) (*QueryClusterInfoReply, error)
 	// common RPCs
 	QueryTasksInfo(context.Context, *QueryTasksInfoRequest) (*QueryTasksInfoReply, error)
+	CreateReservation(context.Context, *CreateReservationRequest) (*CreateReservationReply, error)
+	DeleteReservation(context.Context, *DeleteReservationRequest) (*DeleteReservationReply, error)
+	// RPC called form plugin
+	PowerStateChange(context.Context, *PowerStateChangeRequest) (*PowerStateChangeReply, error)
+	// RPCS called from PKI request
+	SignUserCertificate(context.Context, *SignUserCertificateRequest) (*SignUserCertificateResponse, error)
 }
 
 // UnimplementedCraneCtldServer should be embedded to have
@@ -432,15 +508,6 @@ type CraneCtldServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCraneCtldServer struct{}
 
-func (UnimplementedCraneCtldServer) TaskStatusChange(context.Context, *TaskStatusChangeRequest) (*TaskStatusChangeReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TaskStatusChange not implemented")
-}
-func (UnimplementedCraneCtldServer) CranedRegister(context.Context, *CranedRegisterRequest) (*CranedRegisterReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CranedRegister not implemented")
-}
-func (UnimplementedCraneCtldServer) CforedStream(grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]) error {
-	return status.Errorf(codes.Unimplemented, "method CforedStream not implemented")
-}
 func (UnimplementedCraneCtldServer) CancelTask(context.Context, *CancelTaskRequest) (*CancelTaskReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelTask not implemented")
 }
@@ -456,6 +523,9 @@ func (UnimplementedCraneCtldServer) QueryCranedInfo(context.Context, *QueryCrane
 func (UnimplementedCraneCtldServer) QueryPartitionInfo(context.Context, *QueryPartitionInfoRequest) (*QueryPartitionInfoReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryPartitionInfo not implemented")
 }
+func (UnimplementedCraneCtldServer) QueryReservationInfo(context.Context, *QueryReservationInfoRequest) (*QueryReservationInfoReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryReservationInfo not implemented")
+}
 func (UnimplementedCraneCtldServer) ModifyTask(context.Context, *ModifyTaskRequest) (*ModifyTaskReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyTask not implemented")
 }
@@ -464,6 +534,12 @@ func (UnimplementedCraneCtldServer) ModifyNode(context.Context, *ModifyCranedSta
 }
 func (UnimplementedCraneCtldServer) ModifyPartitionAcl(context.Context, *ModifyPartitionAclRequest) (*ModifyPartitionAclReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyPartitionAcl not implemented")
+}
+func (UnimplementedCraneCtldServer) EnableAutoPowerControl(context.Context, *EnableAutoPowerControlRequest) (*EnableAutoPowerControlReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EnableAutoPowerControl not implemented")
+}
+func (UnimplementedCraneCtldServer) ModifyTasksExtraAttrs(context.Context, *ModifyTasksExtraAttrsRequest) (*ModifyTasksExtraAttrsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyTasksExtraAttrs not implemented")
 }
 func (UnimplementedCraneCtldServer) AddAccount(context.Context, *AddAccountRequest) (*AddAccountReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddAccount not implemented")
@@ -504,11 +580,29 @@ func (UnimplementedCraneCtldServer) ModifyQos(context.Context, *ModifyQosRequest
 func (UnimplementedCraneCtldServer) BlockAccountOrUser(context.Context, *BlockAccountOrUserRequest) (*BlockAccountOrUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BlockAccountOrUser not implemented")
 }
+func (UnimplementedCraneCtldServer) ResetUserCredential(context.Context, *ResetUserCredentialRequest) (*ResetUserCredentialReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetUserCredential not implemented")
+}
+func (UnimplementedCraneCtldServer) QueryTxnLog(context.Context, *QueryTxnLogRequest) (*QueryTxnLogReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryTxnLog not implemented")
+}
 func (UnimplementedCraneCtldServer) QueryClusterInfo(context.Context, *QueryClusterInfoRequest) (*QueryClusterInfoReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryClusterInfo not implemented")
 }
 func (UnimplementedCraneCtldServer) QueryTasksInfo(context.Context, *QueryTasksInfoRequest) (*QueryTasksInfoReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryTasksInfo not implemented")
+}
+func (UnimplementedCraneCtldServer) CreateReservation(context.Context, *CreateReservationRequest) (*CreateReservationReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateReservation not implemented")
+}
+func (UnimplementedCraneCtldServer) DeleteReservation(context.Context, *DeleteReservationRequest) (*DeleteReservationReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteReservation not implemented")
+}
+func (UnimplementedCraneCtldServer) PowerStateChange(context.Context, *PowerStateChangeRequest) (*PowerStateChangeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PowerStateChange not implemented")
+}
+func (UnimplementedCraneCtldServer) SignUserCertificate(context.Context, *SignUserCertificateRequest) (*SignUserCertificateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SignUserCertificate not implemented")
 }
 func (UnimplementedCraneCtldServer) testEmbeddedByValue() {}
 
@@ -529,49 +623,6 @@ func RegisterCraneCtldServer(s grpc.ServiceRegistrar, srv CraneCtldServer) {
 	}
 	s.RegisterService(&CraneCtld_ServiceDesc, srv)
 }
-
-func _CraneCtld_TaskStatusChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TaskStatusChangeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CraneCtldServer).TaskStatusChange(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CraneCtld_TaskStatusChange_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CraneCtldServer).TaskStatusChange(ctx, req.(*TaskStatusChangeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CraneCtld_CranedRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CranedRegisterRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CraneCtldServer).CranedRegister(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CraneCtld_CranedRegister_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CraneCtldServer).CranedRegister(ctx, req.(*CranedRegisterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CraneCtld_CforedStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(CraneCtldServer).CforedStream(&grpc.GenericServerStream[StreamCforedRequest, StreamCtldReply]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type CraneCtld_CforedStreamServer = grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]
 
 func _CraneCtld_CancelTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelTaskRequest)
@@ -663,6 +714,24 @@ func _CraneCtld_QueryPartitionInfo_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CraneCtld_QueryReservationInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryReservationInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).QueryReservationInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_QueryReservationInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).QueryReservationInfo(ctx, req.(*QueryReservationInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CraneCtld_ModifyTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ModifyTaskRequest)
 	if err := dec(in); err != nil {
@@ -713,6 +782,42 @@ func _CraneCtld_ModifyPartitionAcl_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CraneCtldServer).ModifyPartitionAcl(ctx, req.(*ModifyPartitionAclRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_EnableAutoPowerControl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableAutoPowerControlRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).EnableAutoPowerControl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_EnableAutoPowerControl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).EnableAutoPowerControl(ctx, req.(*EnableAutoPowerControlRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_ModifyTasksExtraAttrs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyTasksExtraAttrsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).ModifyTasksExtraAttrs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_ModifyTasksExtraAttrs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).ModifyTasksExtraAttrs(ctx, req.(*ModifyTasksExtraAttrsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -951,6 +1056,42 @@ func _CraneCtld_BlockAccountOrUser_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CraneCtld_ResetUserCredential_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetUserCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).ResetUserCredential(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_ResetUserCredential_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).ResetUserCredential(ctx, req.(*ResetUserCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_QueryTxnLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryTxnLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).QueryTxnLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_QueryTxnLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).QueryTxnLog(ctx, req.(*QueryTxnLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CraneCtld_QueryClusterInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryClusterInfoRequest)
 	if err := dec(in); err != nil {
@@ -987,6 +1128,78 @@ func _CraneCtld_QueryTasksInfo_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CraneCtld_CreateReservation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReservationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).CreateReservation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_CreateReservation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).CreateReservation(ctx, req.(*CreateReservationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_DeleteReservation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteReservationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).DeleteReservation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_DeleteReservation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).DeleteReservation(ctx, req.(*DeleteReservationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_PowerStateChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PowerStateChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).PowerStateChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_PowerStateChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).PowerStateChange(ctx, req.(*PowerStateChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtld_SignUserCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignUserCertificateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldServer).SignUserCertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtld_SignUserCertificate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldServer).SignUserCertificate(ctx, req.(*SignUserCertificateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CraneCtld_ServiceDesc is the grpc.ServiceDesc for CraneCtld service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -994,14 +1207,6 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "crane.grpc.CraneCtld",
 	HandlerType: (*CraneCtldServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "TaskStatusChange",
-			Handler:    _CraneCtld_TaskStatusChange_Handler,
-		},
-		{
-			MethodName: "CranedRegister",
-			Handler:    _CraneCtld_CranedRegister_Handler,
-		},
 		{
 			MethodName: "CancelTask",
 			Handler:    _CraneCtld_CancelTask_Handler,
@@ -1023,6 +1228,10 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CraneCtld_QueryPartitionInfo_Handler,
 		},
 		{
+			MethodName: "QueryReservationInfo",
+			Handler:    _CraneCtld_QueryReservationInfo_Handler,
+		},
+		{
 			MethodName: "ModifyTask",
 			Handler:    _CraneCtld_ModifyTask_Handler,
 		},
@@ -1033,6 +1242,14 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ModifyPartitionAcl",
 			Handler:    _CraneCtld_ModifyPartitionAcl_Handler,
+		},
+		{
+			MethodName: "EnableAutoPowerControl",
+			Handler:    _CraneCtld_EnableAutoPowerControl_Handler,
+		},
+		{
+			MethodName: "ModifyTasksExtraAttrs",
+			Handler:    _CraneCtld_ModifyTasksExtraAttrs_Handler,
 		},
 		{
 			MethodName: "AddAccount",
@@ -1087,6 +1304,14 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CraneCtld_BlockAccountOrUser_Handler,
 		},
 		{
+			MethodName: "ResetUserCredential",
+			Handler:    _CraneCtld_ResetUserCredential_Handler,
+		},
+		{
+			MethodName: "QueryTxnLog",
+			Handler:    _CraneCtld_QueryTxnLog_Handler,
+		},
+		{
 			MethodName: "QueryClusterInfo",
 			Handler:    _CraneCtld_QueryClusterInfo_Handler,
 		},
@@ -1094,11 +1319,271 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "QueryTasksInfo",
 			Handler:    _CraneCtld_QueryTasksInfo_Handler,
 		},
+		{
+			MethodName: "CreateReservation",
+			Handler:    _CraneCtld_CreateReservation_Handler,
+		},
+		{
+			MethodName: "DeleteReservation",
+			Handler:    _CraneCtld_DeleteReservation_Handler,
+		},
+		{
+			MethodName: "PowerStateChange",
+			Handler:    _CraneCtld_PowerStateChange_Handler,
+		},
+		{
+			MethodName: "SignUserCertificate",
+			Handler:    _CraneCtld_SignUserCertificate_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "Crane.proto",
+}
+
+const (
+	CraneCtldForInternal_StepStatusChange_FullMethodName         = "/crane.grpc.CraneCtldForInternal/StepStatusChange"
+	CraneCtldForInternal_CranedTriggerReverseConn_FullMethodName = "/crane.grpc.CraneCtldForInternal/CranedTriggerReverseConn"
+	CraneCtldForInternal_CranedRegister_FullMethodName           = "/crane.grpc.CraneCtldForInternal/CranedRegister"
+	CraneCtldForInternal_CranedPing_FullMethodName               = "/crane.grpc.CraneCtldForInternal/CranedPing"
+	CraneCtldForInternal_CforedStream_FullMethodName             = "/crane.grpc.CraneCtldForInternal/CforedStream"
+)
+
+// CraneCtldForInternalClient is the client API for CraneCtldForInternal service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type CraneCtldForInternalClient interface {
+	// RPCs called from Craned
+	StepStatusChange(ctx context.Context, in *StepStatusChangeRequest, opts ...grpc.CallOption) (*StepStatusChangeReply, error)
+	CranedTriggerReverseConn(ctx context.Context, in *CranedTriggerReverseConnRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CranedRegister(ctx context.Context, in *CranedRegisterRequest, opts ...grpc.CallOption) (*CranedRegisterReply, error)
+	CranedPing(ctx context.Context, in *CranedPingRequest, opts ...grpc.CallOption) (*CranedPingReply, error)
+	// RPCs called from Cfored
+	CforedStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply], error)
+}
+
+type craneCtldForInternalClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewCraneCtldForInternalClient(cc grpc.ClientConnInterface) CraneCtldForInternalClient {
+	return &craneCtldForInternalClient{cc}
+}
+
+func (c *craneCtldForInternalClient) StepStatusChange(ctx context.Context, in *StepStatusChangeRequest, opts ...grpc.CallOption) (*StepStatusChangeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StepStatusChangeReply)
+	err := c.cc.Invoke(ctx, CraneCtldForInternal_StepStatusChange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldForInternalClient) CranedTriggerReverseConn(ctx context.Context, in *CranedTriggerReverseConnRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, CraneCtldForInternal_CranedTriggerReverseConn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldForInternalClient) CranedRegister(ctx context.Context, in *CranedRegisterRequest, opts ...grpc.CallOption) (*CranedRegisterReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CranedRegisterReply)
+	err := c.cc.Invoke(ctx, CraneCtldForInternal_CranedRegister_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldForInternalClient) CranedPing(ctx context.Context, in *CranedPingRequest, opts ...grpc.CallOption) (*CranedPingReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CranedPingReply)
+	err := c.cc.Invoke(ctx, CraneCtldForInternal_CranedPing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *craneCtldForInternalClient) CforedStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CraneCtldForInternal_ServiceDesc.Streams[0], CraneCtldForInternal_CforedStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamCforedRequest, StreamCtldReply]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CraneCtldForInternal_CforedStreamClient = grpc.BidiStreamingClient[StreamCforedRequest, StreamCtldReply]
+
+// CraneCtldForInternalServer is the server API for CraneCtldForInternal service.
+// All implementations should embed UnimplementedCraneCtldForInternalServer
+// for forward compatibility.
+type CraneCtldForInternalServer interface {
+	// RPCs called from Craned
+	StepStatusChange(context.Context, *StepStatusChangeRequest) (*StepStatusChangeReply, error)
+	CranedTriggerReverseConn(context.Context, *CranedTriggerReverseConnRequest) (*emptypb.Empty, error)
+	CranedRegister(context.Context, *CranedRegisterRequest) (*CranedRegisterReply, error)
+	CranedPing(context.Context, *CranedPingRequest) (*CranedPingReply, error)
+	// RPCs called from Cfored
+	CforedStream(grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]) error
+}
+
+// UnimplementedCraneCtldForInternalServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedCraneCtldForInternalServer struct{}
+
+func (UnimplementedCraneCtldForInternalServer) StepStatusChange(context.Context, *StepStatusChangeRequest) (*StepStatusChangeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StepStatusChange not implemented")
+}
+func (UnimplementedCraneCtldForInternalServer) CranedTriggerReverseConn(context.Context, *CranedTriggerReverseConnRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CranedTriggerReverseConn not implemented")
+}
+func (UnimplementedCraneCtldForInternalServer) CranedRegister(context.Context, *CranedRegisterRequest) (*CranedRegisterReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CranedRegister not implemented")
+}
+func (UnimplementedCraneCtldForInternalServer) CranedPing(context.Context, *CranedPingRequest) (*CranedPingReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CranedPing not implemented")
+}
+func (UnimplementedCraneCtldForInternalServer) CforedStream(grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]) error {
+	return status.Errorf(codes.Unimplemented, "method CforedStream not implemented")
+}
+func (UnimplementedCraneCtldForInternalServer) testEmbeddedByValue() {}
+
+// UnsafeCraneCtldForInternalServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to CraneCtldForInternalServer will
+// result in compilation errors.
+type UnsafeCraneCtldForInternalServer interface {
+	mustEmbedUnimplementedCraneCtldForInternalServer()
+}
+
+func RegisterCraneCtldForInternalServer(s grpc.ServiceRegistrar, srv CraneCtldForInternalServer) {
+	// If the following call pancis, it indicates UnimplementedCraneCtldForInternalServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&CraneCtldForInternal_ServiceDesc, srv)
+}
+
+func _CraneCtldForInternal_StepStatusChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StepStatusChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldForInternalServer).StepStatusChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtldForInternal_StepStatusChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldForInternalServer).StepStatusChange(ctx, req.(*StepStatusChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtldForInternal_CranedTriggerReverseConn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CranedTriggerReverseConnRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldForInternalServer).CranedTriggerReverseConn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtldForInternal_CranedTriggerReverseConn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldForInternalServer).CranedTriggerReverseConn(ctx, req.(*CranedTriggerReverseConnRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtldForInternal_CranedRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CranedRegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldForInternalServer).CranedRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtldForInternal_CranedRegister_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldForInternalServer).CranedRegister(ctx, req.(*CranedRegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtldForInternal_CranedPing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CranedPingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CraneCtldForInternalServer).CranedPing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CraneCtldForInternal_CranedPing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CraneCtldForInternalServer).CranedPing(ctx, req.(*CranedPingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CraneCtldForInternal_CforedStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CraneCtldForInternalServer).CforedStream(&grpc.GenericServerStream[StreamCforedRequest, StreamCtldReply]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CraneCtldForInternal_CforedStreamServer = grpc.BidiStreamingServer[StreamCforedRequest, StreamCtldReply]
+
+// CraneCtldForInternal_ServiceDesc is the grpc.ServiceDesc for CraneCtldForInternal service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var CraneCtldForInternal_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "crane.grpc.CraneCtldForInternal",
+	HandlerType: (*CraneCtldForInternalServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "StepStatusChange",
+			Handler:    _CraneCtldForInternal_StepStatusChange_Handler,
+		},
+		{
+			MethodName: "CranedTriggerReverseConn",
+			Handler:    _CraneCtldForInternal_CranedTriggerReverseConn_Handler,
+		},
+		{
+			MethodName: "CranedRegister",
+			Handler:    _CraneCtldForInternal_CranedRegister_Handler,
+		},
+		{
+			MethodName: "CranedPing",
+			Handler:    _CraneCtldForInternal_CranedPing_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "CforedStream",
-			Handler:       _CraneCtld_CforedStream_Handler,
+			Handler:       _CraneCtldForInternal_CforedStream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
@@ -1107,19 +1592,17 @@ var CraneCtld_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Craned_ExecuteTask_FullMethodName                  = "/crane.grpc.Craned/ExecuteTask"
-	Craned_CheckTaskStatus_FullMethodName              = "/crane.grpc.Craned/CheckTaskStatus"
-	Craned_CreateCgroupForTasks_FullMethodName         = "/crane.grpc.Craned/CreateCgroupForTasks"
-	Craned_ReleaseCgroupForTasks_FullMethodName        = "/crane.grpc.Craned/ReleaseCgroupForTasks"
-	Craned_QueryCranedRemoteMeta_FullMethodName        = "/crane.grpc.Craned/QueryCranedRemoteMeta"
-	Craned_TerminateTasks_FullMethodName               = "/crane.grpc.Craned/TerminateTasks"
-	Craned_TerminateOrphanedTask_FullMethodName        = "/crane.grpc.Craned/TerminateOrphanedTask"
-	Craned_ChangeTaskTimeLimit_FullMethodName          = "/crane.grpc.Craned/ChangeTaskTimeLimit"
-	Craned_QueryTaskIdFromPort_FullMethodName          = "/crane.grpc.Craned/QueryTaskIdFromPort"
-	Craned_QueryTaskIdFromPortForward_FullMethodName   = "/crane.grpc.Craned/QueryTaskIdFromPortForward"
-	Craned_MigrateSshProcToCgroup_FullMethodName       = "/crane.grpc.Craned/MigrateSshProcToCgroup"
-	Craned_QueryTaskEnvVariables_FullMethodName        = "/crane.grpc.Craned/QueryTaskEnvVariables"
-	Craned_QueryTaskEnvVariablesForward_FullMethodName = "/crane.grpc.Craned/QueryTaskEnvVariablesForward"
+	Craned_Configure_FullMethodName                = "/crane.grpc.Craned/Configure"
+	Craned_ExecuteSteps_FullMethodName             = "/crane.grpc.Craned/ExecuteSteps"
+	Craned_CreateCgroupForJobs_FullMethodName      = "/crane.grpc.Craned/CreateCgroupForJobs"
+	Craned_FreeSteps_FullMethodName                = "/crane.grpc.Craned/FreeSteps"
+	Craned_ReleaseCgroupForJobs_FullMethodName     = "/crane.grpc.Craned/ReleaseCgroupForJobs"
+	Craned_TerminateSteps_FullMethodName           = "/crane.grpc.Craned/TerminateSteps"
+	Craned_TerminateOrphanedStep_FullMethodName    = "/crane.grpc.Craned/TerminateOrphanedStep"
+	Craned_ChangeJobTimeLimit_FullMethodName       = "/crane.grpc.Craned/ChangeJobTimeLimit"
+	Craned_QueryStepFromPort_FullMethodName        = "/crane.grpc.Craned/QueryStepFromPort"
+	Craned_QuerySshStepEnvVariables_FullMethodName = "/crane.grpc.Craned/QuerySshStepEnvVariables"
+	Craned_StepStatusChange_FullMethodName         = "/crane.grpc.Craned/StepStatusChange"
 )
 
 // CranedClient is the client API for Craned service.
@@ -1127,26 +1610,24 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CranedClient interface {
 	// ----------------------------------- Called from CraneCtld ----------------------------------------------------
-	ExecuteTask(ctx context.Context, in *ExecuteTasksRequest, opts ...grpc.CallOption) (*ExecuteTasksReply, error)
-	CheckTaskStatus(ctx context.Context, in *CheckTaskStatusRequest, opts ...grpc.CallOption) (*CheckTaskStatusReply, error)
-	CreateCgroupForTasks(ctx context.Context, in *CreateCgroupForTasksRequest, opts ...grpc.CallOption) (*CreateCgroupForTasksReply, error)
-	ReleaseCgroupForTasks(ctx context.Context, in *ReleaseCgroupForTasksRequest, opts ...grpc.CallOption) (*ReleaseCgroupForTasksReply, error)
-	QueryCranedRemoteMeta(ctx context.Context, in *QueryCranedRemoteMetaRequest, opts ...grpc.CallOption) (*QueryCranedRemoteMetaReply, error)
+	Configure(ctx context.Context, in *ConfigureCranedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ExecuteSteps(ctx context.Context, in *ExecuteStepsRequest, opts ...grpc.CallOption) (*ExecuteStepsReply, error)
+	CreateCgroupForJobs(ctx context.Context, in *CreateCgroupForJobsRequest, opts ...grpc.CallOption) (*CreateCgroupForJobsReply, error)
+	FreeSteps(ctx context.Context, in *FreeStepsRequest, opts ...grpc.CallOption) (*FreeStepsReply, error)
+	ReleaseCgroupForJobs(ctx context.Context, in *ReleaseCgroupForJobsRequest, opts ...grpc.CallOption) (*ReleaseCgroupForJobsReply, error)
 	//
 	//If the task is an interactive task, the resource uuid is also revoked.
 	//If there's no process in this interactive task, just deallocate all the resources.
 	//If there are processes in this interactive task, kill all the processes and deallocate resources.
 	//If the task is a batch task, just kill it.
-	TerminateTasks(ctx context.Context, in *TerminateTasksRequest, opts ...grpc.CallOption) (*TerminateTasksReply, error)
-	TerminateOrphanedTask(ctx context.Context, in *TerminateOrphanedTaskRequest, opts ...grpc.CallOption) (*TerminateOrphanedTaskReply, error)
-	ChangeTaskTimeLimit(ctx context.Context, in *ChangeTaskTimeLimitRequest, opts ...grpc.CallOption) (*ChangeTaskTimeLimitReply, error)
+	TerminateSteps(ctx context.Context, in *TerminateStepsRequest, opts ...grpc.CallOption) (*TerminateStepsReply, error)
+	TerminateOrphanedStep(ctx context.Context, in *TerminateOrphanedStepRequest, opts ...grpc.CallOption) (*TerminateOrphanedStepReply, error)
+	ChangeJobTimeLimit(ctx context.Context, in *ChangeJobTimeLimitRequest, opts ...grpc.CallOption) (*ChangeJobTimeLimitReply, error)
 	// ----------------------------------- Called from Craned  ------------------------------------------------------
-	QueryTaskIdFromPort(ctx context.Context, in *QueryTaskIdFromPortRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortReply, error)
-	// ----------------------------------- Called from Pam Module  ---------------------------------------------------
-	QueryTaskIdFromPortForward(ctx context.Context, in *QueryTaskIdFromPortForwardRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortForwardReply, error)
-	MigrateSshProcToCgroup(ctx context.Context, in *MigrateSshProcToCgroupRequest, opts ...grpc.CallOption) (*MigrateSshProcToCgroupReply, error)
-	QueryTaskEnvVariables(ctx context.Context, in *QueryTaskEnvVariablesRequest, opts ...grpc.CallOption) (*QueryTaskEnvVariablesReply, error)
-	QueryTaskEnvVariablesForward(ctx context.Context, in *QueryTaskEnvVariablesForwardRequest, opts ...grpc.CallOption) (*QueryTaskEnvVariablesForwardReply, error)
+	QueryStepFromPort(ctx context.Context, in *QueryStepFromPortRequest, opts ...grpc.CallOption) (*QueryStepFromPortReply, error)
+	QuerySshStepEnvVariables(ctx context.Context, in *QuerySshStepEnvVariablesRequest, opts ...grpc.CallOption) (*QuerySshStepEnvVariablesReply, error)
+	// ----------------------------------- Called from Supervisor  ---------------------------------------------------
+	StepStatusChange(ctx context.Context, in *StepStatusChangeRequest, opts ...grpc.CallOption) (*StepStatusChangeReply, error)
 }
 
 type cranedClient struct {
@@ -1157,130 +1638,110 @@ func NewCranedClient(cc grpc.ClientConnInterface) CranedClient {
 	return &cranedClient{cc}
 }
 
-func (c *cranedClient) ExecuteTask(ctx context.Context, in *ExecuteTasksRequest, opts ...grpc.CallOption) (*ExecuteTasksReply, error) {
+func (c *cranedClient) Configure(ctx context.Context, in *ConfigureCranedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExecuteTasksReply)
-	err := c.cc.Invoke(ctx, Craned_ExecuteTask_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Craned_Configure_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) CheckTaskStatus(ctx context.Context, in *CheckTaskStatusRequest, opts ...grpc.CallOption) (*CheckTaskStatusReply, error) {
+func (c *cranedClient) ExecuteSteps(ctx context.Context, in *ExecuteStepsRequest, opts ...grpc.CallOption) (*ExecuteStepsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckTaskStatusReply)
-	err := c.cc.Invoke(ctx, Craned_CheckTaskStatus_FullMethodName, in, out, cOpts...)
+	out := new(ExecuteStepsReply)
+	err := c.cc.Invoke(ctx, Craned_ExecuteSteps_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) CreateCgroupForTasks(ctx context.Context, in *CreateCgroupForTasksRequest, opts ...grpc.CallOption) (*CreateCgroupForTasksReply, error) {
+func (c *cranedClient) CreateCgroupForJobs(ctx context.Context, in *CreateCgroupForJobsRequest, opts ...grpc.CallOption) (*CreateCgroupForJobsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateCgroupForTasksReply)
-	err := c.cc.Invoke(ctx, Craned_CreateCgroupForTasks_FullMethodName, in, out, cOpts...)
+	out := new(CreateCgroupForJobsReply)
+	err := c.cc.Invoke(ctx, Craned_CreateCgroupForJobs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) ReleaseCgroupForTasks(ctx context.Context, in *ReleaseCgroupForTasksRequest, opts ...grpc.CallOption) (*ReleaseCgroupForTasksReply, error) {
+func (c *cranedClient) FreeSteps(ctx context.Context, in *FreeStepsRequest, opts ...grpc.CallOption) (*FreeStepsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReleaseCgroupForTasksReply)
-	err := c.cc.Invoke(ctx, Craned_ReleaseCgroupForTasks_FullMethodName, in, out, cOpts...)
+	out := new(FreeStepsReply)
+	err := c.cc.Invoke(ctx, Craned_FreeSteps_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) QueryCranedRemoteMeta(ctx context.Context, in *QueryCranedRemoteMetaRequest, opts ...grpc.CallOption) (*QueryCranedRemoteMetaReply, error) {
+func (c *cranedClient) ReleaseCgroupForJobs(ctx context.Context, in *ReleaseCgroupForJobsRequest, opts ...grpc.CallOption) (*ReleaseCgroupForJobsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryCranedRemoteMetaReply)
-	err := c.cc.Invoke(ctx, Craned_QueryCranedRemoteMeta_FullMethodName, in, out, cOpts...)
+	out := new(ReleaseCgroupForJobsReply)
+	err := c.cc.Invoke(ctx, Craned_ReleaseCgroupForJobs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) TerminateTasks(ctx context.Context, in *TerminateTasksRequest, opts ...grpc.CallOption) (*TerminateTasksReply, error) {
+func (c *cranedClient) TerminateSteps(ctx context.Context, in *TerminateStepsRequest, opts ...grpc.CallOption) (*TerminateStepsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TerminateTasksReply)
-	err := c.cc.Invoke(ctx, Craned_TerminateTasks_FullMethodName, in, out, cOpts...)
+	out := new(TerminateStepsReply)
+	err := c.cc.Invoke(ctx, Craned_TerminateSteps_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) TerminateOrphanedTask(ctx context.Context, in *TerminateOrphanedTaskRequest, opts ...grpc.CallOption) (*TerminateOrphanedTaskReply, error) {
+func (c *cranedClient) TerminateOrphanedStep(ctx context.Context, in *TerminateOrphanedStepRequest, opts ...grpc.CallOption) (*TerminateOrphanedStepReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TerminateOrphanedTaskReply)
-	err := c.cc.Invoke(ctx, Craned_TerminateOrphanedTask_FullMethodName, in, out, cOpts...)
+	out := new(TerminateOrphanedStepReply)
+	err := c.cc.Invoke(ctx, Craned_TerminateOrphanedStep_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) ChangeTaskTimeLimit(ctx context.Context, in *ChangeTaskTimeLimitRequest, opts ...grpc.CallOption) (*ChangeTaskTimeLimitReply, error) {
+func (c *cranedClient) ChangeJobTimeLimit(ctx context.Context, in *ChangeJobTimeLimitRequest, opts ...grpc.CallOption) (*ChangeJobTimeLimitReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ChangeTaskTimeLimitReply)
-	err := c.cc.Invoke(ctx, Craned_ChangeTaskTimeLimit_FullMethodName, in, out, cOpts...)
+	out := new(ChangeJobTimeLimitReply)
+	err := c.cc.Invoke(ctx, Craned_ChangeJobTimeLimit_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) QueryTaskIdFromPort(ctx context.Context, in *QueryTaskIdFromPortRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortReply, error) {
+func (c *cranedClient) QueryStepFromPort(ctx context.Context, in *QueryStepFromPortRequest, opts ...grpc.CallOption) (*QueryStepFromPortReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryTaskIdFromPortReply)
-	err := c.cc.Invoke(ctx, Craned_QueryTaskIdFromPort_FullMethodName, in, out, cOpts...)
+	out := new(QueryStepFromPortReply)
+	err := c.cc.Invoke(ctx, Craned_QueryStepFromPort_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) QueryTaskIdFromPortForward(ctx context.Context, in *QueryTaskIdFromPortForwardRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortForwardReply, error) {
+func (c *cranedClient) QuerySshStepEnvVariables(ctx context.Context, in *QuerySshStepEnvVariablesRequest, opts ...grpc.CallOption) (*QuerySshStepEnvVariablesReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryTaskIdFromPortForwardReply)
-	err := c.cc.Invoke(ctx, Craned_QueryTaskIdFromPortForward_FullMethodName, in, out, cOpts...)
+	out := new(QuerySshStepEnvVariablesReply)
+	err := c.cc.Invoke(ctx, Craned_QuerySshStepEnvVariables_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cranedClient) MigrateSshProcToCgroup(ctx context.Context, in *MigrateSshProcToCgroupRequest, opts ...grpc.CallOption) (*MigrateSshProcToCgroupReply, error) {
+func (c *cranedClient) StepStatusChange(ctx context.Context, in *StepStatusChangeRequest, opts ...grpc.CallOption) (*StepStatusChangeReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MigrateSshProcToCgroupReply)
-	err := c.cc.Invoke(ctx, Craned_MigrateSshProcToCgroup_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cranedClient) QueryTaskEnvVariables(ctx context.Context, in *QueryTaskEnvVariablesRequest, opts ...grpc.CallOption) (*QueryTaskEnvVariablesReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryTaskEnvVariablesReply)
-	err := c.cc.Invoke(ctx, Craned_QueryTaskEnvVariables_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cranedClient) QueryTaskEnvVariablesForward(ctx context.Context, in *QueryTaskEnvVariablesForwardRequest, opts ...grpc.CallOption) (*QueryTaskEnvVariablesForwardReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryTaskEnvVariablesForwardReply)
-	err := c.cc.Invoke(ctx, Craned_QueryTaskEnvVariablesForward_FullMethodName, in, out, cOpts...)
+	out := new(StepStatusChangeReply)
+	err := c.cc.Invoke(ctx, Craned_StepStatusChange_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1292,26 +1753,24 @@ func (c *cranedClient) QueryTaskEnvVariablesForward(ctx context.Context, in *Que
 // for forward compatibility.
 type CranedServer interface {
 	// ----------------------------------- Called from CraneCtld ----------------------------------------------------
-	ExecuteTask(context.Context, *ExecuteTasksRequest) (*ExecuteTasksReply, error)
-	CheckTaskStatus(context.Context, *CheckTaskStatusRequest) (*CheckTaskStatusReply, error)
-	CreateCgroupForTasks(context.Context, *CreateCgroupForTasksRequest) (*CreateCgroupForTasksReply, error)
-	ReleaseCgroupForTasks(context.Context, *ReleaseCgroupForTasksRequest) (*ReleaseCgroupForTasksReply, error)
-	QueryCranedRemoteMeta(context.Context, *QueryCranedRemoteMetaRequest) (*QueryCranedRemoteMetaReply, error)
+	Configure(context.Context, *ConfigureCranedRequest) (*emptypb.Empty, error)
+	ExecuteSteps(context.Context, *ExecuteStepsRequest) (*ExecuteStepsReply, error)
+	CreateCgroupForJobs(context.Context, *CreateCgroupForJobsRequest) (*CreateCgroupForJobsReply, error)
+	FreeSteps(context.Context, *FreeStepsRequest) (*FreeStepsReply, error)
+	ReleaseCgroupForJobs(context.Context, *ReleaseCgroupForJobsRequest) (*ReleaseCgroupForJobsReply, error)
 	//
 	//If the task is an interactive task, the resource uuid is also revoked.
 	//If there's no process in this interactive task, just deallocate all the resources.
 	//If there are processes in this interactive task, kill all the processes and deallocate resources.
 	//If the task is a batch task, just kill it.
-	TerminateTasks(context.Context, *TerminateTasksRequest) (*TerminateTasksReply, error)
-	TerminateOrphanedTask(context.Context, *TerminateOrphanedTaskRequest) (*TerminateOrphanedTaskReply, error)
-	ChangeTaskTimeLimit(context.Context, *ChangeTaskTimeLimitRequest) (*ChangeTaskTimeLimitReply, error)
+	TerminateSteps(context.Context, *TerminateStepsRequest) (*TerminateStepsReply, error)
+	TerminateOrphanedStep(context.Context, *TerminateOrphanedStepRequest) (*TerminateOrphanedStepReply, error)
+	ChangeJobTimeLimit(context.Context, *ChangeJobTimeLimitRequest) (*ChangeJobTimeLimitReply, error)
 	// ----------------------------------- Called from Craned  ------------------------------------------------------
-	QueryTaskIdFromPort(context.Context, *QueryTaskIdFromPortRequest) (*QueryTaskIdFromPortReply, error)
-	// ----------------------------------- Called from Pam Module  ---------------------------------------------------
-	QueryTaskIdFromPortForward(context.Context, *QueryTaskIdFromPortForwardRequest) (*QueryTaskIdFromPortForwardReply, error)
-	MigrateSshProcToCgroup(context.Context, *MigrateSshProcToCgroupRequest) (*MigrateSshProcToCgroupReply, error)
-	QueryTaskEnvVariables(context.Context, *QueryTaskEnvVariablesRequest) (*QueryTaskEnvVariablesReply, error)
-	QueryTaskEnvVariablesForward(context.Context, *QueryTaskEnvVariablesForwardRequest) (*QueryTaskEnvVariablesForwardReply, error)
+	QueryStepFromPort(context.Context, *QueryStepFromPortRequest) (*QueryStepFromPortReply, error)
+	QuerySshStepEnvVariables(context.Context, *QuerySshStepEnvVariablesRequest) (*QuerySshStepEnvVariablesReply, error)
+	// ----------------------------------- Called from Supervisor  ---------------------------------------------------
+	StepStatusChange(context.Context, *StepStatusChangeRequest) (*StepStatusChangeReply, error)
 }
 
 // UnimplementedCranedServer should be embedded to have
@@ -1321,44 +1780,38 @@ type CranedServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCranedServer struct{}
 
-func (UnimplementedCranedServer) ExecuteTask(context.Context, *ExecuteTasksRequest) (*ExecuteTasksReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ExecuteTask not implemented")
+func (UnimplementedCranedServer) Configure(context.Context, *ConfigureCranedRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
-func (UnimplementedCranedServer) CheckTaskStatus(context.Context, *CheckTaskStatusRequest) (*CheckTaskStatusReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckTaskStatus not implemented")
+func (UnimplementedCranedServer) ExecuteSteps(context.Context, *ExecuteStepsRequest) (*ExecuteStepsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteSteps not implemented")
 }
-func (UnimplementedCranedServer) CreateCgroupForTasks(context.Context, *CreateCgroupForTasksRequest) (*CreateCgroupForTasksReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateCgroupForTasks not implemented")
+func (UnimplementedCranedServer) CreateCgroupForJobs(context.Context, *CreateCgroupForJobsRequest) (*CreateCgroupForJobsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCgroupForJobs not implemented")
 }
-func (UnimplementedCranedServer) ReleaseCgroupForTasks(context.Context, *ReleaseCgroupForTasksRequest) (*ReleaseCgroupForTasksReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReleaseCgroupForTasks not implemented")
+func (UnimplementedCranedServer) FreeSteps(context.Context, *FreeStepsRequest) (*FreeStepsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FreeSteps not implemented")
 }
-func (UnimplementedCranedServer) QueryCranedRemoteMeta(context.Context, *QueryCranedRemoteMetaRequest) (*QueryCranedRemoteMetaReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryCranedRemoteMeta not implemented")
+func (UnimplementedCranedServer) ReleaseCgroupForJobs(context.Context, *ReleaseCgroupForJobsRequest) (*ReleaseCgroupForJobsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReleaseCgroupForJobs not implemented")
 }
-func (UnimplementedCranedServer) TerminateTasks(context.Context, *TerminateTasksRequest) (*TerminateTasksReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TerminateTasks not implemented")
+func (UnimplementedCranedServer) TerminateSteps(context.Context, *TerminateStepsRequest) (*TerminateStepsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TerminateSteps not implemented")
 }
-func (UnimplementedCranedServer) TerminateOrphanedTask(context.Context, *TerminateOrphanedTaskRequest) (*TerminateOrphanedTaskReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TerminateOrphanedTask not implemented")
+func (UnimplementedCranedServer) TerminateOrphanedStep(context.Context, *TerminateOrphanedStepRequest) (*TerminateOrphanedStepReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TerminateOrphanedStep not implemented")
 }
-func (UnimplementedCranedServer) ChangeTaskTimeLimit(context.Context, *ChangeTaskTimeLimitRequest) (*ChangeTaskTimeLimitReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChangeTaskTimeLimit not implemented")
+func (UnimplementedCranedServer) ChangeJobTimeLimit(context.Context, *ChangeJobTimeLimitRequest) (*ChangeJobTimeLimitReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeJobTimeLimit not implemented")
 }
-func (UnimplementedCranedServer) QueryTaskIdFromPort(context.Context, *QueryTaskIdFromPortRequest) (*QueryTaskIdFromPortReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryTaskIdFromPort not implemented")
+func (UnimplementedCranedServer) QueryStepFromPort(context.Context, *QueryStepFromPortRequest) (*QueryStepFromPortReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryStepFromPort not implemented")
 }
-func (UnimplementedCranedServer) QueryTaskIdFromPortForward(context.Context, *QueryTaskIdFromPortForwardRequest) (*QueryTaskIdFromPortForwardReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryTaskIdFromPortForward not implemented")
+func (UnimplementedCranedServer) QuerySshStepEnvVariables(context.Context, *QuerySshStepEnvVariablesRequest) (*QuerySshStepEnvVariablesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QuerySshStepEnvVariables not implemented")
 }
-func (UnimplementedCranedServer) MigrateSshProcToCgroup(context.Context, *MigrateSshProcToCgroupRequest) (*MigrateSshProcToCgroupReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MigrateSshProcToCgroup not implemented")
-}
-func (UnimplementedCranedServer) QueryTaskEnvVariables(context.Context, *QueryTaskEnvVariablesRequest) (*QueryTaskEnvVariablesReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryTaskEnvVariables not implemented")
-}
-func (UnimplementedCranedServer) QueryTaskEnvVariablesForward(context.Context, *QueryTaskEnvVariablesForwardRequest) (*QueryTaskEnvVariablesForwardReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryTaskEnvVariablesForward not implemented")
+func (UnimplementedCranedServer) StepStatusChange(context.Context, *StepStatusChangeRequest) (*StepStatusChangeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StepStatusChange not implemented")
 }
 func (UnimplementedCranedServer) testEmbeddedByValue() {}
 
@@ -1380,236 +1833,200 @@ func RegisterCranedServer(s grpc.ServiceRegistrar, srv CranedServer) {
 	s.RegisterService(&Craned_ServiceDesc, srv)
 }
 
-func _Craned_ExecuteTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExecuteTasksRequest)
+func _Craned_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfigureCranedRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).ExecuteTask(ctx, in)
+		return srv.(CranedServer).Configure(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_ExecuteTask_FullMethodName,
+		FullMethod: Craned_Configure_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).ExecuteTask(ctx, req.(*ExecuteTasksRequest))
+		return srv.(CranedServer).Configure(ctx, req.(*ConfigureCranedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_CheckTaskStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckTaskStatusRequest)
+func _Craned_ExecuteSteps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteStepsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).CheckTaskStatus(ctx, in)
+		return srv.(CranedServer).ExecuteSteps(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_CheckTaskStatus_FullMethodName,
+		FullMethod: Craned_ExecuteSteps_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).CheckTaskStatus(ctx, req.(*CheckTaskStatusRequest))
+		return srv.(CranedServer).ExecuteSteps(ctx, req.(*ExecuteStepsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_CreateCgroupForTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateCgroupForTasksRequest)
+func _Craned_CreateCgroupForJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCgroupForJobsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).CreateCgroupForTasks(ctx, in)
+		return srv.(CranedServer).CreateCgroupForJobs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_CreateCgroupForTasks_FullMethodName,
+		FullMethod: Craned_CreateCgroupForJobs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).CreateCgroupForTasks(ctx, req.(*CreateCgroupForTasksRequest))
+		return srv.(CranedServer).CreateCgroupForJobs(ctx, req.(*CreateCgroupForJobsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_ReleaseCgroupForTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReleaseCgroupForTasksRequest)
+func _Craned_FreeSteps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FreeStepsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).ReleaseCgroupForTasks(ctx, in)
+		return srv.(CranedServer).FreeSteps(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_ReleaseCgroupForTasks_FullMethodName,
+		FullMethod: Craned_FreeSteps_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).ReleaseCgroupForTasks(ctx, req.(*ReleaseCgroupForTasksRequest))
+		return srv.(CranedServer).FreeSteps(ctx, req.(*FreeStepsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_QueryCranedRemoteMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryCranedRemoteMetaRequest)
+func _Craned_ReleaseCgroupForJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseCgroupForJobsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).QueryCranedRemoteMeta(ctx, in)
+		return srv.(CranedServer).ReleaseCgroupForJobs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_QueryCranedRemoteMeta_FullMethodName,
+		FullMethod: Craned_ReleaseCgroupForJobs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).QueryCranedRemoteMeta(ctx, req.(*QueryCranedRemoteMetaRequest))
+		return srv.(CranedServer).ReleaseCgroupForJobs(ctx, req.(*ReleaseCgroupForJobsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_TerminateTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TerminateTasksRequest)
+func _Craned_TerminateSteps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminateStepsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).TerminateTasks(ctx, in)
+		return srv.(CranedServer).TerminateSteps(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_TerminateTasks_FullMethodName,
+		FullMethod: Craned_TerminateSteps_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).TerminateTasks(ctx, req.(*TerminateTasksRequest))
+		return srv.(CranedServer).TerminateSteps(ctx, req.(*TerminateStepsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_TerminateOrphanedTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TerminateOrphanedTaskRequest)
+func _Craned_TerminateOrphanedStep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminateOrphanedStepRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).TerminateOrphanedTask(ctx, in)
+		return srv.(CranedServer).TerminateOrphanedStep(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_TerminateOrphanedTask_FullMethodName,
+		FullMethod: Craned_TerminateOrphanedStep_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).TerminateOrphanedTask(ctx, req.(*TerminateOrphanedTaskRequest))
+		return srv.(CranedServer).TerminateOrphanedStep(ctx, req.(*TerminateOrphanedStepRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_ChangeTaskTimeLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChangeTaskTimeLimitRequest)
+func _Craned_ChangeJobTimeLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeJobTimeLimitRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).ChangeTaskTimeLimit(ctx, in)
+		return srv.(CranedServer).ChangeJobTimeLimit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_ChangeTaskTimeLimit_FullMethodName,
+		FullMethod: Craned_ChangeJobTimeLimit_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).ChangeTaskTimeLimit(ctx, req.(*ChangeTaskTimeLimitRequest))
+		return srv.(CranedServer).ChangeJobTimeLimit(ctx, req.(*ChangeJobTimeLimitRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_QueryTaskIdFromPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTaskIdFromPortRequest)
+func _Craned_QueryStepFromPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryStepFromPortRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).QueryTaskIdFromPort(ctx, in)
+		return srv.(CranedServer).QueryStepFromPort(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_QueryTaskIdFromPort_FullMethodName,
+		FullMethod: Craned_QueryStepFromPort_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).QueryTaskIdFromPort(ctx, req.(*QueryTaskIdFromPortRequest))
+		return srv.(CranedServer).QueryStepFromPort(ctx, req.(*QueryStepFromPortRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_QueryTaskIdFromPortForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTaskIdFromPortForwardRequest)
+func _Craned_QuerySshStepEnvVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuerySshStepEnvVariablesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).QueryTaskIdFromPortForward(ctx, in)
+		return srv.(CranedServer).QuerySshStepEnvVariables(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_QueryTaskIdFromPortForward_FullMethodName,
+		FullMethod: Craned_QuerySshStepEnvVariables_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).QueryTaskIdFromPortForward(ctx, req.(*QueryTaskIdFromPortForwardRequest))
+		return srv.(CranedServer).QuerySshStepEnvVariables(ctx, req.(*QuerySshStepEnvVariablesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Craned_MigrateSshProcToCgroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MigrateSshProcToCgroupRequest)
+func _Craned_StepStatusChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StepStatusChangeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CranedServer).MigrateSshProcToCgroup(ctx, in)
+		return srv.(CranedServer).StepStatusChange(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Craned_MigrateSshProcToCgroup_FullMethodName,
+		FullMethod: Craned_StepStatusChange_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).MigrateSshProcToCgroup(ctx, req.(*MigrateSshProcToCgroupRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Craned_QueryTaskEnvVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTaskEnvVariablesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CranedServer).QueryTaskEnvVariables(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Craned_QueryTaskEnvVariables_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).QueryTaskEnvVariables(ctx, req.(*QueryTaskEnvVariablesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Craned_QueryTaskEnvVariablesForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTaskEnvVariablesForwardRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CranedServer).QueryTaskEnvVariablesForward(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Craned_QueryTaskEnvVariablesForward_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CranedServer).QueryTaskEnvVariablesForward(ctx, req.(*QueryTaskEnvVariablesForwardRequest))
+		return srv.(CranedServer).StepStatusChange(ctx, req.(*StepStatusChangeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1622,56 +2039,48 @@ var Craned_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CranedServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ExecuteTask",
-			Handler:    _Craned_ExecuteTask_Handler,
+			MethodName: "Configure",
+			Handler:    _Craned_Configure_Handler,
 		},
 		{
-			MethodName: "CheckTaskStatus",
-			Handler:    _Craned_CheckTaskStatus_Handler,
+			MethodName: "ExecuteSteps",
+			Handler:    _Craned_ExecuteSteps_Handler,
 		},
 		{
-			MethodName: "CreateCgroupForTasks",
-			Handler:    _Craned_CreateCgroupForTasks_Handler,
+			MethodName: "CreateCgroupForJobs",
+			Handler:    _Craned_CreateCgroupForJobs_Handler,
 		},
 		{
-			MethodName: "ReleaseCgroupForTasks",
-			Handler:    _Craned_ReleaseCgroupForTasks_Handler,
+			MethodName: "FreeSteps",
+			Handler:    _Craned_FreeSteps_Handler,
 		},
 		{
-			MethodName: "QueryCranedRemoteMeta",
-			Handler:    _Craned_QueryCranedRemoteMeta_Handler,
+			MethodName: "ReleaseCgroupForJobs",
+			Handler:    _Craned_ReleaseCgroupForJobs_Handler,
 		},
 		{
-			MethodName: "TerminateTasks",
-			Handler:    _Craned_TerminateTasks_Handler,
+			MethodName: "TerminateSteps",
+			Handler:    _Craned_TerminateSteps_Handler,
 		},
 		{
-			MethodName: "TerminateOrphanedTask",
-			Handler:    _Craned_TerminateOrphanedTask_Handler,
+			MethodName: "TerminateOrphanedStep",
+			Handler:    _Craned_TerminateOrphanedStep_Handler,
 		},
 		{
-			MethodName: "ChangeTaskTimeLimit",
-			Handler:    _Craned_ChangeTaskTimeLimit_Handler,
+			MethodName: "ChangeJobTimeLimit",
+			Handler:    _Craned_ChangeJobTimeLimit_Handler,
 		},
 		{
-			MethodName: "QueryTaskIdFromPort",
-			Handler:    _Craned_QueryTaskIdFromPort_Handler,
+			MethodName: "QueryStepFromPort",
+			Handler:    _Craned_QueryStepFromPort_Handler,
 		},
 		{
-			MethodName: "QueryTaskIdFromPortForward",
-			Handler:    _Craned_QueryTaskIdFromPortForward_Handler,
+			MethodName: "QuerySshStepEnvVariables",
+			Handler:    _Craned_QuerySshStepEnvVariables_Handler,
 		},
 		{
-			MethodName: "MigrateSshProcToCgroup",
-			Handler:    _Craned_MigrateSshProcToCgroup_Handler,
-		},
-		{
-			MethodName: "QueryTaskEnvVariables",
-			Handler:    _Craned_QueryTaskEnvVariables_Handler,
-		},
-		{
-			MethodName: "QueryTaskEnvVariablesForward",
-			Handler:    _Craned_QueryTaskEnvVariablesForward_Handler,
+			MethodName: "StepStatusChange",
+			Handler:    _Craned_StepStatusChange_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1679,10 +2088,188 @@ var Craned_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	CraneForeD_CallocStream_FullMethodName        = "/crane.grpc.CraneForeD/CallocStream"
-	CraneForeD_CrunStream_FullMethodName          = "/crane.grpc.CraneForeD/CrunStream"
-	CraneForeD_TaskIOStream_FullMethodName        = "/crane.grpc.CraneForeD/TaskIOStream"
-	CraneForeD_QueryTaskIdFromPort_FullMethodName = "/crane.grpc.CraneForeD/QueryTaskIdFromPort"
+	CranedForPam_QueryStepFromPortForward_FullMethodName        = "/crane.grpc.CranedForPam/QueryStepFromPortForward"
+	CranedForPam_MigrateSshProcToCgroup_FullMethodName          = "/crane.grpc.CranedForPam/MigrateSshProcToCgroup"
+	CranedForPam_QuerySshStepEnvVariablesForward_FullMethodName = "/crane.grpc.CranedForPam/QuerySshStepEnvVariablesForward"
+)
+
+// CranedForPamClient is the client API for CranedForPam service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type CranedForPamClient interface {
+	// ----------------------------------- Called from Pam Module  ---------------------------------------------------
+	QueryStepFromPortForward(ctx context.Context, in *QueryStepFromPortForwardRequest, opts ...grpc.CallOption) (*QueryStepFromPortForwardReply, error)
+	MigrateSshProcToCgroup(ctx context.Context, in *MigrateSshProcToCgroupRequest, opts ...grpc.CallOption) (*MigrateSshProcToCgroupReply, error)
+	QuerySshStepEnvVariablesForward(ctx context.Context, in *QuerySshStepEnvVariablesForwardRequest, opts ...grpc.CallOption) (*QuerySshStepEnvVariablesForwardReply, error)
+}
+
+type cranedForPamClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewCranedForPamClient(cc grpc.ClientConnInterface) CranedForPamClient {
+	return &cranedForPamClient{cc}
+}
+
+func (c *cranedForPamClient) QueryStepFromPortForward(ctx context.Context, in *QueryStepFromPortForwardRequest, opts ...grpc.CallOption) (*QueryStepFromPortForwardReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueryStepFromPortForwardReply)
+	err := c.cc.Invoke(ctx, CranedForPam_QueryStepFromPortForward_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cranedForPamClient) MigrateSshProcToCgroup(ctx context.Context, in *MigrateSshProcToCgroupRequest, opts ...grpc.CallOption) (*MigrateSshProcToCgroupReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MigrateSshProcToCgroupReply)
+	err := c.cc.Invoke(ctx, CranedForPam_MigrateSshProcToCgroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cranedForPamClient) QuerySshStepEnvVariablesForward(ctx context.Context, in *QuerySshStepEnvVariablesForwardRequest, opts ...grpc.CallOption) (*QuerySshStepEnvVariablesForwardReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QuerySshStepEnvVariablesForwardReply)
+	err := c.cc.Invoke(ctx, CranedForPam_QuerySshStepEnvVariablesForward_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CranedForPamServer is the server API for CranedForPam service.
+// All implementations should embed UnimplementedCranedForPamServer
+// for forward compatibility.
+type CranedForPamServer interface {
+	// ----------------------------------- Called from Pam Module  ---------------------------------------------------
+	QueryStepFromPortForward(context.Context, *QueryStepFromPortForwardRequest) (*QueryStepFromPortForwardReply, error)
+	MigrateSshProcToCgroup(context.Context, *MigrateSshProcToCgroupRequest) (*MigrateSshProcToCgroupReply, error)
+	QuerySshStepEnvVariablesForward(context.Context, *QuerySshStepEnvVariablesForwardRequest) (*QuerySshStepEnvVariablesForwardReply, error)
+}
+
+// UnimplementedCranedForPamServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedCranedForPamServer struct{}
+
+func (UnimplementedCranedForPamServer) QueryStepFromPortForward(context.Context, *QueryStepFromPortForwardRequest) (*QueryStepFromPortForwardReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryStepFromPortForward not implemented")
+}
+func (UnimplementedCranedForPamServer) MigrateSshProcToCgroup(context.Context, *MigrateSshProcToCgroupRequest) (*MigrateSshProcToCgroupReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MigrateSshProcToCgroup not implemented")
+}
+func (UnimplementedCranedForPamServer) QuerySshStepEnvVariablesForward(context.Context, *QuerySshStepEnvVariablesForwardRequest) (*QuerySshStepEnvVariablesForwardReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QuerySshStepEnvVariablesForward not implemented")
+}
+func (UnimplementedCranedForPamServer) testEmbeddedByValue() {}
+
+// UnsafeCranedForPamServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to CranedForPamServer will
+// result in compilation errors.
+type UnsafeCranedForPamServer interface {
+	mustEmbedUnimplementedCranedForPamServer()
+}
+
+func RegisterCranedForPamServer(s grpc.ServiceRegistrar, srv CranedForPamServer) {
+	// If the following call pancis, it indicates UnimplementedCranedForPamServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&CranedForPam_ServiceDesc, srv)
+}
+
+func _CranedForPam_QueryStepFromPortForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryStepFromPortForwardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CranedForPamServer).QueryStepFromPortForward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CranedForPam_QueryStepFromPortForward_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CranedForPamServer).QueryStepFromPortForward(ctx, req.(*QueryStepFromPortForwardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CranedForPam_MigrateSshProcToCgroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MigrateSshProcToCgroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CranedForPamServer).MigrateSshProcToCgroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CranedForPam_MigrateSshProcToCgroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CranedForPamServer).MigrateSshProcToCgroup(ctx, req.(*MigrateSshProcToCgroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CranedForPam_QuerySshStepEnvVariablesForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuerySshStepEnvVariablesForwardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CranedForPamServer).QuerySshStepEnvVariablesForward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CranedForPam_QuerySshStepEnvVariablesForward_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CranedForPamServer).QuerySshStepEnvVariablesForward(ctx, req.(*QuerySshStepEnvVariablesForwardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// CranedForPam_ServiceDesc is the grpc.ServiceDesc for CranedForPam service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var CranedForPam_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "crane.grpc.CranedForPam",
+	HandlerType: (*CranedForPamServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "QueryStepFromPortForward",
+			Handler:    _CranedForPam_QueryStepFromPortForward_Handler,
+		},
+		{
+			MethodName: "MigrateSshProcToCgroup",
+			Handler:    _CranedForPam_MigrateSshProcToCgroup_Handler,
+		},
+		{
+			MethodName: "QuerySshStepEnvVariablesForward",
+			Handler:    _CranedForPam_QuerySshStepEnvVariablesForward_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "Crane.proto",
+}
+
+const (
+	CraneForeD_CallocStream_FullMethodName      = "/crane.grpc.CraneForeD/CallocStream"
+	CraneForeD_CrunStream_FullMethodName        = "/crane.grpc.CraneForeD/CrunStream"
+	CraneForeD_TaskIOStream_FullMethodName      = "/crane.grpc.CraneForeD/TaskIOStream"
+	CraneForeD_QueryStepFromPort_FullMethodName = "/crane.grpc.CraneForeD/QueryStepFromPort"
 )
 
 // CraneForeDClient is the client API for CraneForeD service.
@@ -1692,7 +2279,7 @@ type CraneForeDClient interface {
 	CallocStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCallocRequest, StreamCallocReply], error)
 	CrunStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamCrunRequest, StreamCrunReply], error)
 	TaskIOStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamTaskIORequest, StreamTaskIOReply], error)
-	QueryTaskIdFromPort(ctx context.Context, in *QueryTaskIdFromPortRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortReply, error)
+	QueryStepFromPort(ctx context.Context, in *QueryStepFromPortRequest, opts ...grpc.CallOption) (*QueryStepFromPortReply, error)
 }
 
 type craneForeDClient struct {
@@ -1742,10 +2329,10 @@ func (c *craneForeDClient) TaskIOStream(ctx context.Context, opts ...grpc.CallOp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type CraneForeD_TaskIOStreamClient = grpc.BidiStreamingClient[StreamTaskIORequest, StreamTaskIOReply]
 
-func (c *craneForeDClient) QueryTaskIdFromPort(ctx context.Context, in *QueryTaskIdFromPortRequest, opts ...grpc.CallOption) (*QueryTaskIdFromPortReply, error) {
+func (c *craneForeDClient) QueryStepFromPort(ctx context.Context, in *QueryStepFromPortRequest, opts ...grpc.CallOption) (*QueryStepFromPortReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryTaskIdFromPortReply)
-	err := c.cc.Invoke(ctx, CraneForeD_QueryTaskIdFromPort_FullMethodName, in, out, cOpts...)
+	out := new(QueryStepFromPortReply)
+	err := c.cc.Invoke(ctx, CraneForeD_QueryStepFromPort_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1759,7 +2346,7 @@ type CraneForeDServer interface {
 	CallocStream(grpc.BidiStreamingServer[StreamCallocRequest, StreamCallocReply]) error
 	CrunStream(grpc.BidiStreamingServer[StreamCrunRequest, StreamCrunReply]) error
 	TaskIOStream(grpc.BidiStreamingServer[StreamTaskIORequest, StreamTaskIOReply]) error
-	QueryTaskIdFromPort(context.Context, *QueryTaskIdFromPortRequest) (*QueryTaskIdFromPortReply, error)
+	QueryStepFromPort(context.Context, *QueryStepFromPortRequest) (*QueryStepFromPortReply, error)
 }
 
 // UnimplementedCraneForeDServer should be embedded to have
@@ -1778,8 +2365,8 @@ func (UnimplementedCraneForeDServer) CrunStream(grpc.BidiStreamingServer[StreamC
 func (UnimplementedCraneForeDServer) TaskIOStream(grpc.BidiStreamingServer[StreamTaskIORequest, StreamTaskIOReply]) error {
 	return status.Errorf(codes.Unimplemented, "method TaskIOStream not implemented")
 }
-func (UnimplementedCraneForeDServer) QueryTaskIdFromPort(context.Context, *QueryTaskIdFromPortRequest) (*QueryTaskIdFromPortReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryTaskIdFromPort not implemented")
+func (UnimplementedCraneForeDServer) QueryStepFromPort(context.Context, *QueryStepFromPortRequest) (*QueryStepFromPortReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryStepFromPort not implemented")
 }
 func (UnimplementedCraneForeDServer) testEmbeddedByValue() {}
 
@@ -1822,20 +2409,20 @@ func _CraneForeD_TaskIOStream_Handler(srv interface{}, stream grpc.ServerStream)
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type CraneForeD_TaskIOStreamServer = grpc.BidiStreamingServer[StreamTaskIORequest, StreamTaskIOReply]
 
-func _CraneForeD_QueryTaskIdFromPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTaskIdFromPortRequest)
+func _CraneForeD_QueryStepFromPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryStepFromPortRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CraneForeDServer).QueryTaskIdFromPort(ctx, in)
+		return srv.(CraneForeDServer).QueryStepFromPort(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CraneForeD_QueryTaskIdFromPort_FullMethodName,
+		FullMethod: CraneForeD_QueryStepFromPort_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CraneForeDServer).QueryTaskIdFromPort(ctx, req.(*QueryTaskIdFromPortRequest))
+		return srv.(CraneForeDServer).QueryStepFromPort(ctx, req.(*QueryStepFromPortRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1848,8 +2435,8 @@ var CraneForeD_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CraneForeDServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "QueryTaskIdFromPort",
-			Handler:    _CraneForeD_QueryTaskIdFromPort_Handler,
+			MethodName: "QueryStepFromPort",
+			Handler:    _CraneForeD_QueryStepFromPort_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
