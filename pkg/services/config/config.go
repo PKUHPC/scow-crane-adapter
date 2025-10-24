@@ -173,11 +173,56 @@ func (s *ServerConfig) GetClusterInfo(ctx context.Context, in *protos.GetCluster
 			UsageRatePercentage:   uint32(percentage),
 			PartitionStatus:       state,
 		})
-
 	}
 
 	logrus.Tracef("GetClusterInfo Partitions info: %v", partitions)
 	return &protos.GetClusterInfoResponse{ClusterName: utils.CConfig.ClusterName, Partitions: partitions}, nil
+}
+
+func (s *ServerConfig) GetSummaryClusterInfo(ctx context.Context, in *protos.GetSummaryClusterInfoRequest) (*protos.GetSummaryClusterInfoResponse, error) {
+	logrus.Tracef("Received request GetSummaryClusterInfo: %v", in)
+
+	clusterName := utils.CConfig.ClusterName
+
+	authorizedPartitions, err := utils.GetAccountsAuthorizedPartitions(in.AccountNames)
+	if err != nil {
+		logrus.Errorf("GetSummaryClusterInfo failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "GET_ACCOUNT_ALLOW_PARTITIONS_FAILED", err.Error())
+	}
+
+	// 获取整个集群的nodesInfo
+	scni, err := utils.GetSummaryClusterNodesInfo()
+	if err != nil {
+		logrus.Errorf("Failed Get Cluster Info, error: %v", err)
+		return nil, utils.RichError(codes.Internal, "COMMAND_EXECUTE_FAILED", err.Error())
+	}
+
+	var summaryPartitions []*protos.SummaryPartitionInfo
+	if len(authorizedPartitions) != 0 {
+		summaryPartitions, _ = utils.GetSummaryPartitionsInfo(authorizedPartitions)
+	}
+
+	return &protos.GetSummaryClusterInfoResponse{
+		ClusterName:           clusterName,
+		Partitions:            summaryPartitions,
+		NodeCount:             scni.NodeCount,
+		RunningNodeCount:      scni.RunningNodeCount,
+		IdleNodeCount:         scni.IdleNodeCount,
+		NotAvailableNodeCount: scni.NotAvailableNodeCount,
+		CpuCoreCount:          scni.CpuCoreCount,
+		RunningCpuCount:       scni.RunningCpuCount,
+		IdleCpuCount:          scni.IdleCpuCount,
+		NotAvailableCpuCount:  scni.NotAvailableCpuCount,
+		GpuCoreCount:          scni.GpuCoreCount,
+		RunningGpuCount:       scni.RunningGpuCount,
+		IdleGpuCount:          scni.IdleGpuCount,
+		NotAvailableGpuCount:  scni.NotAvailableGpuCount,
+		RunningJobCount:       scni.RunningJobCount,
+		PendingJobCount:       scni.PendingJobCount,
+		NodeUsage:             scni.NodeUsage,
+		CpuUsage:              scni.CpuUsage,
+		GpuUsage:              scni.GpuUsage,
+	}, nil
 }
 
 func (s *ServerConfig) ListImplementedOptionalFeatures(ctx context.Context, in *protos.ListImplementedOptionalFeaturesRequest) (*protos.ListImplementedOptionalFeaturesResponse, error) {

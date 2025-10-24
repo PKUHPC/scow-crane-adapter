@@ -11,6 +11,12 @@ import (
 	craneProtos "scow-crane-adapter/gen/crane"
 )
 
+type jobCount struct {
+	JobCount        uint32
+	RunningJobCount uint32
+	PendingJobCount uint32
+}
+
 func getUsersByAccountName(accountName string) ([]*craneProtos.UserInfo, error) {
 	request := &craneProtos.QueryUserInfoRequest{
 		Uid:     0,
@@ -415,4 +421,31 @@ func GetAccountUserBlockedInfo(accountName string) (map[string]bool, error) {
 		blockedInfo[ui.Name] = ui.Blocked
 	}
 	return blockedInfo, nil
+}
+
+func GetJobsStatusDistribution() (map[string]*jobCount, error) {
+	partitionJobs := make(map[string]*jobCount)
+	for _, part := range CConfig.Partitions {
+		// 获取正在运行作业的个数
+		runningJob, err := GetTaskByPartitionAndStatus([]string{part.Name}, []craneProtos.TaskStatus{craneProtos.TaskStatus_Running})
+		if err != nil {
+			return nil, fmt.Errorf("get running task failed: %v", err)
+		}
+		runningJobNum := len(runningJob)
+
+		// 获取正在排队作业的个数
+		pendingJob, err := GetTaskByPartitionAndStatus([]string{part.Name}, []craneProtos.TaskStatus{craneProtos.TaskStatus_Pending})
+		if err != nil {
+			return nil, fmt.Errorf("get pending task failed: %v", err)
+		}
+		pendingJobNum := len(pendingJob)
+
+		totalJobNum := runningJobNum + pendingJobNum
+		partitionJobs[part.Name] = &jobCount{
+			JobCount:        uint32(totalJobNum),
+			RunningJobCount: uint32(runningJobNum),
+			PendingJobCount: uint32(pendingJobNum),
+		}
+	}
+	return partitionJobs, nil
 }
