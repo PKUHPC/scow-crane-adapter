@@ -1,5 +1,8 @@
-# 使用指定的阿里云CR镜像作为基础镜像
+# 使用指定的阿里云CR镜像作为基础镜像(支持双架构)
 FROM crpi-7a6qgvce1ic8faue.cn-hangzhou.personal.cr.aliyuncs.com/qinguangrui/rockylinux:8.9 AS builder
+
+# 使用构建参数来指定目标架构
+ARG TARGETARCH
 
 # 设置工作目录
 WORKDIR /app
@@ -9,7 +12,7 @@ RUN dnf install -y wget tar gzip make git gcc && \
     dnf clean all
 
 # 下载并安装 Go 1.23.5
-RUN wget https://mirrors.aliyun.com/golang/go1.23.5.linux-amd64.tar.gz -O /tmp/go.tar.gz && \
+RUN wget https://mirrors.aliyun.com/golang/go1.23.5.linux-${TARGETARCH}.tar.gz -O /tmp/go.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     rm /tmp/go.tar.gz
 

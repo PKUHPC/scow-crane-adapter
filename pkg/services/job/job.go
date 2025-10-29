@@ -481,6 +481,8 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.TimeLimitMinutes = timeLimitMinutes
 				case "working_directory":
 					subJobInfo.WorkingDirectory = job.GetCwd()
+				case "cpus_req":
+					subJobInfo.CpusReq = cpusAllocInt32
 				case "cpus_alloc":
 					subJobInfo.CpusAlloc = &cpusAllocInt32
 				case "state":
@@ -493,10 +495,16 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.SubmitTime = job.GetStartTime() // 没有提交时间
 				case "reason":
 					subJobInfo.Reason = &reason
+				case "nodes_req":
+					subJobInfo.NodesReq = nodeNum
 				case "nodes_alloc":
 					subJobInfo.NodesAlloc = &nodeNum
+				case "gpus_req":
+					subJobInfo.GpusReq = gpusAlloc
 				case "gpus_alloc":
 					subJobInfo.GpusAlloc = &gpusAlloc
+				case "mem_req_mb":
+					subJobInfo.MemReqMb = memAllocMb
 				case "mem_alloc_mb":
 					subJobInfo.MemAllocMb = &memAllocMb
 				}
