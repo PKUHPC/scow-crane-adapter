@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +22,7 @@ import (
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -54,6 +57,27 @@ type DatabaseConfig struct {
 	DbPort                 int    `yaml:"DbPort"`
 	DbReplSetName          string `yaml:"DbReplSetName"`
 	DbName                 string `yaml:"DbName"`
+}
+
+type ClusterNodesInfo struct {
+	NodeCount             uint32
+	RunningNodeCount      uint32
+	IdleNodeCount         uint32
+	NotAvailableNodeCount uint32
+	CpuCoreCount          uint32
+	RunningCpuCount       uint32
+	IdleCpuCount          uint32
+	NotAvailableCpuCount  uint32
+	GpuCoreCount          uint32
+	RunningGpuCount       uint32
+	IdleGpuCount          uint32
+	NotAvailableGpuCount  uint32
+	JobCount              uint32
+	RunningJobCount       uint32
+	PendingJobCount       uint32
+	NodeUsage             float32
+	CpuUsage              float32
+	GpuUsage              float32
 }
 
 var (
@@ -770,4 +794,252 @@ func GetUserHomedir(username string) (string, error) {
 	// 获取家目录
 	homeDir := u.HomeDir
 	return homeDir, nil
+}
+
+func GetAccountsAuthorizedPartitions(accounts []string) ([]string, error) {
+	var AuthorizedPartitions []string
+	seen := make(map[string]struct{})
+	for _, a := range accounts {
+		// 获取账户信息
+		account, err := GetAccountByName(a)
+		if err != nil {
+			return nil, fmt.Errorf("get accounts: %v failed: %v", a, err)
+		}
+
+		for _, p := range account.GetAllowedPartitions() {
+			if _, ok := seen[p]; !ok {
+				seen[p] = struct{}{}
+				AuthorizedPartitions = append(AuthorizedPartitions, p)
+			}
+		}
+	}
+
+	return AuthorizedPartitions, nil
+}
+
+// GetSummaryClusterNodesInfo 获取集群中节点的信息
+func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInfo, error) {
+	var (
+		nodeCount             uint32
+		runningNodeCount      uint32
+		idleNodeCount         uint32
+		notAvailableNodeCount uint32
+		cpuCoreCount          uint32
+		runningCpuCount       uint32
+		idleCpuCount          uint32
+		notAvailableCpuCount  uint32
+		gpuCoreCount          uint32
+		runningGpuCount       uint32
+		idleGpuCount          uint32
+		notAvailableGpuCount  uint32
+		totalJobCount         uint32
+		runningJobCount       uint32
+		pendingJobCount       uint32
+	)
+
+	request := &craneProtos.QueryCranedInfoRequest{}
+	info, err := CraneCtld.QueryCranedInfo(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("GetClusterNodesInfo failed: %v", err)
+		return nil, err
+	}
+
+	logrus.Tracef("GetClusterNodesInfo nodeInfo%v", info.GetCranedInfoList())
+
+	// 聚合节点统计信息
+	for _, nodeInfo := range info.GetCranedInfoList() {
+		if !anyAuthorized(nodeInfo.PartitionNames, authorizedPartitions) {
+			continue
+		}
+		nodeName := nodeInfo.GetHostname()
+
+		totalCpuCores := nodeInfo.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
+		allocCpuCores := nodeInfo.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
+
+		totalGpusTypeMap := nodeInfo.GetResTotal().GetDedicatedResInNode()
+		totalGpus := getGpuNums(totalGpusTypeMap)
+		allocGpusTypeMap := nodeInfo.GetResAlloc().GetDedicatedResInNode()
+		allocGpus := getGpuNums(allocGpusTypeMap)
+		IdleGpuCountTypeMap := nodeInfo.GetResAvail().GetDedicatedResInNode()
+		idleGpus := getGpuNums(IdleGpuCountTypeMap)
+
+		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalGpu: %v, allocGpus: %v, idleGpuCount: %v", nodeName, totalGpus, allocGpus, idleGpus)
+		nodeCount++
+
+		CpuCoreCount := uint32(totalCpuCores)
+		AllocCpuCoreCount := uint32(allocCpuCores)
+		IdleCpuCoreCount := uint32(totalCpuCores) - uint32(allocCpuCores)
+
+		cpuCoreCount += CpuCoreCount
+		runningCpuCount += AllocCpuCoreCount
+		idleCpuCount += IdleCpuCoreCount
+
+		gpuCoreCount += totalGpus
+		runningGpuCount += allocGpus
+		idleGpuCount += idleGpus
+
+		state := nodeInfo.GetResourceState()
+		switch state {
+		case craneProtos.CranedResourceState_CRANE_IDLE:
+			idleNodeCount++
+		case craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_ALLOC:
+			runningNodeCount++
+		case craneProtos.CranedResourceState_CRANE_DOWN:
+			notAvailableNodeCount++
+		default: // 其他不知道的状态默认为不可用的状态
+			logrus.Warnf("Unknown node state: %s", state)
+		}
+	}
+
+	// 计算不可用资源
+	notAvailableCpuCount = cpuCoreCount - runningCpuCount - idleCpuCount
+	notAvailableGpuCount = gpuCoreCount - runningGpuCount - idleGpuCount
+
+	distributionJobs, err := GetJobsStatusDistribution(authorizedPartitions)
+	if err != nil {
+		return nil, err
+	}
+	// 聚合作业统计信息
+	for _, jobs := range distributionJobs {
+		totalJobCount += jobs.JobCount
+		runningJobCount += jobs.RunningJobCount
+		pendingJobCount += jobs.PendingJobCount
+	}
+
+	var nodeUsage, cpuUsage, gpuUsage float32
+	if nodeCount > 0 {
+		resultRatio := float32(runningNodeCount) / float32(nodeCount)
+		nodeUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+	}
+	if cpuCoreCount > 0 {
+		resultRatio := float32(runningCpuCount) / float32(cpuCoreCount)
+		cpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+	}
+	if nodeCount > 0 {
+		resultRatio := float32(runningGpuCount) / float32(gpuCoreCount)
+		gpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+	}
+
+	result := &ClusterNodesInfo{
+		NodeCount:             nodeCount,
+		RunningNodeCount:      runningNodeCount,
+		IdleNodeCount:         idleNodeCount,
+		NotAvailableNodeCount: notAvailableNodeCount,
+		CpuCoreCount:          cpuCoreCount,
+		RunningCpuCount:       runningCpuCount,
+		IdleCpuCount:          idleCpuCount,
+		NotAvailableCpuCount:  notAvailableCpuCount,
+		GpuCoreCount:          gpuCoreCount,
+		RunningGpuCount:       runningGpuCount,
+		IdleGpuCount:          idleGpuCount,
+		NotAvailableGpuCount:  notAvailableGpuCount,
+		JobCount:              totalJobCount,
+		RunningJobCount:       runningJobCount,
+		PendingJobCount:       pendingJobCount,
+		NodeUsage:             nodeUsage,
+		CpuUsage:              cpuUsage,
+		GpuUsage:              gpuUsage,
+	}
+
+	logrus.Tracef("GetClusterNodesInfo node Info: %v", result)
+	return result, nil
+}
+
+func GetSummaryPartitionsInfo(authorizedPartitions []string) ([]*protos.SummaryPartitionInfo, error) {
+	var partitions []*protos.SummaryPartitionInfo
+	for _, part := range CConfig.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
+		logrus.Infof("GetSummaryPartitionsInfo partition name: %v", part.Name)
+		if !slices.Contains(authorizedPartitions, part.Name) {
+			continue
+		}
+		var state protos.SummaryPartitionInfo_PartitionStatus
+		// 根据分区名获取分区信息
+		partitionName := part.Name
+
+		partitionInfo, err := GetPartitionByName(partitionName)
+		if err != nil {
+			logrus.Errorf("GetPartitionsInfo failed: %v", err)
+			return nil, fmt.Errorf("get partition info failed: %v", err)
+		}
+		logrus.Tracef("GetClusterInfo partition info: %v", partitionInfo)
+
+		//// 获取正在运行作业的个数
+		//runningJob, err := GetTaskByPartitionAndStatus([]string{partitionName}, []craneProtos.TaskStatus{craneProtos.TaskStatus_Running})
+		//if err != nil {
+		//	logrus.Errorf("GetClusterInfo failed: %v", err)
+		//	return nil, fmt.Errorf("get running task failed: %v", err)
+		//}
+		//runningJobNum := len(runningJob)
+
+		// 获取正在排队作业的个数
+		pendingJob, err := GetTaskByPartitionAndStatus([]string{partitionName}, []craneProtos.TaskStatus{craneProtos.TaskStatus_Pending})
+		if err != nil {
+			logrus.Errorf("GetClusterInfo failed: %v", err)
+			return nil, fmt.Errorf("get pending task failed: %v", err)
+		}
+		pendingJobNum := len(pendingJob)
+
+		idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, err := GetNodeByPartition([]string{partitionName})
+		if err != nil {
+			logrus.Errorf("GetClusterInfo failed: %v", err)
+			return nil, fmt.Errorf("get pending task failed: %v", err)
+		}
+		logrus.Tracef("GetClusterInfo idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount: %v, %v, %v, %v", idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount)
+
+		runningNodes := allocNodeCount + mixNodeCount
+		if partitionInfo.GetState() == craneProtos.PartitionState_PARTITION_UP {
+			state = protos.SummaryPartitionInfo_AVAILABLE
+		} else {
+			state = protos.SummaryPartitionInfo_NOT_AVAILABLE
+		}
+		TotalCpu := partitionInfo.GetResTotal().GetAllocatableRes().GetCpuCoreLimit()
+		AllocCpu := partitionInfo.GetResAlloc().GetAllocatableRes().GetCpuCoreLimit()
+
+		TotalGpu := GetGpuNumsFromPartition(partitionInfo.GetResTotal().GetDeviceMap())
+		AllocGpu := GetGpuNumsFromPartition(partitionInfo.GetResAlloc().GetDeviceMap())
+
+		var nodeUsage, cpuUsage, gpuUsage float32
+		if partitionInfo.GetTotalNodes() > 0 {
+			resultRatio := float32(runningNodes) / float32(partitionInfo.GetTotalNodes())
+			nodeUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+		}
+		if TotalCpu > 0 {
+			resultRatio := float32(AllocCpu) / float32(TotalCpu)
+			cpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+		}
+		if TotalGpu > 0 {
+			resultRatio := float32(AllocGpu) / float32(TotalGpu)
+			gpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
+		}
+
+		partitions = append(partitions, &protos.SummaryPartitionInfo{
+			PartitionName:   partitionInfo.GetName(),
+			NodeCount:       partitionInfo.GetTotalNodes(),
+			NodeUsage:       nodeUsage,
+			CpuCoreCount:    uint32(TotalCpu),
+			CpuUsage:        cpuUsage,
+			GpuCoreCount:    TotalGpu,
+			GpuUsage:        gpuUsage,
+			PendingJobCount: uint32(pendingJobNum),
+			PartitionStatus: state,
+		})
+	}
+
+	return partitions, nil
+}
+
+// a中有任意一个在b中存在为true，否则为false
+func anyAuthorized(a, b []string) bool {
+	// b 转 Set
+	auth := make(map[string]struct{}, len(b))
+	for _, p := range b {
+		auth[p] = struct{}{}
+	}
+	// 遍历 a 只要命中一个就返回
+	for _, p := range a {
+		if _, ok := auth[p]; ok {
+			return true
+		}
+	}
+	return false
 }

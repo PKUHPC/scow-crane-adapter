@@ -124,6 +124,55 @@ func (PartitionInfo_PartitionStatus) EnumDescriptor() ([]byte, []int) {
 	return file_config_proto_rawDescGZIP(), []int{5, 0}
 }
 
+type SummaryPartitionInfo_PartitionStatus int32
+
+const (
+	SummaryPartitionInfo_UNKNOWN       SummaryPartitionInfo_PartitionStatus = 0
+	SummaryPartitionInfo_NOT_AVAILABLE SummaryPartitionInfo_PartitionStatus = 1
+	SummaryPartitionInfo_AVAILABLE     SummaryPartitionInfo_PartitionStatus = 2
+)
+
+// Enum value maps for SummaryPartitionInfo_PartitionStatus.
+var (
+	SummaryPartitionInfo_PartitionStatus_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "NOT_AVAILABLE",
+		2: "AVAILABLE",
+	}
+	SummaryPartitionInfo_PartitionStatus_value = map[string]int32{
+		"UNKNOWN":       0,
+		"NOT_AVAILABLE": 1,
+		"AVAILABLE":     2,
+	}
+)
+
+func (x SummaryPartitionInfo_PartitionStatus) Enum() *SummaryPartitionInfo_PartitionStatus {
+	p := new(SummaryPartitionInfo_PartitionStatus)
+	*p = x
+	return p
+}
+
+func (x SummaryPartitionInfo_PartitionStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SummaryPartitionInfo_PartitionStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_config_proto_enumTypes[2].Descriptor()
+}
+
+func (SummaryPartitionInfo_PartitionStatus) Type() protoreflect.EnumType {
+	return &file_config_proto_enumTypes[2]
+}
+
+func (x SummaryPartitionInfo_PartitionStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SummaryPartitionInfo_PartitionStatus.Descriptor instead.
+func (SummaryPartitionInfo_PartitionStatus) EnumDescriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{8, 0}
+}
+
 type NodeInfo_NodeState int32
 
 const (
@@ -160,11 +209,11 @@ func (x NodeInfo_NodeState) String() string {
 }
 
 func (NodeInfo_NodeState) Descriptor() protoreflect.EnumDescriptor {
-	return file_config_proto_enumTypes[2].Descriptor()
+	return file_config_proto_enumTypes[3].Descriptor()
 }
 
 func (NodeInfo_NodeState) Type() protoreflect.EnumType {
-	return &file_config_proto_enumTypes[2]
+	return &file_config_proto_enumTypes[3]
 }
 
 func (x NodeInfo_NodeState) Number() protoreflect.EnumNumber {
@@ -173,7 +222,7 @@ func (x NodeInfo_NodeState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NodeInfo_NodeState.Descriptor instead.
 func (NodeInfo_NodeState) EnumDescriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{8, 0}
+	return file_config_proto_rawDescGZIP(), []int{11, 0}
 }
 
 type GetClusterConfigRequest struct {
@@ -851,6 +900,348 @@ func (x *GetClusterInfoResponse) GetPendingJobCount() uint32 {
 	return 0
 }
 
+type SummaryPartitionInfo struct {
+	state           protoimpl.MessageState               `protogen:"open.v1"`
+	PartitionName   string                               `protobuf:"bytes,1,opt,name=partition_name,json=partitionName,proto3" json:"partition_name,omitempty"`
+	NodeCount       uint32                               `protobuf:"varint,2,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`
+	NodeUsage       float32                              `protobuf:"fixed32,3,opt,name=node_usage,json=nodeUsage,proto3" json:"node_usage,omitempty"`
+	CpuCoreCount    uint32                               `protobuf:"varint,4,opt,name=cpu_core_count,json=cpuCoreCount,proto3" json:"cpu_core_count,omitempty"`
+	CpuUsage        float32                              `protobuf:"fixed32,5,opt,name=cpu_usage,json=cpuUsage,proto3" json:"cpu_usage,omitempty"`
+	GpuCoreCount    uint32                               `protobuf:"varint,6,opt,name=gpu_core_count,json=gpuCoreCount,proto3" json:"gpu_core_count,omitempty"`
+	GpuUsage        float32                              `protobuf:"fixed32,7,opt,name=gpu_usage,json=gpuUsage,proto3" json:"gpu_usage,omitempty"`
+	PendingJobCount uint32                               `protobuf:"varint,8,opt,name=pending_job_count,json=pendingJobCount,proto3" json:"pending_job_count,omitempty"`
+	PartitionStatus SummaryPartitionInfo_PartitionStatus `protobuf:"varint,9,opt,name=partition_status,json=partitionStatus,proto3,enum=scow.scheduler_adapter.SummaryPartitionInfo_PartitionStatus" json:"partition_status,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SummaryPartitionInfo) Reset() {
+	*x = SummaryPartitionInfo{}
+	mi := &file_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummaryPartitionInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummaryPartitionInfo) ProtoMessage() {}
+
+func (x *SummaryPartitionInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_config_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummaryPartitionInfo.ProtoReflect.Descriptor instead.
+func (*SummaryPartitionInfo) Descriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SummaryPartitionInfo) GetPartitionName() string {
+	if x != nil {
+		return x.PartitionName
+	}
+	return ""
+}
+
+func (x *SummaryPartitionInfo) GetNodeCount() uint32 {
+	if x != nil {
+		return x.NodeCount
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetNodeUsage() float32 {
+	if x != nil {
+		return x.NodeUsage
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetCpuCoreCount() uint32 {
+	if x != nil {
+		return x.CpuCoreCount
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetCpuUsage() float32 {
+	if x != nil {
+		return x.CpuUsage
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetGpuCoreCount() uint32 {
+	if x != nil {
+		return x.GpuCoreCount
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetGpuUsage() float32 {
+	if x != nil {
+		return x.GpuUsage
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetPendingJobCount() uint32 {
+	if x != nil {
+		return x.PendingJobCount
+	}
+	return 0
+}
+
+func (x *SummaryPartitionInfo) GetPartitionStatus() SummaryPartitionInfo_PartitionStatus {
+	if x != nil {
+		return x.PartitionStatus
+	}
+	return SummaryPartitionInfo_UNKNOWN
+}
+
+type GetSummaryClusterInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountNames  []string               `protobuf:"bytes,1,rep,name=account_names,json=accountNames,proto3" json:"account_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSummaryClusterInfoRequest) Reset() {
+	*x = GetSummaryClusterInfoRequest{}
+	mi := &file_config_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSummaryClusterInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSummaryClusterInfoRequest) ProtoMessage() {}
+
+func (x *GetSummaryClusterInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_config_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSummaryClusterInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetSummaryClusterInfoRequest) Descriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetSummaryClusterInfoRequest) GetAccountNames() []string {
+	if x != nil {
+		return x.AccountNames
+	}
+	return nil
+}
+
+type GetSummaryClusterInfoResponse struct {
+	state       protoimpl.MessageState  `protogen:"open.v1"`
+	ClusterName string                  `protobuf:"bytes,1,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
+	Partitions  []*SummaryPartitionInfo `protobuf:"bytes,2,rep,name=partitions,proto3" json:"partitions,omitempty"`
+	// 3-17 Newly added parameters
+	// only returns in version later than 1.7.0
+	NodeCount             uint32  `protobuf:"varint,3,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`
+	RunningNodeCount      uint32  `protobuf:"varint,4,opt,name=running_node_count,json=runningNodeCount,proto3" json:"running_node_count,omitempty"`
+	IdleNodeCount         uint32  `protobuf:"varint,5,opt,name=idle_node_count,json=idleNodeCount,proto3" json:"idle_node_count,omitempty"`
+	NotAvailableNodeCount uint32  `protobuf:"varint,6,opt,name=not_available_node_count,json=notAvailableNodeCount,proto3" json:"not_available_node_count,omitempty"`
+	CpuCoreCount          uint32  `protobuf:"varint,7,opt,name=cpu_core_count,json=cpuCoreCount,proto3" json:"cpu_core_count,omitempty"`
+	RunningCpuCount       uint32  `protobuf:"varint,8,opt,name=running_cpu_count,json=runningCpuCount,proto3" json:"running_cpu_count,omitempty"`
+	IdleCpuCount          uint32  `protobuf:"varint,9,opt,name=idle_cpu_count,json=idleCpuCount,proto3" json:"idle_cpu_count,omitempty"`
+	NotAvailableCpuCount  uint32  `protobuf:"varint,10,opt,name=not_available_cpu_count,json=notAvailableCpuCount,proto3" json:"not_available_cpu_count,omitempty"`
+	GpuCoreCount          uint32  `protobuf:"varint,11,opt,name=gpu_core_count,json=gpuCoreCount,proto3" json:"gpu_core_count,omitempty"`
+	RunningGpuCount       uint32  `protobuf:"varint,12,opt,name=running_gpu_count,json=runningGpuCount,proto3" json:"running_gpu_count,omitempty"`
+	IdleGpuCount          uint32  `protobuf:"varint,13,opt,name=idle_gpu_count,json=idleGpuCount,proto3" json:"idle_gpu_count,omitempty"`
+	NotAvailableGpuCount  uint32  `protobuf:"varint,14,opt,name=not_available_gpu_count,json=notAvailableGpuCount,proto3" json:"not_available_gpu_count,omitempty"`
+	RunningJobCount       uint32  `protobuf:"varint,15,opt,name=running_job_count,json=runningJobCount,proto3" json:"running_job_count,omitempty"`
+	PendingJobCount       uint32  `protobuf:"varint,16,opt,name=pending_job_count,json=pendingJobCount,proto3" json:"pending_job_count,omitempty"`
+	NodeUsage             float32 `protobuf:"fixed32,17,opt,name=node_usage,json=nodeUsage,proto3" json:"node_usage,omitempty"`
+	CpuUsage              float32 `protobuf:"fixed32,18,opt,name=cpu_usage,json=cpuUsage,proto3" json:"cpu_usage,omitempty"`
+	GpuUsage              float32 `protobuf:"fixed32,19,opt,name=gpu_usage,json=gpuUsage,proto3" json:"gpu_usage,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *GetSummaryClusterInfoResponse) Reset() {
+	*x = GetSummaryClusterInfoResponse{}
+	mi := &file_config_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSummaryClusterInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSummaryClusterInfoResponse) ProtoMessage() {}
+
+func (x *GetSummaryClusterInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_config_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSummaryClusterInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetSummaryClusterInfoResponse) Descriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetSummaryClusterInfoResponse) GetClusterName() string {
+	if x != nil {
+		return x.ClusterName
+	}
+	return ""
+}
+
+func (x *GetSummaryClusterInfoResponse) GetPartitions() []*SummaryPartitionInfo {
+	if x != nil {
+		return x.Partitions
+	}
+	return nil
+}
+
+func (x *GetSummaryClusterInfoResponse) GetNodeCount() uint32 {
+	if x != nil {
+		return x.NodeCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetRunningNodeCount() uint32 {
+	if x != nil {
+		return x.RunningNodeCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetIdleNodeCount() uint32 {
+	if x != nil {
+		return x.IdleNodeCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetNotAvailableNodeCount() uint32 {
+	if x != nil {
+		return x.NotAvailableNodeCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetCpuCoreCount() uint32 {
+	if x != nil {
+		return x.CpuCoreCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetRunningCpuCount() uint32 {
+	if x != nil {
+		return x.RunningCpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetIdleCpuCount() uint32 {
+	if x != nil {
+		return x.IdleCpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetNotAvailableCpuCount() uint32 {
+	if x != nil {
+		return x.NotAvailableCpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetGpuCoreCount() uint32 {
+	if x != nil {
+		return x.GpuCoreCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetRunningGpuCount() uint32 {
+	if x != nil {
+		return x.RunningGpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetIdleGpuCount() uint32 {
+	if x != nil {
+		return x.IdleGpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetNotAvailableGpuCount() uint32 {
+	if x != nil {
+		return x.NotAvailableGpuCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetRunningJobCount() uint32 {
+	if x != nil {
+		return x.RunningJobCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetPendingJobCount() uint32 {
+	if x != nil {
+		return x.PendingJobCount
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetNodeUsage() float32 {
+	if x != nil {
+		return x.NodeUsage
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetCpuUsage() float32 {
+	if x != nil {
+		return x.CpuUsage
+	}
+	return 0
+}
+
+func (x *GetSummaryClusterInfoResponse) GetGpuUsage() float32 {
+	if x != nil {
+		return x.GpuUsage
+	}
+	return 0
+}
+
 type NodeInfo struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	NodeName          string                 `protobuf:"bytes,1,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
@@ -873,7 +1264,7 @@ type NodeInfo struct {
 
 func (x *NodeInfo) Reset() {
 	*x = NodeInfo{}
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_config_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -885,7 +1276,7 @@ func (x *NodeInfo) String() string {
 func (*NodeInfo) ProtoMessage() {}
 
 func (x *NodeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_config_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -898,7 +1289,7 @@ func (x *NodeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeInfo.ProtoReflect.Descriptor instead.
 func (*NodeInfo) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{8}
+	return file_config_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *NodeInfo) GetNodeName() string {
@@ -1002,7 +1393,7 @@ type GetClusterNodesInfoRequest struct {
 
 func (x *GetClusterNodesInfoRequest) Reset() {
 	*x = GetClusterNodesInfoRequest{}
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_config_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1014,7 +1405,7 @@ func (x *GetClusterNodesInfoRequest) String() string {
 func (*GetClusterNodesInfoRequest) ProtoMessage() {}
 
 func (x *GetClusterNodesInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_config_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1027,7 +1418,7 @@ func (x *GetClusterNodesInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClusterNodesInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetClusterNodesInfoRequest) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{9}
+	return file_config_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetClusterNodesInfoRequest) GetNodeNames() []string {
@@ -1046,7 +1437,7 @@ type GetClusterNodesInfoResponse struct {
 
 func (x *GetClusterNodesInfoResponse) Reset() {
 	*x = GetClusterNodesInfoResponse{}
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_config_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1449,7 @@ func (x *GetClusterNodesInfoResponse) String() string {
 func (*GetClusterNodesInfoResponse) ProtoMessage() {}
 
 func (x *GetClusterNodesInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_config_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1462,7 @@ func (x *GetClusterNodesInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClusterNodesInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetClusterNodesInfoResponse) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{10}
+	return file_config_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetClusterNodesInfoResponse) GetNodes() []*NodeInfo {
@@ -1089,7 +1480,7 @@ type ListImplementedOptionalFeaturesRequest struct {
 
 func (x *ListImplementedOptionalFeaturesRequest) Reset() {
 	*x = ListImplementedOptionalFeaturesRequest{}
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_config_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1101,7 +1492,7 @@ func (x *ListImplementedOptionalFeaturesRequest) String() string {
 func (*ListImplementedOptionalFeaturesRequest) ProtoMessage() {}
 
 func (x *ListImplementedOptionalFeaturesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_config_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1114,7 +1505,7 @@ func (x *ListImplementedOptionalFeaturesRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListImplementedOptionalFeaturesRequest.ProtoReflect.Descriptor instead.
 func (*ListImplementedOptionalFeaturesRequest) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{11}
+	return file_config_proto_rawDescGZIP(), []int{14}
 }
 
 type ListImplementedOptionalFeaturesResponse struct {
@@ -1126,7 +1517,7 @@ type ListImplementedOptionalFeaturesResponse struct {
 
 func (x *ListImplementedOptionalFeaturesResponse) Reset() {
 	*x = ListImplementedOptionalFeaturesResponse{}
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_config_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1138,7 +1529,7 @@ func (x *ListImplementedOptionalFeaturesResponse) String() string {
 func (*ListImplementedOptionalFeaturesResponse) ProtoMessage() {}
 
 func (x *ListImplementedOptionalFeaturesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_config_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1151,7 +1542,7 @@ func (x *ListImplementedOptionalFeaturesResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use ListImplementedOptionalFeaturesResponse.ProtoReflect.Descriptor instead.
 func (*ListImplementedOptionalFeaturesResponse) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{12}
+	return file_config_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListImplementedOptionalFeaturesResponse) GetFeatures() []OptionalFeatures {
@@ -1235,7 +1626,50 @@ const file_config_proto_rawDesc = "" +
 	"\x17not_available_gpu_count\x18\x0e \x01(\rR\x14notAvailableGpuCount\x12\x1b\n" +
 	"\tjob_count\x18\x0f \x01(\rR\bjobCount\x12*\n" +
 	"\x11running_job_count\x18\x10 \x01(\rR\x0frunningJobCount\x12*\n" +
-	"\x11pending_job_count\x18\x11 \x01(\rR\x0fpendingJobCount\"\xc0\x04\n" +
+	"\x11pending_job_count\x18\x11 \x01(\rR\x0fpendingJobCount\"\xd8\x03\n" +
+	"\x14SummaryPartitionInfo\x12%\n" +
+	"\x0epartition_name\x18\x01 \x01(\tR\rpartitionName\x12\x1d\n" +
+	"\n" +
+	"node_count\x18\x02 \x01(\rR\tnodeCount\x12\x1d\n" +
+	"\n" +
+	"node_usage\x18\x03 \x01(\x02R\tnodeUsage\x12$\n" +
+	"\x0ecpu_core_count\x18\x04 \x01(\rR\fcpuCoreCount\x12\x1b\n" +
+	"\tcpu_usage\x18\x05 \x01(\x02R\bcpuUsage\x12$\n" +
+	"\x0egpu_core_count\x18\x06 \x01(\rR\fgpuCoreCount\x12\x1b\n" +
+	"\tgpu_usage\x18\a \x01(\x02R\bgpuUsage\x12*\n" +
+	"\x11pending_job_count\x18\b \x01(\rR\x0fpendingJobCount\x12g\n" +
+	"\x10partition_status\x18\t \x01(\x0e2<.scow.scheduler_adapter.SummaryPartitionInfo.PartitionStatusR\x0fpartitionStatus\"@\n" +
+	"\x0fPartitionStatus\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x11\n" +
+	"\rNOT_AVAILABLE\x10\x01\x12\r\n" +
+	"\tAVAILABLE\x10\x02\"C\n" +
+	"\x1cGetSummaryClusterInfoRequest\x12#\n" +
+	"\raccount_names\x18\x01 \x03(\tR\faccountNames\"\xcd\x06\n" +
+	"\x1dGetSummaryClusterInfoResponse\x12!\n" +
+	"\fcluster_name\x18\x01 \x01(\tR\vclusterName\x12L\n" +
+	"\n" +
+	"partitions\x18\x02 \x03(\v2,.scow.scheduler_adapter.SummaryPartitionInfoR\n" +
+	"partitions\x12\x1d\n" +
+	"\n" +
+	"node_count\x18\x03 \x01(\rR\tnodeCount\x12,\n" +
+	"\x12running_node_count\x18\x04 \x01(\rR\x10runningNodeCount\x12&\n" +
+	"\x0fidle_node_count\x18\x05 \x01(\rR\ridleNodeCount\x127\n" +
+	"\x18not_available_node_count\x18\x06 \x01(\rR\x15notAvailableNodeCount\x12$\n" +
+	"\x0ecpu_core_count\x18\a \x01(\rR\fcpuCoreCount\x12*\n" +
+	"\x11running_cpu_count\x18\b \x01(\rR\x0frunningCpuCount\x12$\n" +
+	"\x0eidle_cpu_count\x18\t \x01(\rR\fidleCpuCount\x125\n" +
+	"\x17not_available_cpu_count\x18\n" +
+	" \x01(\rR\x14notAvailableCpuCount\x12$\n" +
+	"\x0egpu_core_count\x18\v \x01(\rR\fgpuCoreCount\x12*\n" +
+	"\x11running_gpu_count\x18\f \x01(\rR\x0frunningGpuCount\x12$\n" +
+	"\x0eidle_gpu_count\x18\r \x01(\rR\fidleGpuCount\x125\n" +
+	"\x17not_available_gpu_count\x18\x0e \x01(\rR\x14notAvailableGpuCount\x12*\n" +
+	"\x11running_job_count\x18\x0f \x01(\rR\x0frunningJobCount\x12*\n" +
+	"\x11pending_job_count\x18\x10 \x01(\rR\x0fpendingJobCount\x12\x1d\n" +
+	"\n" +
+	"node_usage\x18\x11 \x01(\x02R\tnodeUsage\x12\x1b\n" +
+	"\tcpu_usage\x18\x12 \x01(\x02R\bcpuUsage\x12\x1b\n" +
+	"\tgpu_usage\x18\x13 \x01(\x02R\bgpuUsage\"\xc0\x04\n" +
 	"\bNodeInfo\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x1e\n" +
 	"\n" +
@@ -1270,11 +1704,12 @@ const file_config_proto_rawDesc = "" +
 	"\bfeatures\x18\x01 \x03(\x0e2(.scow.scheduler_adapter.OptionalFeaturesR\bfeatures*8\n" +
 	"\x10OptionalFeatures\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x17\n" +
-	"\x13RESOURCE_MANAGEMENT\x10\x012\xa6\x05\n" +
+	"\x13RESOURCE_MANAGEMENT\x10\x012\xad\x06\n" +
 	"\rConfigService\x12u\n" +
 	"\x10GetClusterConfig\x12/.scow.scheduler_adapter.GetClusterConfigRequest\x1a0.scow.scheduler_adapter.GetClusterConfigResponse\x12\x87\x01\n" +
 	"\x16GetAvailablePartitions\x125.scow.scheduler_adapter.GetAvailablePartitionsRequest\x1a6.scow.scheduler_adapter.GetAvailablePartitionsResponse\x12o\n" +
-	"\x0eGetClusterInfo\x12-.scow.scheduler_adapter.GetClusterInfoRequest\x1a..scow.scheduler_adapter.GetClusterInfoResponse\x12~\n" +
+	"\x0eGetClusterInfo\x12-.scow.scheduler_adapter.GetClusterInfoRequest\x1a..scow.scheduler_adapter.GetClusterInfoResponse\x12\x84\x01\n" +
+	"\x15GetSummaryClusterInfo\x124.scow.scheduler_adapter.GetSummaryClusterInfoRequest\x1a5.scow.scheduler_adapter.GetSummaryClusterInfoResponse\x12~\n" +
 	"\x13GetClusterNodesInfo\x122.scow.scheduler_adapter.GetClusterNodesInfoRequest\x1a3.scow.scheduler_adapter.GetClusterNodesInfoResponse\x12\xa2\x01\n" +
 	"\x1fListImplementedOptionalFeatures\x12>.scow.scheduler_adapter.ListImplementedOptionalFeaturesRequest\x1a?.scow.scheduler_adapter.ListImplementedOptionalFeaturesResponseB\xb6\x01\n" +
 	"\x1acom.scow.scheduler_adapterB\vConfigProtoP\x01Z\x16scow-crane-adapter/gen\xa2\x02\x03SSX\xaa\x02\x15Scow.SchedulerAdapter\xca\x02\x15Scow\\SchedulerAdapter\xe2\x02!Scow\\SchedulerAdapter\\GPBMetadata\xea\x02\x16Scow::SchedulerAdapterb\x06proto3"
@@ -1291,49 +1726,57 @@ func file_config_proto_rawDescGZIP() []byte {
 	return file_config_proto_rawDescData
 }
 
-var file_config_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_config_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_config_proto_goTypes = []any{
 	(OptionalFeatures)(0),                           // 0: scow.scheduler_adapter.OptionalFeatures
 	(PartitionInfo_PartitionStatus)(0),              // 1: scow.scheduler_adapter.PartitionInfo.PartitionStatus
-	(NodeInfo_NodeState)(0),                         // 2: scow.scheduler_adapter.NodeInfo.NodeState
-	(*GetClusterConfigRequest)(nil),                 // 3: scow.scheduler_adapter.GetClusterConfigRequest
-	(*Partition)(nil),                               // 4: scow.scheduler_adapter.Partition
-	(*GetClusterConfigResponse)(nil),                // 5: scow.scheduler_adapter.GetClusterConfigResponse
-	(*GetAvailablePartitionsRequest)(nil),           // 6: scow.scheduler_adapter.GetAvailablePartitionsRequest
-	(*GetAvailablePartitionsResponse)(nil),          // 7: scow.scheduler_adapter.GetAvailablePartitionsResponse
-	(*PartitionInfo)(nil),                           // 8: scow.scheduler_adapter.PartitionInfo
-	(*GetClusterInfoRequest)(nil),                   // 9: scow.scheduler_adapter.GetClusterInfoRequest
-	(*GetClusterInfoResponse)(nil),                  // 10: scow.scheduler_adapter.GetClusterInfoResponse
-	(*NodeInfo)(nil),                                // 11: scow.scheduler_adapter.NodeInfo
-	(*GetClusterNodesInfoRequest)(nil),              // 12: scow.scheduler_adapter.GetClusterNodesInfoRequest
-	(*GetClusterNodesInfoResponse)(nil),             // 13: scow.scheduler_adapter.GetClusterNodesInfoResponse
-	(*ListImplementedOptionalFeaturesRequest)(nil),  // 14: scow.scheduler_adapter.ListImplementedOptionalFeaturesRequest
-	(*ListImplementedOptionalFeaturesResponse)(nil), // 15: scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse
+	(SummaryPartitionInfo_PartitionStatus)(0),       // 2: scow.scheduler_adapter.SummaryPartitionInfo.PartitionStatus
+	(NodeInfo_NodeState)(0),                         // 3: scow.scheduler_adapter.NodeInfo.NodeState
+	(*GetClusterConfigRequest)(nil),                 // 4: scow.scheduler_adapter.GetClusterConfigRequest
+	(*Partition)(nil),                               // 5: scow.scheduler_adapter.Partition
+	(*GetClusterConfigResponse)(nil),                // 6: scow.scheduler_adapter.GetClusterConfigResponse
+	(*GetAvailablePartitionsRequest)(nil),           // 7: scow.scheduler_adapter.GetAvailablePartitionsRequest
+	(*GetAvailablePartitionsResponse)(nil),          // 8: scow.scheduler_adapter.GetAvailablePartitionsResponse
+	(*PartitionInfo)(nil),                           // 9: scow.scheduler_adapter.PartitionInfo
+	(*GetClusterInfoRequest)(nil),                   // 10: scow.scheduler_adapter.GetClusterInfoRequest
+	(*GetClusterInfoResponse)(nil),                  // 11: scow.scheduler_adapter.GetClusterInfoResponse
+	(*SummaryPartitionInfo)(nil),                    // 12: scow.scheduler_adapter.SummaryPartitionInfo
+	(*GetSummaryClusterInfoRequest)(nil),            // 13: scow.scheduler_adapter.GetSummaryClusterInfoRequest
+	(*GetSummaryClusterInfoResponse)(nil),           // 14: scow.scheduler_adapter.GetSummaryClusterInfoResponse
+	(*NodeInfo)(nil),                                // 15: scow.scheduler_adapter.NodeInfo
+	(*GetClusterNodesInfoRequest)(nil),              // 16: scow.scheduler_adapter.GetClusterNodesInfoRequest
+	(*GetClusterNodesInfoResponse)(nil),             // 17: scow.scheduler_adapter.GetClusterNodesInfoResponse
+	(*ListImplementedOptionalFeaturesRequest)(nil),  // 18: scow.scheduler_adapter.ListImplementedOptionalFeaturesRequest
+	(*ListImplementedOptionalFeaturesResponse)(nil), // 19: scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse
 }
 var file_config_proto_depIdxs = []int32{
-	4,  // 0: scow.scheduler_adapter.GetClusterConfigResponse.partitions:type_name -> scow.scheduler_adapter.Partition
-	4,  // 1: scow.scheduler_adapter.GetAvailablePartitionsResponse.partitions:type_name -> scow.scheduler_adapter.Partition
+	5,  // 0: scow.scheduler_adapter.GetClusterConfigResponse.partitions:type_name -> scow.scheduler_adapter.Partition
+	5,  // 1: scow.scheduler_adapter.GetAvailablePartitionsResponse.partitions:type_name -> scow.scheduler_adapter.Partition
 	1,  // 2: scow.scheduler_adapter.PartitionInfo.partition_status:type_name -> scow.scheduler_adapter.PartitionInfo.PartitionStatus
-	8,  // 3: scow.scheduler_adapter.GetClusterInfoResponse.partitions:type_name -> scow.scheduler_adapter.PartitionInfo
-	2,  // 4: scow.scheduler_adapter.NodeInfo.state:type_name -> scow.scheduler_adapter.NodeInfo.NodeState
-	11, // 5: scow.scheduler_adapter.GetClusterNodesInfoResponse.nodes:type_name -> scow.scheduler_adapter.NodeInfo
-	0,  // 6: scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse.features:type_name -> scow.scheduler_adapter.OptionalFeatures
-	3,  // 7: scow.scheduler_adapter.ConfigService.GetClusterConfig:input_type -> scow.scheduler_adapter.GetClusterConfigRequest
-	6,  // 8: scow.scheduler_adapter.ConfigService.GetAvailablePartitions:input_type -> scow.scheduler_adapter.GetAvailablePartitionsRequest
-	9,  // 9: scow.scheduler_adapter.ConfigService.GetClusterInfo:input_type -> scow.scheduler_adapter.GetClusterInfoRequest
-	12, // 10: scow.scheduler_adapter.ConfigService.GetClusterNodesInfo:input_type -> scow.scheduler_adapter.GetClusterNodesInfoRequest
-	14, // 11: scow.scheduler_adapter.ConfigService.ListImplementedOptionalFeatures:input_type -> scow.scheduler_adapter.ListImplementedOptionalFeaturesRequest
-	5,  // 12: scow.scheduler_adapter.ConfigService.GetClusterConfig:output_type -> scow.scheduler_adapter.GetClusterConfigResponse
-	7,  // 13: scow.scheduler_adapter.ConfigService.GetAvailablePartitions:output_type -> scow.scheduler_adapter.GetAvailablePartitionsResponse
-	10, // 14: scow.scheduler_adapter.ConfigService.GetClusterInfo:output_type -> scow.scheduler_adapter.GetClusterInfoResponse
-	13, // 15: scow.scheduler_adapter.ConfigService.GetClusterNodesInfo:output_type -> scow.scheduler_adapter.GetClusterNodesInfoResponse
-	15, // 16: scow.scheduler_adapter.ConfigService.ListImplementedOptionalFeatures:output_type -> scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	9,  // 3: scow.scheduler_adapter.GetClusterInfoResponse.partitions:type_name -> scow.scheduler_adapter.PartitionInfo
+	2,  // 4: scow.scheduler_adapter.SummaryPartitionInfo.partition_status:type_name -> scow.scheduler_adapter.SummaryPartitionInfo.PartitionStatus
+	12, // 5: scow.scheduler_adapter.GetSummaryClusterInfoResponse.partitions:type_name -> scow.scheduler_adapter.SummaryPartitionInfo
+	3,  // 6: scow.scheduler_adapter.NodeInfo.state:type_name -> scow.scheduler_adapter.NodeInfo.NodeState
+	15, // 7: scow.scheduler_adapter.GetClusterNodesInfoResponse.nodes:type_name -> scow.scheduler_adapter.NodeInfo
+	0,  // 8: scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse.features:type_name -> scow.scheduler_adapter.OptionalFeatures
+	4,  // 9: scow.scheduler_adapter.ConfigService.GetClusterConfig:input_type -> scow.scheduler_adapter.GetClusterConfigRequest
+	7,  // 10: scow.scheduler_adapter.ConfigService.GetAvailablePartitions:input_type -> scow.scheduler_adapter.GetAvailablePartitionsRequest
+	10, // 11: scow.scheduler_adapter.ConfigService.GetClusterInfo:input_type -> scow.scheduler_adapter.GetClusterInfoRequest
+	13, // 12: scow.scheduler_adapter.ConfigService.GetSummaryClusterInfo:input_type -> scow.scheduler_adapter.GetSummaryClusterInfoRequest
+	16, // 13: scow.scheduler_adapter.ConfigService.GetClusterNodesInfo:input_type -> scow.scheduler_adapter.GetClusterNodesInfoRequest
+	18, // 14: scow.scheduler_adapter.ConfigService.ListImplementedOptionalFeatures:input_type -> scow.scheduler_adapter.ListImplementedOptionalFeaturesRequest
+	6,  // 15: scow.scheduler_adapter.ConfigService.GetClusterConfig:output_type -> scow.scheduler_adapter.GetClusterConfigResponse
+	8,  // 16: scow.scheduler_adapter.ConfigService.GetAvailablePartitions:output_type -> scow.scheduler_adapter.GetAvailablePartitionsResponse
+	11, // 17: scow.scheduler_adapter.ConfigService.GetClusterInfo:output_type -> scow.scheduler_adapter.GetClusterInfoResponse
+	14, // 18: scow.scheduler_adapter.ConfigService.GetSummaryClusterInfo:output_type -> scow.scheduler_adapter.GetSummaryClusterInfoResponse
+	17, // 19: scow.scheduler_adapter.ConfigService.GetClusterNodesInfo:output_type -> scow.scheduler_adapter.GetClusterNodesInfoResponse
+	19, // 20: scow.scheduler_adapter.ConfigService.ListImplementedOptionalFeatures:output_type -> scow.scheduler_adapter.ListImplementedOptionalFeaturesResponse
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_config_proto_init() }
@@ -1347,8 +1790,8 @@ func file_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_proto_rawDesc), len(file_config_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   13,
+			NumEnums:      4,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
