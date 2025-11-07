@@ -105,6 +105,16 @@ jobs:
           echo "Commit: $GITHUB_SHA" >> version.info
           echo "Trigger: $GITHUB_REF" >> version.info
           sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no version.info root@$SSH_HOST:$ARTIFACT_PATH/
+
+      - name: Upload adapter to ccrepo
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+        run: |
+          target_url="https://ccrepo.pku.edu.cn/repository/scowbin/scow-crane-adapter/${{ contains(github.ref, 'refs/tags/') && github.ref_name || 'master' }}"
+          echo "Uploading adapter to target url: ${target_url}"
+          curl -f --user "${{ secrets.CCREPO_USERNAME }}:${{ secrets.CCREPO_PASSWORD }}" \
+            --upload-file "./output/${{ matrix.arch }}/app/scow-crane-adapter" \
+            "${target_url}/${{ matrix.arch }}/scow-crane-adapter"
+          echo "✅ Files uploaded successfully to ccrepo!"
           
       - name: Prepare scow-crane-adapter
         if: github.ref_type == 'tag'
