@@ -20,19 +20,18 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	var allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 	logrus.Infof("Received request AddUserToAccount: %v", in)
 
-	// 获取crane中QOS列表
-	qosList, err := utils.GetAllQos()
+	account, err := utils.GetAccountByName(in.AccountName)
 	if err != nil {
-		logrus.Errorf("AddUserToAccount Error getting QoS: %v", err)
-		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
+		logrus.Errorf("AddUserToAccount get account failed: %v", err)
+		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 
 	// 获取计算分区 配置qos
-	for _, partition := range utils.CConfig.Partitions {
+	for _, partition := range account.AllowedPartitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
-			PartitionName: partition.Name,
-			QosList:       qosList,
-			DefaultQos:    qosList[0],
+			PartitionName: partition,
+			QosList:       account.AllowedQosList,
+			DefaultQos:    account.DefaultQos,
 		})
 	}
 	uid, err := utils.GetUidByUserName(in.UserId)

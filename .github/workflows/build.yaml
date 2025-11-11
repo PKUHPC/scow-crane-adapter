@@ -2,12 +2,15 @@ name: Test, Build and Publish Projects
 
 on:
   workflow_dispatch:
-  pull_request:
   push:
     tags:
       - "v**"
     branches:
       - master
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  pull_request_target:
+      types: [ closed ]
 
 # 全局权限配置（作用于所有jobs）
 permissions:
@@ -106,10 +109,28 @@ jobs:
           echo "Trigger: $GITHUB_REF" >> version.info
           sshpass -p $PASSWORD scp -o StrictHostKeyChecking=no version.info root@$SSH_HOST:$ARTIFACT_PATH/
 
-      - name: Upload adapter to ccrepo
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+      - name: Determine target directory
+        id: target
         run: |
-          target_url="https://ccrepo.pku.edu.cn/repository/scowbin/scow-crane-adapter/${{ contains(github.ref, 'refs/tags/') && github.ref_name || 'master' }}"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/master" ]]; then
+            target="master"
+            ref_type="branch"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
+            tag_name=${GITHUB_REF#refs/tags/}
+            target="${tag_name}"
+            ref_type="tag"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            target="pr-${{ github.event.number }}"
+            ref_type="pr"
+          fi
+          
+          echo "target=${target}" >> $GITHUB_OUTPUT
+          echo "ref_type=${ref_type}" >> $GITHUB_OUTPUT
+          echo "Target directory: ${target}"
+
+      - name: Upload adapter to ccrepo
+        run: |
+          target_url="https://ccrepo.pku.edu.cn/repository/scowbin/scow-crane-adapter/${{ steps.target.outputs.target }}"
           echo "Uploading adapter to target url: ${target_url}"
           curl -f --user "${{ secrets.CCREPO_USERNAME }}:${{ secrets.CCREPO_PASSWORD }}" \
             --upload-file "./output/${{ matrix.arch }}/app/scow-crane-adapter" \
@@ -179,3 +200,19 @@ jobs:
         run: |
           sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no root@$SSH_HOST "chmod +x /tmp/trans_adapter.sh"
           sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no root@$SSH_HOST "bash -x /tmp/trans_adapter.sh"
+
+  cleanup-pr:
+    runs-on: pkuhpc-k8s-runners
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+
+    steps:
+      - name: Delete PR files from ccrepo
+        run: |
+          target_url_base="https://ccrepo.pku.edu.cn/repository/scowbin/scow-crane-adapter/pr-${{ github.event.number }}"
+          echo "Deleting files from: ${target_url_base}"
+          for arch in amd64 arm64; do
+            file_url="${target_url_base}/${arch}/scow-crane-adapter"
+            echo "Deleting ${file_url}"
+            curl -f -X DELETE --user "${{ secrets.CCREPO_USERNAME }}:${{ secrets.CCREPO_PASSWORD }}" "${file_url}" || echo "ℹ️ File ${file_url} does not exist or already deleted"
+          done
+          echo "✅ Successfully cleaned up ccrepo files for PR: ${{ github.event.number }}"
