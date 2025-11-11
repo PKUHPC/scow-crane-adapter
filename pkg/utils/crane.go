@@ -239,7 +239,7 @@ func modifyUserAllowedPartitions(accountName string, partitions []string) error 
 			ValueList:   partitions,
 			Name:        user.Name,
 			Account:     accountName,
-			Type:        craneProtos.OperationType_Overwrite,
+			Type:        craneProtos.OperationType_Add,
 			Uid:         0,
 		}
 
