@@ -261,93 +261,45 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 
 func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*protos.GetJobsResponse, error) {
 	var (
-		startTimeFilter int64
-		endTimeFilter   int64
-		statesList      []craneProtos.TaskStatus
-		// accountList     []string
 		request  *craneProtos.QueryTasksInfoRequest
 		jobsInfo []*protos.JobInfo
 		totalNum uint32
-		// submitTimeTimestamp *timestamppb.Timestamp
 	)
 	logrus.Infof("Received request GetJobs: %v", in)
 
 	if in.Filter != nil {
+		base := &craneProtos.QueryTasksInfoRequest{
+			FilterTaskStates:            utils.GetCraneStatesList(in.Filter.States),
+			FilterUsers:                 in.Filter.Users,
+			FilterAccounts:              in.Filter.Accounts,
+			OptionIncludeCompletedTasks: true,
+			NumLimit:                    99999999,
+		}
+
+		var startTimeFilter, endTimeFilter int64
+		interval := &craneProtos.TimeInterval{}
+
 		if in.Filter.EndTime != nil {
 			startTimeFilter = in.Filter.EndTime.StartTime.GetSeconds()
 			endTimeFilter = in.Filter.EndTime.EndTime.GetSeconds()
-			statesList = utils.GetCraneStatesList(in.Filter.States)
-			if startTimeFilter == 0 && endTimeFilter != 0 {
-				// endTimeProto := timestamppb.New(time.Unix(endTimeFilter, 0))
-				endTimeInterval := &craneProtos.TimeInterval{
-					UpperBound: timestamppb.New(time.Unix(endTimeFilter, 0)), // 设置结束时间的时间戳
-				}
-
-				// UpperBound 表示右区间
-				// LowerBound 表示左区间
-
-				request = &craneProtos.QueryTasksInfoRequest{
-					FilterTaskStates:            statesList,
-					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              in.Filter.Accounts,
-					FilterEndTimeInterval:       endTimeInterval,
-					OptionIncludeCompletedTasks: true,
-					NumLimit:                    99999999,
-				}
-			} else if startTimeFilter != 0 && endTimeFilter != 0 {
-				endTimeInterval := &craneProtos.TimeInterval{
-					LowerBound: timestamppb.New(time.Unix(startTimeFilter, 0)),
-					UpperBound: timestamppb.New(time.Unix(endTimeFilter, 0)),
-				}
-
-				request = &craneProtos.QueryTasksInfoRequest{
-					FilterTaskStates:            statesList,
-					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              in.Filter.Accounts,
-					FilterEndTimeInterval:       endTimeInterval,
-					OptionIncludeCompletedTasks: true,
-					NumLimit:                    99999999,
-				}
-			} else if startTimeFilter != 0 && endTimeFilter == 0 {
-				endTimeInterval := &craneProtos.TimeInterval{
-					LowerBound: timestamppb.New(time.Unix(startTimeFilter, 0)),
-				}
-				request = &craneProtos.QueryTasksInfoRequest{
-					FilterTaskStates:            statesList,
-					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              in.Filter.Accounts,
-					FilterEndTimeInterval:       endTimeInterval,
-					OptionIncludeCompletedTasks: true,
-					NumLimit:                    99999999,
-				}
-			} else {
-				request = &craneProtos.QueryTasksInfoRequest{
-					FilterTaskStates:            statesList,
-					FilterUsers:                 in.Filter.Users,
-					FilterAccounts:              in.Filter.Accounts,
-					OptionIncludeCompletedTasks: true,
-					NumLimit:                    99999999,
-				}
-			}
-		} else if in.Filter.JobName != nil {
-			request = &craneProtos.QueryTasksInfoRequest{
-				FilterTaskStates:            statesList,
-				FilterUsers:                 in.Filter.Users,
-				FilterAccounts:              in.Filter.Accounts,
-				FilterTaskNames:             []string{*in.Filter.JobName},
-				OptionIncludeCompletedTasks: true,
-				NumLimit:                    99999999,
-			}
-		} else {
-			statesList = utils.GetCraneStatesList(in.Filter.States)
-			request = &craneProtos.QueryTasksInfoRequest{
-				FilterTaskStates:            statesList,
-				FilterUsers:                 in.Filter.Users,
-				FilterAccounts:              in.Filter.Accounts,
-				OptionIncludeCompletedTasks: true,
-				NumLimit:                    99999999,
-			}
+		} else if in.Filter.SubmitTime != nil {
+			startTimeFilter = in.Filter.SubmitTime.StartTime.GetSeconds()
+			endTimeFilter = in.Filter.SubmitTime.EndTime.GetSeconds()
 		}
+
+		if startTimeFilter != 0 {
+			interval.LowerBound = timestamppb.New(time.Unix(startTimeFilter, 0))
+		}
+		if endTimeFilter != 0 {
+			interval.UpperBound = timestamppb.New(time.Unix(endTimeFilter, 0))
+		}
+
+		base.FilterEndTimeInterval = interval
+
+		if in.Filter.JobName != nil {
+			base.FilterTaskNames = []string{*in.Filter.JobName}
+		}
+		request = base
 	} else {
 		// 没有筛选条件的请求体
 		request = &craneProtos.QueryTasksInfoRequest{
@@ -432,8 +384,6 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			}
 		}
 
-		logrus.Infof("timeLimitMinutes: %d", timeLimitMinutes)
-
 		if len(in.Fields) == 0 {
 			jobsInfo = append(jobsInfo, &protos.JobInfo{
 				JobId:            job.GetTaskId(),
@@ -509,7 +459,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.MemAllocMb = &memAllocMb
 				}
 			}
-			logrus.Tracef("GetJobs: jobsInfo %v", jobsInfo)
+			logrus.Tracef("GetJobs: jobsInfo %v", subJobInfo)
 			jobsInfo = append(jobsInfo, subJobInfo)
 		}
 	}
