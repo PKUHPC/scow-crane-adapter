@@ -24,4 +24,4 @@ test:
 	go test
 
 cranesched:
-	buf generate --template buf.genCrane.yaml https://github.com/PKUHPC/CraneSched.git#subdir=protos,tag=master
+	buf generate --template buf.genCrane.yaml https://github.com/PKUHPC/CraneSched.git#subdir=protos,tag=7dbe26ae6fc32de109b1f90a5aea64dfd3e3cd05

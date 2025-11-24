@@ -356,7 +356,7 @@ func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error
 		return nil, err
 	}
 
-	return response.GetPartitionInfo()[0], nil
+	return response.GetPartitionInfoList()[0], nil
 }
 
 func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProtos.TaskStatus) ([]*craneProtos.TaskInfo, error) {
@@ -585,7 +585,7 @@ func GetCraneClusterConfig(whitelistPartition, qosList []string) ([]*protos.Part
 		if err != nil {
 			return nil, err
 		}
-		partitionValue := response.GetPartitionInfo()[0]
+		partitionValue := response.GetPartitionInfoList()[0]
 		totalGpusTypeMap := partitionValue.GetResTotal().GetDeviceMap()
 		// device_map:{name_type_map:{key:"npu"  value:{type_count_map:{key:"910B3"  value:8}}}}
 		gpuCount := GetGpuNumsFromPartition(totalGpusTypeMap)
@@ -611,7 +611,7 @@ func GetPartitionDeviceType(partitionName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	partitionValue := response.GetPartitionInfo()[0]
+	partitionValue := response.GetPartitionInfoList()[0]
 	deviceMap := partitionValue.GetResTotal().GetDeviceMap()
 
 	for key, _ := range deviceMap.GetNameTypeMap() {
@@ -738,7 +738,9 @@ func GetGpuNumsFromJob(data *craneProtos.DeviceMap) int32 {
 
 	var gpuCount int32
 	for _, typeCountMap := range data.GetNameTypeMap() { //name_type_map:{key:"BI" value:{total:8}}
-		gpuCount += int32(typeCountMap.GetTotal())
+		for _, value := range typeCountMap.GetTypeCountMap() {
+			gpuCount += int32(value)
+		}
 	}
 
 	return gpuCount
