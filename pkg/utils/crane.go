@@ -30,21 +30,21 @@ func getUsersByAccountName(accountName string) ([]*craneProtos.UserInfo, error) 
 func AddUserToAccount(accountName, userName string) error {
 	var allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 
-	// 获取系统QOS
-	qosList, err := GetAllQos()
+	account, err := GetAccountByName(accountName)
 	if err != nil {
-		logrus.Errorf("Error getting QoS: %v", err)
-		return fmt.Errorf("error getting QoS: %v", err)
+		logrus.Errorf("AddUserToAccount get account failed: %v", err)
+		return fmt.Errorf("AddUserToAccount get account failed: %v", err)
 	}
 
-	// 账户创建成功后，将用户添加至账户中
-	for _, partition := range CConfig.Partitions {
+	// 获取计算分区 配置qos
+	for _, partition := range account.AllowedPartitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
-			PartitionName: partition.Name,
-			QosList:       qosList,
-			DefaultQos:    qosList[0],
+			PartitionName: partition,
+			QosList:       account.AllowedQosList,
+			DefaultQos:    account.DefaultQos,
 		})
 	}
+
 	uid, err := GetUidByUserName(userName)
 	if err != nil {
 		return fmt.Errorf("the user is not exists")
