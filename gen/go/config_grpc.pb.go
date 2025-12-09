@@ -33,6 +33,7 @@ const (
 	ConfigService_GetClusterConfig_FullMethodName                = "/scow.scheduler_adapter.ConfigService/GetClusterConfig"
 	ConfigService_GetAvailablePartitions_FullMethodName          = "/scow.scheduler_adapter.ConfigService/GetAvailablePartitions"
 	ConfigService_GetClusterInfo_FullMethodName                  = "/scow.scheduler_adapter.ConfigService/GetClusterInfo"
+	ConfigService_GetSummaryClusterInfo_FullMethodName           = "/scow.scheduler_adapter.ConfigService/GetSummaryClusterInfo"
 	ConfigService_GetClusterNodesInfo_FullMethodName             = "/scow.scheduler_adapter.ConfigService/GetClusterNodesInfo"
 	ConfigService_ListImplementedOptionalFeatures_FullMethodName = "/scow.scheduler_adapter.ConfigService/ListImplementedOptionalFeatures"
 )
@@ -50,6 +51,9 @@ type ConfigServiceClient interface {
 	//
 	// description: get cluster information
 	GetClusterInfo(ctx context.Context, in *GetClusterInfoRequest, opts ...grpc.CallOption) (*GetClusterInfoResponse, error)
+	//
+	// description: get calculated cluster information
+	GetSummaryClusterInfo(ctx context.Context, in *GetSummaryClusterInfoRequest, opts ...grpc.CallOption) (*GetSummaryClusterInfoResponse, error)
 	//
 	// description: get cluster nodes information
 	GetClusterNodesInfo(ctx context.Context, in *GetClusterNodesInfoRequest, opts ...grpc.CallOption) (*GetClusterNodesInfoResponse, error)
@@ -96,6 +100,16 @@ func (c *configServiceClient) GetClusterInfo(ctx context.Context, in *GetCluster
 	return out, nil
 }
 
+func (c *configServiceClient) GetSummaryClusterInfo(ctx context.Context, in *GetSummaryClusterInfoRequest, opts ...grpc.CallOption) (*GetSummaryClusterInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSummaryClusterInfoResponse)
+	err := c.cc.Invoke(ctx, ConfigService_GetSummaryClusterInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *configServiceClient) GetClusterNodesInfo(ctx context.Context, in *GetClusterNodesInfoRequest, opts ...grpc.CallOption) (*GetClusterNodesInfoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetClusterNodesInfoResponse)
@@ -130,6 +144,9 @@ type ConfigServiceServer interface {
 	// description: get cluster information
 	GetClusterInfo(context.Context, *GetClusterInfoRequest) (*GetClusterInfoResponse, error)
 	//
+	// description: get calculated cluster information
+	GetSummaryClusterInfo(context.Context, *GetSummaryClusterInfoRequest) (*GetSummaryClusterInfoResponse, error)
+	//
 	// description: get cluster nodes information
 	GetClusterNodesInfo(context.Context, *GetClusterNodesInfoRequest) (*GetClusterNodesInfoResponse, error)
 	//
@@ -152,6 +169,9 @@ func (UnimplementedConfigServiceServer) GetAvailablePartitions(context.Context, 
 }
 func (UnimplementedConfigServiceServer) GetClusterInfo(context.Context, *GetClusterInfoRequest) (*GetClusterInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetClusterInfo not implemented")
+}
+func (UnimplementedConfigServiceServer) GetSummaryClusterInfo(context.Context, *GetSummaryClusterInfoRequest) (*GetSummaryClusterInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSummaryClusterInfo not implemented")
 }
 func (UnimplementedConfigServiceServer) GetClusterNodesInfo(context.Context, *GetClusterNodesInfoRequest) (*GetClusterNodesInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetClusterNodesInfo not implemented")
@@ -233,6 +253,24 @@ func _ConfigService_GetClusterInfo_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConfigService_GetSummaryClusterInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSummaryClusterInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServiceServer).GetSummaryClusterInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigService_GetSummaryClusterInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServiceServer).GetSummaryClusterInfo(ctx, req.(*GetSummaryClusterInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ConfigService_GetClusterNodesInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetClusterNodesInfoRequest)
 	if err := dec(in); err != nil {
@@ -287,6 +325,10 @@ var ConfigService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetClusterInfo",
 			Handler:    _ConfigService_GetClusterInfo_Handler,
+		},
+		{
+			MethodName: "GetSummaryClusterInfo",
+			Handler:    _ConfigService_GetSummaryClusterInfo_Handler,
 		},
 		{
 			MethodName: "GetClusterNodesInfo",
