@@ -72,10 +72,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to the ccrepo.pku.edu.cn
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: ccrepo.pku.edu.cn
+          username: ${{ secrets.CCREPO_USERNAME }}
+          password: ${{ secrets.CCREPO_PASSWORD }}
+
       - name: Set up QEMU for multi-arch builds
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          image: ccrepo.pku.edu.cn/dockerhub/tonistiigi/binfmt:latest
+          platforms: linux/amd64,linux/arm64
+          cache-image: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
