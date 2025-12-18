@@ -635,3 +635,55 @@ func (s *ServerJob) SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScri
 
 	return &protos.SubmitScriptAsJobResponse{JobId: uint32(jobId1)}, nil
 }
+
+func (s *ServerJob) RunCommandOnJobNodes(ctx context.Context, in *protos.RunCommandOnJobNodesRequest) (*protos.RunCommandOnJobNodesResponse, error) {
+	logrus.Infof("Received request RunCommandOnJobNodes: %v", in)
+
+	// 查询作业信息
+	request := &craneProtos.QueryTasksInfoRequest{
+		FilterTaskIds:               []uint32{in.JobId},
+		OptionIncludeCompletedTasks: true,
+	}
+
+	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("RunCommandOnJobNodes failed to query job %d: %v", in.JobId, err)
+		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+	}
+
+	if !response.GetOk() || len(response.GetTaskInfoList()) == 0 {
+		logrus.Errorf("RunCommandOnJobNodes failed: Job %d not found", in.JobId)
+		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", "Job not found")
+	}
+
+	taskInfo := response.GetTaskInfoList()[0]
+
+	// 检查作业状态，只有运行中的作业才能执行命令
+	if taskInfo.GetStatus() != craneProtos.TaskStatus_Running {
+		logrus.Errorf("RunCommandOnJobNodes failed: Job %d is not running (status: %v)", in.JobId, taskInfo.GetStatus())
+		return nil, utils.RichError(codes.FailedPrecondition, "JOB_NOT_RUNNING", fmt.Sprintf("Job is not running, status: %s", taskInfo.GetStatus()))
+	}
+
+	username := taskInfo.GetUsername()
+	nodeList := strings.Join(in.Nodes, ",")
+
+	// 默认超时时间为30s
+	timeout := 30 * time.Second
+	if in.TimeoutSeconds > 0 {
+		timeout = time.Duration(in.TimeoutSeconds) * time.Second
+	}
+
+	logrus.Debugf("RunCommandOnJobNodes calling LocalRunCommandOnNodes with: nodeList=%s, command=%s, username=%s, timeout=%v", nodeList, in.Command, username, timeout)
+
+	// 执行命令
+	stdout, stderr, err := utils.LocalRunCommandOnNodes(nodeList, in.Command, username, timeout)
+	if err != nil {
+		logrus.Errorf("RunCommandOnJobNodes failed execution: %v", err)
+		return nil, utils.RichError(codes.Internal, "COMMAND_EXECUTION_FAILED", err.Error())
+	}
+
+	return &protos.RunCommandOnJobNodesResponse{
+		Stdout: stdout,
+		Stderr: stderr,
+	}, nil
+}

@@ -16,10 +16,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -548,6 +550,37 @@ func LocalSubmitJob(scriptString string, username string) (string, error) {
 	}
 
 	return output.String(), nil
+}
+
+// LocalRunCommandOnNodes executes a command on specific nodes using crun
+func LocalRunCommandOnNodes(nodeList string, command string, username string, timeout time.Duration) (string, string, error) {
+	logrus.Debugf("LocalRunCommandOnNodes params: nodeList=%s, command=%s, username=%s, timeout=%v", nodeList, command, username, timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// Escape single quotes in command to avoid breaking the su -c '...' command
+	safeCommand := strings.ReplaceAll(command, "'", "'\\''")
+
+	// Construct the command line: crun -w <nodeList> <command>
+	// Run it as the specific user
+	cmdLine := fmt.Sprintf("su - %s -c 'crun -w %s %s'", username, nodeList, safeCommand)
+	logrus.Debugf("LocalRunCommandOnNodes executing command: %s", cmdLine)
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", cmdLine)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return stdout.String(), stderr.String(), fmt.Errorf("command timed out after %v", timeout)
+		}
+		return stdout.String(), stderr.String(), err
+	}
+
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil
 }
 
 // RunCommand 简单执行shell命令函数
