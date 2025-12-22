@@ -24,7 +24,6 @@ const maxUint = 4294967295
 
 type ServerJob struct {
 	protos.UnimplementedJobServiceServer
-	ModulePath string
 }
 
 func (s *ServerJob) CancelJob(ctx context.Context, in *protos.CancelJobRequest) (*protos.CancelJobResponse, error) {
@@ -548,9 +547,6 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 	scriptString += "#CBATCH " + "--export ALL" + "\n"
 	scriptString += "#CBATCH " + "--get-user-env" + "\n"
-
-	modulePathString := fmt.Sprintf("source %s", s.ModulePath)
-	scriptString += "\n" + modulePathString + "\n"
 
 	scriptString += in.Script
 
