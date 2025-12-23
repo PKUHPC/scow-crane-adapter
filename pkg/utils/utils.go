@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -65,7 +64,7 @@ var (
 
 // ParseConfig 解析crane配置文件
 func ParseConfig(configFilePath string) *CraneConfig {
-	confFile, err := ioutil.ReadFile(configFilePath)
+	confFile, err := os.ReadFile(configFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
