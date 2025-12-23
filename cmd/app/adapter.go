@@ -139,7 +139,7 @@ func Run() {
 	}
 
 	// 注册服务
-	protos.RegisterJobServiceServer(s, &job.ServerJob{ModulePath: GConfig.ModulePath})
+	protos.RegisterJobServiceServer(s, &job.ServerJob{})
 	protos.RegisterAccountServiceServer(s, &account.ServerAccount{})
 	protos.RegisterConfigServiceServer(s, &config.ServerConfig{})
 	protos.RegisterUserServiceServer(s, &user.ServerUser{})

@@ -1,6 +1,5 @@
 bind-port: 8972
 log-level: trace
-module-path: /data/software/module/tools/modules/init/profile.sh
 
 ssl:
   enabled: false # 是否启用 SSL，默认为 false
