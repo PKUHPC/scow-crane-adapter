@@ -558,12 +558,12 @@ func LocalRunCommandOnNodes(nodeList string, command string, username string, ti
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// We need to escape double quotes in the command.
-	safeCommandForDoubleQuotes := strings.ReplaceAll(command, "\"", "\\\"")
-	// Also need to escape single quotes because they are inside the outer single quotes of su -c
-	safeCommandForDoubleQuotes = strings.ReplaceAll(safeCommandForDoubleQuotes, "'", "'\\''")
+	// We need to escape single quotes in the command because they are inside the outer single quotes of su -c
+	safeCommand := strings.ReplaceAll(command, "'", "'\\''")
 	
-	cmdLine := fmt.Sprintf("su - %s -c 'crun -w %s \"%s\"'", username, nodeList, safeCommandForDoubleQuotes)
+	// Use -- to separate crun flags from the command to execute
+	// This prevents crun from parsing flags in the command (like -o) as crun flags
+	cmdLine := fmt.Sprintf("su - %s -c 'crun -w %s -- %s'", username, nodeList, safeCommand)
 	logrus.Debugf("LocalRunCommandOnNodes executing command: %s", cmdLine)
 
 	cmd := exec.CommandContext(ctx, "bash", "-c", cmdLine)
