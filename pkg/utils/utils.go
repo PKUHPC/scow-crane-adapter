@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
@@ -87,7 +87,7 @@ var (
 
 // ParseConfig 解析crane配置文件
 func ParseConfig(configFilePath string) *CraneConfig {
-	confFile, err := ioutil.ReadFile(configFilePath)
+	confFile, err := os.ReadFile(configFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -572,6 +572,37 @@ func LocalSubmitJob(scriptString string, username string) (string, error) {
 	}
 
 	return output.String(), nil
+}
+
+// LocalRunCommandOnNodes executes a command on specific nodes using crun
+func LocalRunCommandOnNodes(nodeList string, command string, username string, timeout time.Duration) (string, string, error) {
+	logrus.Debugf("LocalRunCommandOnNodes params: nodeList=%s, command=%s, username=%s, timeout=%v", nodeList, command, username, timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// We need to escape single quotes in the command because they are inside the outer single quotes of su -c
+	safeCommand := strings.ReplaceAll(command, "'", "'\\''")
+	
+	// Use -- to separate crun flags from the command to execute
+	// This prevents crun from parsing flags in the command (like -o) as crun flags
+	cmdLine := fmt.Sprintf("su - %s -c 'crun -w %s -- %s'", username, nodeList, safeCommand)
+	logrus.Debugf("LocalRunCommandOnNodes executing command: %s", cmdLine)
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", cmdLine)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return stdout.String(), stderr.String(), fmt.Errorf("command timed out after %v", timeout)
+		}
+		return stdout.String(), stderr.String(), err
+	}
+
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil
 }
 
 // RunCommand 简单执行shell命令函数
