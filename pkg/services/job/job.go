@@ -327,12 +327,16 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		var state string
 		var reason = "no reason"
 		var nodeNum int32
-		var endTime *timestamppb.Timestamp
+		var endTime, startTime *timestamppb.Timestamp
 		if job.GetStatus() == craneProtos.TaskStatus_Running {
+			startTime = job.GetStartTime()
 			elapsedSeconds = time.Now().Unix() - job.GetStartTime().Seconds
 		} else if job.GetStatus() == craneProtos.TaskStatus_Pending {
 			elapsedSeconds = 0
 		} else {
+			if job.GetNodeNum() != 0 {
+				startTime = job.GetStartTime()
+			}
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
 		}
 		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
@@ -390,7 +394,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				Account:          job.GetAccount(),
 				User:             job.GetUsername(),
 				Partition:        job.GetPartition(),
-				StartTime:        job.GetStartTime(),
+				StartTime:        startTime,
 				EndTime:          endTime,
 				NodesAlloc:       &nodeNum,
 				TimeLimitMinutes: timeLimitMinutes,
@@ -401,7 +405,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				ElapsedSeconds:   &elapsedSeconds,
 				Qos:              job.GetQos(),
 				Reason:           &reason,
-				SubmitTime:       job.GetStartTime(), // 没有提交时间，用开始时间来代替
+				SubmitTime:       job.GetSubmitTime(),
 				GpusAlloc:        &gpusAlloc,
 				MemAllocMb:       &memAllocMb,
 			})
@@ -423,7 +427,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				case "node_list":
 					subJobInfo.NodeList = &nodeList
 				case "start_time":
-					subJobInfo.StartTime = job.GetStartTime()
+					subJobInfo.StartTime = startTime
 				case "end_time":
 					subJobInfo.EndTime = endTime
 				case "time_limit_minutes":
@@ -441,7 +445,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				case "qos":
 					subJobInfo.Qos = job.GetQos()
 				case "submit_time":
-					subJobInfo.SubmitTime = job.GetStartTime() // 没有提交时间
+					subJobInfo.SubmitTime = job.GetSubmitTime()
 				case "reason":
 					subJobInfo.Reason = &reason
 				case "nodes_req":
