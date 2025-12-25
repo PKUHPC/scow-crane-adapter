@@ -1,14 +1,16 @@
-version: v1
+version: v2
 managed:
   enabled: true
-  go_package_prefix:
-    default: scow-crane-adapter/gen
-    except:
-      - buf.build/googleapis/googleapis
+  disable:
+    - file_option: go_package
+      module: buf.build/googleapis/googleapis
+  override:
+    - file_option: go_package_prefix
+      value: scow-crane-adapter/gen
 plugins:
-  - plugin: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go
     out: gen/go
     opt: paths=source_relative
-  - plugin: buf.build/grpc/go
+  - remote: buf.build/grpc/go
     out: gen/go
     opt: paths=source_relative,require_unimplemented_servers=false

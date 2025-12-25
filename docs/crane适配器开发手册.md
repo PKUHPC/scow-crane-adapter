@@ -32,7 +32,7 @@ go env -w GO111MODULE=on
 ### **1.2 安装buf**
 ```bash
 # 执行下面命令完成安装
-GO111MODULE=on GOBIN=/usr/local/bin go install github.com/bufbuild/buf/cmd/buf@v1.23.1
+GO111MODULE=on GOBIN=/usr/local/bin go install github.com/bufbuild/buf/cmd/buf@v1.61.0
 ```
 
 ## **2 修改并编译Crane适配器**
