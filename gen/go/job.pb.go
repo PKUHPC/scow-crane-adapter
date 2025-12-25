@@ -1247,7 +1247,8 @@ type SubmitJobRequest struct {
 	// relative to working directory
 	Stderr *string `protobuf:"bytes,14,opt,name=stderr,proto3,oneof" json:"stderr,omitempty"`
 	// extra options when submitting job
-	// 参数解释：
+	// 当提交HPC作业时，这个字段可被作为传给调度器的参数
+	// 当提交AI作业时，参数解释如下：
 	// [0]: "app"或者"train"，分别表示是应用任务还是训练任务
 	// [1]: 如果[0]是"app"，则[1]是应用类型，为"web"或者"vnc"；如果[0]是"train"，则无意义
 	// [2]: 镜像地址
