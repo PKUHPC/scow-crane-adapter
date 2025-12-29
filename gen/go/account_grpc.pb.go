@@ -48,39 +48,42 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountServiceClient interface {
-	// *
+	//*
 	// description: list accounts for a user
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	ListAccounts(ctx context.Context, in *ListAccountsRequest, opts ...grpc.CallOption) (*ListAccountsResponse, error)
+	//
 	// description: create account and specify owner
 	// errors:
-	//   - account exist
-	//     ALREADY_EXISTS, ACCOUNT_ALREADY_EXISTS, {}
-	//   - owner id not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - account exist
+	//   ALREADY_EXISTS, ACCOUNT_ALREADY_EXISTS, {}
+	// - owner id not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
+	//
 	// description: block an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already blocked, don't throw error
 	BlockAccount(ctx context.Context, in *BlockAccountRequest, opts ...grpc.CallOption) (*BlockAccountResponse, error)
+	//
 	// description: unblock an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already unblocked, don't throw error
 	UnblockAccount(ctx context.Context, in *UnblockAccountRequest, opts ...grpc.CallOption) (*UnblockAccountResponse, error)
+	//
 	// description: get all accounts and all associated users
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsers(ctx context.Context, in *GetAllAccountsWithUsersRequest, opts ...grpc.CallOption) (*GetAllAccountsWithUsersResponse, error)
+	//
 	// description: query if an account is blocked
 	// Version differences:
 	// - In versions 1.7.0 and earlier:
@@ -90,44 +93,49 @@ type AccountServiceClient interface {
 	// - The 'blocked' field indicates whether the account is completely blocked across all partitions.
 	// - The 'account_blocked_details' field provides detailed status information for each partition.
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatus(ctx context.Context, in *QueryAccountBlockStatusRequest, opts ...grpc.CallOption) (*QueryAccountBlockStatusResponse, error)
+	//
 	// description: delete account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: block an account with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already blocked, don't throw error
 	BlockAccountWithPartitions(ctx context.Context, in *BlockAccountWithPartitionsRequest, opts ...grpc.CallOption) (*BlockAccountWithPartitionsResponse, error)
+	//
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	//
 	// description: unblock an account with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already unblocked, don't throw error
 	UnblockAccountWithPartitions(ctx context.Context, in *UnblockAccountWithPartitionsRequest, opts ...grpc.CallOption) (*UnblockAccountWithPartitionsResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: query if an account is blocked with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatusWithPartitions(ctx context.Context, in *QueryAccountBlockStatusWithPartitionsRequest, opts ...grpc.CallOption) (*QueryAccountBlockStatusWithPartitionsResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: get all accounts with blocked partitions' detail and all associated users
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsersAndBlockedDetails(ctx context.Context, in *GetAllAccountsWithUsersAndBlockedDetailsRequest, opts ...grpc.CallOption) (*GetAllAccountsWithUsersAndBlockedDetailsResponse, error)
+	//
 	// description: sync accounts and related users
 	// special case:
 	// - If processing time exceeds timeout_milliseconds specified in the request:
@@ -269,39 +277,42 @@ func (c *accountServiceClient) SyncAccountUserInfo(ctx context.Context, in *Sync
 // All implementations should embed UnimplementedAccountServiceServer
 // for forward compatibility.
 type AccountServiceServer interface {
-	// *
+	//*
 	// description: list accounts for a user
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	ListAccounts(context.Context, *ListAccountsRequest) (*ListAccountsResponse, error)
+	//
 	// description: create account and specify owner
 	// errors:
-	//   - account exist
-	//     ALREADY_EXISTS, ACCOUNT_ALREADY_EXISTS, {}
-	//   - owner id not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - account exist
+	//   ALREADY_EXISTS, ACCOUNT_ALREADY_EXISTS, {}
+	// - owner id not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
+	//
 	// description: block an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already blocked, don't throw error
 	BlockAccount(context.Context, *BlockAccountRequest) (*BlockAccountResponse, error)
+	//
 	// description: unblock an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already unblocked, don't throw error
 	UnblockAccount(context.Context, *UnblockAccountRequest) (*UnblockAccountResponse, error)
+	//
 	// description: get all accounts and all associated users
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsers(context.Context, *GetAllAccountsWithUsersRequest) (*GetAllAccountsWithUsersResponse, error)
+	//
 	// description: query if an account is blocked
 	// Version differences:
 	// - In versions 1.7.0 and earlier:
@@ -311,44 +322,49 @@ type AccountServiceServer interface {
 	// - The 'blocked' field indicates whether the account is completely blocked across all partitions.
 	// - The 'account_blocked_details' field provides detailed status information for each partition.
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatus(context.Context, *QueryAccountBlockStatusRequest) (*QueryAccountBlockStatusResponse, error)
+	//
 	// description: delete account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: block an account with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already blocked, don't throw error
 	BlockAccountWithPartitions(context.Context, *BlockAccountWithPartitionsRequest) (*BlockAccountWithPartitionsResponse, error)
+	//
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	//
 	// description: unblock an account with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - account already unblocked, don't throw error
 	UnblockAccountWithPartitions(context.Context, *UnblockAccountWithPartitionsRequest) (*UnblockAccountWithPartitionsResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: query if an account is blocked with specified partitions
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatusWithPartitions(context.Context, *QueryAccountBlockStatusWithPartitionsRequest) (*QueryAccountBlockStatusWithPartitionsResponse, error)
+	//
 	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: get all accounts with blocked partitions' detail and all associated users
 	// special case:
 	// - account no users, exclude this account
 	GetAllAccountsWithUsersAndBlockedDetails(context.Context, *GetAllAccountsWithUsersAndBlockedDetailsRequest) (*GetAllAccountsWithUsersAndBlockedDetailsResponse, error)
+	//
 	// description: sync accounts and related users
 	// special case:
 	// - If processing time exceeds timeout_milliseconds specified in the request:

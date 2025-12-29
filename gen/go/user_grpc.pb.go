@@ -42,51 +42,55 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
+	//
 	// description: add user to account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user already exists in account
-	//     ALREADY_EXISTS, USER_ACCOUNT_ALREADY_EXISTS, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user already exists in account
+	//   ALREADY_EXISTS, USER_ACCOUNT_ALREADY_EXISTS, {}
 	AddUserToAccount(ctx context.Context, in *AddUserToAccountRequest, opts ...grpc.CallOption) (*AddUserToAccountResponse, error)
+	//
 	// description: remove user from account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	RemoveUserFromAccount(ctx context.Context, in *RemoveUserFromAccountRequest, opts ...grpc.CallOption) (*RemoveUserFromAccountResponse, error)
+	//
 	// description: block user in account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - already blocked, don't throw error
 	BlockUserInAccount(ctx context.Context, in *BlockUserInAccountRequest, opts ...grpc.CallOption) (*BlockUserInAccountResponse, error)
+	//
 	// description: unblock user in account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - already unblocked, don't throw error
 	UnblockUserInAccount(ctx context.Context, in *UnblockUserInAccountRequest, opts ...grpc.CallOption) (*UnblockUserInAccountResponse, error)
+	//
 	// description: query if a user is blocked in an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	QueryUserInAccountBlockStatus(ctx context.Context, in *QueryUserInAccountBlockStatusRequest, opts ...grpc.CallOption) (*QueryUserInAccountBlockStatusResponse, error)
+	//
 	// description: delete user
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 }
 
@@ -162,51 +166,55 @@ func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserReques
 // All implementations should embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
+	//
 	// description: add user to account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user already exists in account
-	//     ALREADY_EXISTS, USER_ACCOUNT_ALREADY_EXISTS, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user already exists in account
+	//   ALREADY_EXISTS, USER_ACCOUNT_ALREADY_EXISTS, {}
 	AddUserToAccount(context.Context, *AddUserToAccountRequest) (*AddUserToAccountResponse, error)
+	//
 	// description: remove user from account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	RemoveUserFromAccount(context.Context, *RemoveUserFromAccountRequest) (*RemoveUserFromAccountResponse, error)
+	//
 	// description: block user in account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - already blocked, don't throw error
 	BlockUserInAccount(context.Context, *BlockUserInAccountRequest) (*BlockUserInAccountResponse, error)
+	//
 	// description: unblock user in account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
-	//
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	// special case:
 	// - already unblocked, don't throw error
 	UnblockUserInAccount(context.Context, *UnblockUserInAccountRequest) (*UnblockUserInAccountResponse, error)
+	//
 	// description: query if a user is blocked in an account
 	// errors:
-	//   - account not exist
-	//     NOT_FOUND, ACCOUNT_NOT_FOUND, {}
-	//   - user not exist in account
-	//     NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
+	// - account not exist
+	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
+	// - user not exist in account
+	//   NOT_FOUND, USER_ACCOUNT_NOT_FOUND, {}
 	QueryUserInAccountBlockStatus(context.Context, *QueryUserInAccountBlockStatusRequest) (*QueryUserInAccountBlockStatusResponse, error)
+	//
 	// description: delete user
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 }
 

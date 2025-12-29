@@ -314,22 +314,21 @@ type JobInfo struct {
 	User      string                 `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
 	Partition string                 `protobuf:"bytes,5,opt,name=partition,proto3" json:"partition,omitempty"`
 	Qos       string                 `protobuf:"bytes,6,opt,name=qos,proto3" json:"qos,omitempty"`
-	// *
+	//*
 	// The job state field must include the following states:
 	// PENDING, RUNNING, CANCELED, COMPLETED
-	//   - PENDING:
-	//     A state indicating that a job has been submitted
-	//     and is waiting for further action before it can be started.
-	//   - RUNNING:
-	//     A state indicating that a job is currently in progress
-	//     and is actively being worked on or executed.
-	//   - CANCELED:
-	//     A state indicating that a job has been terminated prematurely
-	//     and will not be completed as originally intended.
-	//   - COMPLETED:
-	//     A state indicating that a job has been successfully finished
-	//     and has reached its intended conclusion.
-	//
+	// - PENDING:
+	//   A state indicating that a job has been submitted
+	//   and is waiting for further action before it can be started.
+	// - RUNNING:
+	//   A state indicating that a job is currently in progress
+	//   and is actively being worked on or executed.
+	// - CANCELED:
+	//   A state indicating that a job has been terminated prematurely
+	//   and will not be completed as originally intended.
+	// - COMPLETED:
+	//   A state indicating that a job has been successfully finished
+	//   and has reached its intended conclusion.
 	// Other possible states should be represented in uppercase letters.
 	State string `protobuf:"bytes,7,opt,name=state,proto3" json:"state,omitempty"`
 	// the number of CPUs requested by job
@@ -1908,6 +1907,126 @@ func (x *SubmitScriptAsJobResponse) GetJobId() uint32 {
 	return 0
 }
 
+type RunCommandOnJobNodesRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	JobId          uint32                 `protobuf:"varint,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Command        string                 `protobuf:"bytes,2,opt,name=command,proto3" json:"command,omitempty"`
+	TimeoutSeconds uint32                 `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	Nodes          []string               `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RunCommandOnJobNodesRequest) Reset() {
+	*x = RunCommandOnJobNodesRequest{}
+	mi := &file_job_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunCommandOnJobNodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunCommandOnJobNodesRequest) ProtoMessage() {}
+
+func (x *RunCommandOnJobNodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_job_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunCommandOnJobNodesRequest.ProtoReflect.Descriptor instead.
+func (*RunCommandOnJobNodesRequest) Descriptor() ([]byte, []int) {
+	return file_job_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *RunCommandOnJobNodesRequest) GetJobId() uint32 {
+	if x != nil {
+		return x.JobId
+	}
+	return 0
+}
+
+func (x *RunCommandOnJobNodesRequest) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *RunCommandOnJobNodesRequest) GetTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.TimeoutSeconds
+	}
+	return 0
+}
+
+func (x *RunCommandOnJobNodesRequest) GetNodes() []string {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+type RunCommandOnJobNodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stdout        string                 `protobuf:"bytes,1,opt,name=stdout,proto3" json:"stdout,omitempty"`
+	Stderr        string                 `protobuf:"bytes,2,opt,name=stderr,proto3" json:"stderr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunCommandOnJobNodesResponse) Reset() {
+	*x = RunCommandOnJobNodesResponse{}
+	mi := &file_job_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunCommandOnJobNodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunCommandOnJobNodesResponse) ProtoMessage() {}
+
+func (x *RunCommandOnJobNodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_job_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunCommandOnJobNodesResponse.ProtoReflect.Descriptor instead.
+func (*RunCommandOnJobNodesResponse) Descriptor() ([]byte, []int) {
+	return file_job_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RunCommandOnJobNodesResponse) GetStdout() string {
+	if x != nil {
+		return x.Stdout
+	}
+	return ""
+}
+
+func (x *RunCommandOnJobNodesResponse) GetStderr() string {
+	if x != nil {
+		return x.Stderr
+	}
+	return ""
+}
+
 // pod日志信息
 type GetPodLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1918,7 +2037,7 @@ type GetPodLogsResponse struct {
 
 func (x *GetPodLogsResponse) Reset() {
 	*x = GetPodLogsResponse{}
-	mi := &file_job_proto_msgTypes[22]
+	mi := &file_job_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1930,7 +2049,7 @@ func (x *GetPodLogsResponse) String() string {
 func (*GetPodLogsResponse) ProtoMessage() {}
 
 func (x *GetPodLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[22]
+	mi := &file_job_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1943,7 +2062,7 @@ func (x *GetPodLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPodLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetPodLogsResponse) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{22}
+	return file_job_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetPodLogsResponse) GetLog() string {
@@ -1964,7 +2083,7 @@ type GetPodLogsRequest struct {
 
 func (x *GetPodLogsRequest) Reset() {
 	*x = GetPodLogsRequest{}
-	mi := &file_job_proto_msgTypes[23]
+	mi := &file_job_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1976,7 +2095,7 @@ func (x *GetPodLogsRequest) String() string {
 func (*GetPodLogsRequest) ProtoMessage() {}
 
 func (x *GetPodLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[23]
+	mi := &file_job_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1989,7 +2108,7 @@ func (x *GetPodLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPodLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetPodLogsRequest) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{23}
+	return file_job_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetPodLogsRequest) GetUserId() string {
@@ -2026,7 +2145,7 @@ type GetPodMonitorInfoRequest struct {
 
 func (x *GetPodMonitorInfoRequest) Reset() {
 	*x = GetPodMonitorInfoRequest{}
-	mi := &file_job_proto_msgTypes[24]
+	mi := &file_job_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2038,7 +2157,7 @@ func (x *GetPodMonitorInfoRequest) String() string {
 func (*GetPodMonitorInfoRequest) ProtoMessage() {}
 
 func (x *GetPodMonitorInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[24]
+	mi := &file_job_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2051,7 +2170,7 @@ func (x *GetPodMonitorInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPodMonitorInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetPodMonitorInfoRequest) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{24}
+	return file_job_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetPodMonitorInfoRequest) GetPodName() string {
@@ -2092,7 +2211,7 @@ type TimeSeriesData struct {
 
 func (x *TimeSeriesData) Reset() {
 	*x = TimeSeriesData{}
-	mi := &file_job_proto_msgTypes[25]
+	mi := &file_job_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2104,7 +2223,7 @@ func (x *TimeSeriesData) String() string {
 func (*TimeSeriesData) ProtoMessage() {}
 
 func (x *TimeSeriesData) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[25]
+	mi := &file_job_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2117,7 +2236,7 @@ func (x *TimeSeriesData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeSeriesData.ProtoReflect.Descriptor instead.
 func (*TimeSeriesData) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{25}
+	return file_job_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *TimeSeriesData) GetMetrics() map[string]string {
@@ -2143,7 +2262,7 @@ type GetPodMonitorInfoResponse struct {
 
 func (x *GetPodMonitorInfoResponse) Reset() {
 	*x = GetPodMonitorInfoResponse{}
-	mi := &file_job_proto_msgTypes[26]
+	mi := &file_job_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2155,7 +2274,7 @@ func (x *GetPodMonitorInfoResponse) String() string {
 func (*GetPodMonitorInfoResponse) ProtoMessage() {}
 
 func (x *GetPodMonitorInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[26]
+	mi := &file_job_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2168,7 +2287,7 @@ func (x *GetPodMonitorInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPodMonitorInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetPodMonitorInfoResponse) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{26}
+	return file_job_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetPodMonitorInfoResponse) GetMonitorData() []*TimeSeriesData {
@@ -2202,7 +2321,7 @@ type CreateDevHostRequest struct {
 
 func (x *CreateDevHostRequest) Reset() {
 	*x = CreateDevHostRequest{}
-	mi := &file_job_proto_msgTypes[27]
+	mi := &file_job_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2214,7 +2333,7 @@ func (x *CreateDevHostRequest) String() string {
 func (*CreateDevHostRequest) ProtoMessage() {}
 
 func (x *CreateDevHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[27]
+	mi := &file_job_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2227,7 +2346,7 @@ func (x *CreateDevHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDevHostRequest.ProtoReflect.Descriptor instead.
 func (*CreateDevHostRequest) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{27}
+	return file_job_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *CreateDevHostRequest) GetUserId() string {
@@ -2344,7 +2463,7 @@ type CreateDevHostResponse struct {
 
 func (x *CreateDevHostResponse) Reset() {
 	*x = CreateDevHostResponse{}
-	mi := &file_job_proto_msgTypes[28]
+	mi := &file_job_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2356,7 +2475,7 @@ func (x *CreateDevHostResponse) String() string {
 func (*CreateDevHostResponse) ProtoMessage() {}
 
 func (x *CreateDevHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[28]
+	mi := &file_job_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2369,7 +2488,7 @@ func (x *CreateDevHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDevHostResponse.ProtoReflect.Descriptor instead.
 func (*CreateDevHostResponse) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{28}
+	return file_job_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CreateDevHostResponse) GetJobId() uint32 {
@@ -2407,7 +2526,7 @@ type JobInfo_PodInfo struct {
 
 func (x *JobInfo_PodInfo) Reset() {
 	*x = JobInfo_PodInfo{}
-	mi := &file_job_proto_msgTypes[29]
+	mi := &file_job_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2419,7 +2538,7 @@ func (x *JobInfo_PodInfo) String() string {
 func (*JobInfo_PodInfo) ProtoMessage() {}
 
 func (x *JobInfo_PodInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[29]
+	mi := &file_job_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2522,7 +2641,7 @@ type JobInfo_TensorboardInfo struct {
 
 func (x *JobInfo_TensorboardInfo) Reset() {
 	*x = JobInfo_TensorboardInfo{}
-	mi := &file_job_proto_msgTypes[30]
+	mi := &file_job_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2534,7 +2653,7 @@ func (x *JobInfo_TensorboardInfo) String() string {
 func (*JobInfo_TensorboardInfo) ProtoMessage() {}
 
 func (x *JobInfo_TensorboardInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[30]
+	mi := &file_job_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2582,7 +2701,7 @@ type GetJobsRequest_Filter struct {
 
 func (x *GetJobsRequest_Filter) Reset() {
 	*x = GetJobsRequest_Filter{}
-	mi := &file_job_proto_msgTypes[31]
+	mi := &file_job_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2594,7 +2713,7 @@ func (x *GetJobsRequest_Filter) String() string {
 func (*GetJobsRequest_Filter) ProtoMessage() {}
 
 func (x *GetJobsRequest_Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[31]
+	mi := &file_job_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2669,7 +2788,7 @@ type TimeSeriesData_DataPoint struct {
 
 func (x *TimeSeriesData_DataPoint) Reset() {
 	*x = TimeSeriesData_DataPoint{}
-	mi := &file_job_proto_msgTypes[33]
+	mi := &file_job_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2681,7 +2800,7 @@ func (x *TimeSeriesData_DataPoint) String() string {
 func (*TimeSeriesData_DataPoint) ProtoMessage() {}
 
 func (x *TimeSeriesData_DataPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[33]
+	mi := &file_job_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2694,7 +2813,7 @@ func (x *TimeSeriesData_DataPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeSeriesData_DataPoint.ProtoReflect.Descriptor instead.
 func (*TimeSeriesData_DataPoint) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{25, 1}
+	return file_job_proto_rawDescGZIP(), []int{27, 1}
 }
 
 func (x *TimeSeriesData_DataPoint) GetTimestampMillisecond() int64 {
@@ -2720,7 +2839,7 @@ type CreateDevHostRequest_VscodeInfo struct {
 
 func (x *CreateDevHostRequest_VscodeInfo) Reset() {
 	*x = CreateDevHostRequest_VscodeInfo{}
-	mi := &file_job_proto_msgTypes[34]
+	mi := &file_job_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2732,7 +2851,7 @@ func (x *CreateDevHostRequest_VscodeInfo) String() string {
 func (*CreateDevHostRequest_VscodeInfo) ProtoMessage() {}
 
 func (x *CreateDevHostRequest_VscodeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[34]
+	mi := &file_job_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2745,7 +2864,7 @@ func (x *CreateDevHostRequest_VscodeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDevHostRequest_VscodeInfo.ProtoReflect.Descriptor instead.
 func (*CreateDevHostRequest_VscodeInfo) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{27, 0}
+	return file_job_proto_rawDescGZIP(), []int{29, 0}
 }
 
 func (x *CreateDevHostRequest_VscodeInfo) GetVscodeBinPath() string {
@@ -2764,7 +2883,7 @@ type CreateDevHostRequest_JupyterLabInfo struct {
 
 func (x *CreateDevHostRequest_JupyterLabInfo) Reset() {
 	*x = CreateDevHostRequest_JupyterLabInfo{}
-	mi := &file_job_proto_msgTypes[35]
+	mi := &file_job_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2776,7 +2895,7 @@ func (x *CreateDevHostRequest_JupyterLabInfo) String() string {
 func (*CreateDevHostRequest_JupyterLabInfo) ProtoMessage() {}
 
 func (x *CreateDevHostRequest_JupyterLabInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[35]
+	mi := &file_job_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2789,7 +2908,7 @@ func (x *CreateDevHostRequest_JupyterLabInfo) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CreateDevHostRequest_JupyterLabInfo.ProtoReflect.Descriptor instead.
 func (*CreateDevHostRequest_JupyterLabInfo) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{27, 1}
+	return file_job_proto_rawDescGZIP(), []int{29, 1}
 }
 
 func (x *CreateDevHostRequest_JupyterLabInfo) GetProxyBasePath() string {
@@ -3034,7 +3153,15 @@ const file_job_proto_rawDesc = "" +
 	"\x15script_file_full_path\x18\x03 \x01(\tH\x00R\x12scriptFileFullPath\x88\x01\x01B\x18\n" +
 	"\x16_script_file_full_path\"2\n" +
 	"\x19SubmitScriptAsJobResponse\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\rR\x05jobId\"&\n" +
+	"\x06job_id\x18\x01 \x01(\rR\x05jobId\"\x8d\x01\n" +
+	"\x1bRunCommandOnJobNodesRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\rR\x05jobId\x12\x18\n" +
+	"\acommand\x18\x02 \x01(\tR\acommand\x12'\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\rR\x0etimeoutSeconds\x12\x14\n" +
+	"\x05nodes\x18\x04 \x03(\tR\x05nodes\"N\n" +
+	"\x1cRunCommandOnJobNodesResponse\x12\x16\n" +
+	"\x06stdout\x18\x01 \x01(\tR\x06stdout\x12\x16\n" +
+	"\x06stderr\x18\x02 \x01(\tR\x06stderr\"&\n" +
 	"\x12GetPodLogsResponse\x12\x10\n" +
 	"\x03log\x18\x01 \x01(\tR\x03log\"s\n" +
 	"\x11GetPodLogsRequest\x12\x17\n" +
@@ -3093,7 +3220,8 @@ const file_job_proto_rawDesc = "" +
 	"\fJOB_TYPE_APP\x10\x01\x12\x12\n" +
 	"\x0eJOB_TYPE_TRAIN\x10\x02\x12\x12\n" +
 	"\x0eJOB_TYPE_INFER\x10\x03\x12\x15\n" +
-	"\x11JOB_TYPE_DEV_HOST\x10\x042\xc2\t\n" +
+	"\x11JOB_TYPE_DEV_HOST\x10\x042\xc6\n" +
+	"\n" +
 	"\n" +
 	"JobService\x12Z\n" +
 	"\aGetJobs\x12&.scow.scheduler_adapter.GetJobsRequest\x1a'.scow.scheduler_adapter.GetJobsResponse\x12c\n" +
@@ -3103,7 +3231,8 @@ const file_job_proto_rawDesc = "" +
 	"\x11QueryJobTimeLimit\x120.scow.scheduler_adapter.QueryJobTimeLimitRequest\x1a1.scow.scheduler_adapter.QueryJobTimeLimitResponse\x12`\n" +
 	"\tSubmitJob\x12(.scow.scheduler_adapter.SubmitJobRequest\x1a).scow.scheduler_adapter.SubmitJobResponse\x12`\n" +
 	"\tCancelJob\x12(.scow.scheduler_adapter.CancelJobRequest\x1a).scow.scheduler_adapter.CancelJobResponse\x12x\n" +
-	"\x11SubmitScriptAsJob\x120.scow.scheduler_adapter.SubmitScriptAsJobRequest\x1a1.scow.scheduler_adapter.SubmitScriptAsJobResponse\x12o\n" +
+	"\x11SubmitScriptAsJob\x120.scow.scheduler_adapter.SubmitScriptAsJobRequest\x1a1.scow.scheduler_adapter.SubmitScriptAsJobResponse\x12\x81\x01\n" +
+	"\x14RunCommandOnJobNodes\x123.scow.scheduler_adapter.RunCommandOnJobNodesRequest\x1a4.scow.scheduler_adapter.RunCommandOnJobNodesResponse\x12o\n" +
 	"\x0eSubmitInferJob\x12-.scow.scheduler_adapter.SubmitInferJobRequest\x1a..scow.scheduler_adapter.SubmitInferJobResponse\x12e\n" +
 	"\n" +
 	"GetPodLogs\x12).scow.scheduler_adapter.GetPodLogsRequest\x1a*.scow.scheduler_adapter.GetPodLogsResponse0\x01\x12x\n" +
@@ -3124,7 +3253,7 @@ func file_job_proto_rawDescGZIP() []byte {
 }
 
 var file_job_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_job_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_job_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_job_proto_goTypes = []any{
 	(JobType)(0),                                // 0: scow.scheduler_adapter.JobType
 	(JobInfo_PodStatus)(0),                      // 1: scow.scheduler_adapter.JobInfo.PodStatus
@@ -3151,34 +3280,36 @@ var file_job_proto_goTypes = []any{
 	(*CancelJobResponse)(nil),                   // 22: scow.scheduler_adapter.CancelJobResponse
 	(*SubmitScriptAsJobRequest)(nil),            // 23: scow.scheduler_adapter.SubmitScriptAsJobRequest
 	(*SubmitScriptAsJobResponse)(nil),           // 24: scow.scheduler_adapter.SubmitScriptAsJobResponse
-	(*GetPodLogsResponse)(nil),                  // 25: scow.scheduler_adapter.GetPodLogsResponse
-	(*GetPodLogsRequest)(nil),                   // 26: scow.scheduler_adapter.GetPodLogsRequest
-	(*GetPodMonitorInfoRequest)(nil),            // 27: scow.scheduler_adapter.GetPodMonitorInfoRequest
-	(*TimeSeriesData)(nil),                      // 28: scow.scheduler_adapter.TimeSeriesData
-	(*GetPodMonitorInfoResponse)(nil),           // 29: scow.scheduler_adapter.GetPodMonitorInfoResponse
-	(*CreateDevHostRequest)(nil),                // 30: scow.scheduler_adapter.CreateDevHostRequest
-	(*CreateDevHostResponse)(nil),               // 31: scow.scheduler_adapter.CreateDevHostResponse
-	(*JobInfo_PodInfo)(nil),                     // 32: scow.scheduler_adapter.JobInfo.PodInfo
-	(*JobInfo_TensorboardInfo)(nil),             // 33: scow.scheduler_adapter.JobInfo.TensorboardInfo
-	(*GetJobsRequest_Filter)(nil),               // 34: scow.scheduler_adapter.GetJobsRequest.Filter
-	nil,                                         // 35: scow.scheduler_adapter.TimeSeriesData.MetricsEntry
-	(*TimeSeriesData_DataPoint)(nil),            // 36: scow.scheduler_adapter.TimeSeriesData.DataPoint
-	(*CreateDevHostRequest_VscodeInfo)(nil),     // 37: scow.scheduler_adapter.CreateDevHostRequest.VscodeInfo
-	(*CreateDevHostRequest_JupyterLabInfo)(nil), // 38: scow.scheduler_adapter.CreateDevHostRequest.JupyterLabInfo
-	(*timestamppb.Timestamp)(nil),               // 39: google.protobuf.Timestamp
+	(*RunCommandOnJobNodesRequest)(nil),         // 25: scow.scheduler_adapter.RunCommandOnJobNodesRequest
+	(*RunCommandOnJobNodesResponse)(nil),        // 26: scow.scheduler_adapter.RunCommandOnJobNodesResponse
+	(*GetPodLogsResponse)(nil),                  // 27: scow.scheduler_adapter.GetPodLogsResponse
+	(*GetPodLogsRequest)(nil),                   // 28: scow.scheduler_adapter.GetPodLogsRequest
+	(*GetPodMonitorInfoRequest)(nil),            // 29: scow.scheduler_adapter.GetPodMonitorInfoRequest
+	(*TimeSeriesData)(nil),                      // 30: scow.scheduler_adapter.TimeSeriesData
+	(*GetPodMonitorInfoResponse)(nil),           // 31: scow.scheduler_adapter.GetPodMonitorInfoResponse
+	(*CreateDevHostRequest)(nil),                // 32: scow.scheduler_adapter.CreateDevHostRequest
+	(*CreateDevHostResponse)(nil),               // 33: scow.scheduler_adapter.CreateDevHostResponse
+	(*JobInfo_PodInfo)(nil),                     // 34: scow.scheduler_adapter.JobInfo.PodInfo
+	(*JobInfo_TensorboardInfo)(nil),             // 35: scow.scheduler_adapter.JobInfo.TensorboardInfo
+	(*GetJobsRequest_Filter)(nil),               // 36: scow.scheduler_adapter.GetJobsRequest.Filter
+	nil,                                         // 37: scow.scheduler_adapter.TimeSeriesData.MetricsEntry
+	(*TimeSeriesData_DataPoint)(nil),            // 38: scow.scheduler_adapter.TimeSeriesData.DataPoint
+	(*CreateDevHostRequest_VscodeInfo)(nil),     // 39: scow.scheduler_adapter.CreateDevHostRequest.VscodeInfo
+	(*CreateDevHostRequest_JupyterLabInfo)(nil), // 40: scow.scheduler_adapter.CreateDevHostRequest.JupyterLabInfo
+	(*timestamppb.Timestamp)(nil),               // 41: google.protobuf.Timestamp
 }
 var file_job_proto_depIdxs = []int32{
-	39, // 0: scow.scheduler_adapter.PodEvent.time:type_name -> google.protobuf.Timestamp
-	39, // 1: scow.scheduler_adapter.JobInfo.submit_time:type_name -> google.protobuf.Timestamp
-	39, // 2: scow.scheduler_adapter.JobInfo.start_time:type_name -> google.protobuf.Timestamp
-	39, // 3: scow.scheduler_adapter.JobInfo.end_time:type_name -> google.protobuf.Timestamp
-	32, // 4: scow.scheduler_adapter.JobInfo.pods:type_name -> scow.scheduler_adapter.JobInfo.PodInfo
+	41, // 0: scow.scheduler_adapter.PodEvent.time:type_name -> google.protobuf.Timestamp
+	41, // 1: scow.scheduler_adapter.JobInfo.submit_time:type_name -> google.protobuf.Timestamp
+	41, // 2: scow.scheduler_adapter.JobInfo.start_time:type_name -> google.protobuf.Timestamp
+	41, // 3: scow.scheduler_adapter.JobInfo.end_time:type_name -> google.protobuf.Timestamp
+	34, // 4: scow.scheduler_adapter.JobInfo.pods:type_name -> scow.scheduler_adapter.JobInfo.PodInfo
 	3,  // 5: scow.scheduler_adapter.JobInfo.events:type_name -> scow.scheduler_adapter.PodEvent
-	33, // 6: scow.scheduler_adapter.JobInfo.tensor_board_info:type_name -> scow.scheduler_adapter.JobInfo.TensorboardInfo
-	39, // 7: scow.scheduler_adapter.TimeRange.start_time:type_name -> google.protobuf.Timestamp
-	39, // 8: scow.scheduler_adapter.TimeRange.end_time:type_name -> google.protobuf.Timestamp
+	35, // 6: scow.scheduler_adapter.JobInfo.tensor_board_info:type_name -> scow.scheduler_adapter.JobInfo.TensorboardInfo
+	41, // 7: scow.scheduler_adapter.TimeRange.start_time:type_name -> google.protobuf.Timestamp
+	41, // 8: scow.scheduler_adapter.TimeRange.end_time:type_name -> google.protobuf.Timestamp
 	2,  // 9: scow.scheduler_adapter.SortInfo.order:type_name -> scow.scheduler_adapter.SortInfo.SortOrder
-	34, // 10: scow.scheduler_adapter.GetJobsRequest.filter:type_name -> scow.scheduler_adapter.GetJobsRequest.Filter
+	36, // 10: scow.scheduler_adapter.GetJobsRequest.filter:type_name -> scow.scheduler_adapter.GetJobsRequest.Filter
 	6,  // 11: scow.scheduler_adapter.GetJobsRequest.page_info:type_name -> scow.scheduler_adapter.PageInfo
 	7,  // 12: scow.scheduler_adapter.GetJobsRequest.sort:type_name -> scow.scheduler_adapter.SortInfo
 	0,  // 13: scow.scheduler_adapter.GetJobsRequest.job_types:type_name -> scow.scheduler_adapter.JobType
@@ -3186,17 +3317,17 @@ var file_job_proto_depIdxs = []int32{
 	4,  // 15: scow.scheduler_adapter.GetJobByIdResponse.job:type_name -> scow.scheduler_adapter.JobInfo
 	16, // 16: scow.scheduler_adapter.SubmitJobRequest.env_variables:type_name -> scow.scheduler_adapter.EnvVariable
 	16, // 17: scow.scheduler_adapter.SubmitInferJobRequest.env_variables:type_name -> scow.scheduler_adapter.EnvVariable
-	39, // 18: scow.scheduler_adapter.GetPodMonitorInfoRequest.start:type_name -> google.protobuf.Timestamp
-	39, // 19: scow.scheduler_adapter.GetPodMonitorInfoRequest.end:type_name -> google.protobuf.Timestamp
-	35, // 20: scow.scheduler_adapter.TimeSeriesData.metrics:type_name -> scow.scheduler_adapter.TimeSeriesData.MetricsEntry
-	36, // 21: scow.scheduler_adapter.TimeSeriesData.values:type_name -> scow.scheduler_adapter.TimeSeriesData.DataPoint
-	28, // 22: scow.scheduler_adapter.GetPodMonitorInfoResponse.monitor_data:type_name -> scow.scheduler_adapter.TimeSeriesData
-	37, // 23: scow.scheduler_adapter.CreateDevHostRequest.vscode_info:type_name -> scow.scheduler_adapter.CreateDevHostRequest.VscodeInfo
-	38, // 24: scow.scheduler_adapter.CreateDevHostRequest.jupyter_lab_info:type_name -> scow.scheduler_adapter.CreateDevHostRequest.JupyterLabInfo
+	41, // 18: scow.scheduler_adapter.GetPodMonitorInfoRequest.start:type_name -> google.protobuf.Timestamp
+	41, // 19: scow.scheduler_adapter.GetPodMonitorInfoRequest.end:type_name -> google.protobuf.Timestamp
+	37, // 20: scow.scheduler_adapter.TimeSeriesData.metrics:type_name -> scow.scheduler_adapter.TimeSeriesData.MetricsEntry
+	38, // 21: scow.scheduler_adapter.TimeSeriesData.values:type_name -> scow.scheduler_adapter.TimeSeriesData.DataPoint
+	30, // 22: scow.scheduler_adapter.GetPodMonitorInfoResponse.monitor_data:type_name -> scow.scheduler_adapter.TimeSeriesData
+	39, // 23: scow.scheduler_adapter.CreateDevHostRequest.vscode_info:type_name -> scow.scheduler_adapter.CreateDevHostRequest.VscodeInfo
+	40, // 24: scow.scheduler_adapter.CreateDevHostRequest.jupyter_lab_info:type_name -> scow.scheduler_adapter.CreateDevHostRequest.JupyterLabInfo
 	1,  // 25: scow.scheduler_adapter.JobInfo.PodInfo.pod_status:type_name -> scow.scheduler_adapter.JobInfo.PodStatus
 	3,  // 26: scow.scheduler_adapter.JobInfo.PodInfo.events:type_name -> scow.scheduler_adapter.PodEvent
-	39, // 27: scow.scheduler_adapter.JobInfo.PodInfo.pod_created_time:type_name -> google.protobuf.Timestamp
-	39, // 28: scow.scheduler_adapter.JobInfo.PodInfo.pod_end_time:type_name -> google.protobuf.Timestamp
+	41, // 27: scow.scheduler_adapter.JobInfo.PodInfo.pod_created_time:type_name -> google.protobuf.Timestamp
+	41, // 28: scow.scheduler_adapter.JobInfo.PodInfo.pod_end_time:type_name -> google.protobuf.Timestamp
 	5,  // 29: scow.scheduler_adapter.GetJobsRequest.Filter.submit_time:type_name -> scow.scheduler_adapter.TimeRange
 	5,  // 30: scow.scheduler_adapter.GetJobsRequest.Filter.end_time:type_name -> scow.scheduler_adapter.TimeRange
 	8,  // 31: scow.scheduler_adapter.JobService.GetJobs:input_type -> scow.scheduler_adapter.GetJobsRequest
@@ -3206,23 +3337,25 @@ var file_job_proto_depIdxs = []int32{
 	17, // 35: scow.scheduler_adapter.JobService.SubmitJob:input_type -> scow.scheduler_adapter.SubmitJobRequest
 	21, // 36: scow.scheduler_adapter.JobService.CancelJob:input_type -> scow.scheduler_adapter.CancelJobRequest
 	23, // 37: scow.scheduler_adapter.JobService.SubmitScriptAsJob:input_type -> scow.scheduler_adapter.SubmitScriptAsJobRequest
-	19, // 38: scow.scheduler_adapter.JobService.SubmitInferJob:input_type -> scow.scheduler_adapter.SubmitInferJobRequest
-	26, // 39: scow.scheduler_adapter.JobService.GetPodLogs:input_type -> scow.scheduler_adapter.GetPodLogsRequest
-	27, // 40: scow.scheduler_adapter.JobService.GetPodMonitorInfo:input_type -> scow.scheduler_adapter.GetPodMonitorInfoRequest
-	30, // 41: scow.scheduler_adapter.JobService.CreateDevHost:input_type -> scow.scheduler_adapter.CreateDevHostRequest
-	9,  // 42: scow.scheduler_adapter.JobService.GetJobs:output_type -> scow.scheduler_adapter.GetJobsResponse
-	11, // 43: scow.scheduler_adapter.JobService.GetJobById:output_type -> scow.scheduler_adapter.GetJobByIdResponse
-	13, // 44: scow.scheduler_adapter.JobService.ChangeJobTimeLimit:output_type -> scow.scheduler_adapter.ChangeJobTimeLimitResponse
-	15, // 45: scow.scheduler_adapter.JobService.QueryJobTimeLimit:output_type -> scow.scheduler_adapter.QueryJobTimeLimitResponse
-	18, // 46: scow.scheduler_adapter.JobService.SubmitJob:output_type -> scow.scheduler_adapter.SubmitJobResponse
-	22, // 47: scow.scheduler_adapter.JobService.CancelJob:output_type -> scow.scheduler_adapter.CancelJobResponse
-	24, // 48: scow.scheduler_adapter.JobService.SubmitScriptAsJob:output_type -> scow.scheduler_adapter.SubmitScriptAsJobResponse
-	20, // 49: scow.scheduler_adapter.JobService.SubmitInferJob:output_type -> scow.scheduler_adapter.SubmitInferJobResponse
-	25, // 50: scow.scheduler_adapter.JobService.GetPodLogs:output_type -> scow.scheduler_adapter.GetPodLogsResponse
-	29, // 51: scow.scheduler_adapter.JobService.GetPodMonitorInfo:output_type -> scow.scheduler_adapter.GetPodMonitorInfoResponse
-	31, // 52: scow.scheduler_adapter.JobService.CreateDevHost:output_type -> scow.scheduler_adapter.CreateDevHostResponse
-	42, // [42:53] is the sub-list for method output_type
-	31, // [31:42] is the sub-list for method input_type
+	25, // 38: scow.scheduler_adapter.JobService.RunCommandOnJobNodes:input_type -> scow.scheduler_adapter.RunCommandOnJobNodesRequest
+	19, // 39: scow.scheduler_adapter.JobService.SubmitInferJob:input_type -> scow.scheduler_adapter.SubmitInferJobRequest
+	28, // 40: scow.scheduler_adapter.JobService.GetPodLogs:input_type -> scow.scheduler_adapter.GetPodLogsRequest
+	29, // 41: scow.scheduler_adapter.JobService.GetPodMonitorInfo:input_type -> scow.scheduler_adapter.GetPodMonitorInfoRequest
+	32, // 42: scow.scheduler_adapter.JobService.CreateDevHost:input_type -> scow.scheduler_adapter.CreateDevHostRequest
+	9,  // 43: scow.scheduler_adapter.JobService.GetJobs:output_type -> scow.scheduler_adapter.GetJobsResponse
+	11, // 44: scow.scheduler_adapter.JobService.GetJobById:output_type -> scow.scheduler_adapter.GetJobByIdResponse
+	13, // 45: scow.scheduler_adapter.JobService.ChangeJobTimeLimit:output_type -> scow.scheduler_adapter.ChangeJobTimeLimitResponse
+	15, // 46: scow.scheduler_adapter.JobService.QueryJobTimeLimit:output_type -> scow.scheduler_adapter.QueryJobTimeLimitResponse
+	18, // 47: scow.scheduler_adapter.JobService.SubmitJob:output_type -> scow.scheduler_adapter.SubmitJobResponse
+	22, // 48: scow.scheduler_adapter.JobService.CancelJob:output_type -> scow.scheduler_adapter.CancelJobResponse
+	24, // 49: scow.scheduler_adapter.JobService.SubmitScriptAsJob:output_type -> scow.scheduler_adapter.SubmitScriptAsJobResponse
+	26, // 50: scow.scheduler_adapter.JobService.RunCommandOnJobNodes:output_type -> scow.scheduler_adapter.RunCommandOnJobNodesResponse
+	20, // 51: scow.scheduler_adapter.JobService.SubmitInferJob:output_type -> scow.scheduler_adapter.SubmitInferJobResponse
+	27, // 52: scow.scheduler_adapter.JobService.GetPodLogs:output_type -> scow.scheduler_adapter.GetPodLogsResponse
+	31, // 53: scow.scheduler_adapter.JobService.GetPodMonitorInfo:output_type -> scow.scheduler_adapter.GetPodMonitorInfoResponse
+	33, // 54: scow.scheduler_adapter.JobService.CreateDevHost:output_type -> scow.scheduler_adapter.CreateDevHostResponse
+	43, // [43:55] is the sub-list for method output_type
+	31, // [31:43] is the sub-list for method input_type
 	31, // [31:31] is the sub-list for extension type_name
 	31, // [31:31] is the sub-list for extension extendee
 	0,  // [0:31] is the sub-list for field type_name
@@ -3241,17 +3374,17 @@ func file_job_proto_init() {
 	file_job_proto_msgTypes[14].OneofWrappers = []any{}
 	file_job_proto_msgTypes[16].OneofWrappers = []any{}
 	file_job_proto_msgTypes[20].OneofWrappers = []any{}
-	file_job_proto_msgTypes[23].OneofWrappers = []any{}
-	file_job_proto_msgTypes[27].OneofWrappers = []any{}
+	file_job_proto_msgTypes[25].OneofWrappers = []any{}
 	file_job_proto_msgTypes[29].OneofWrappers = []any{}
 	file_job_proto_msgTypes[31].OneofWrappers = []any{}
+	file_job_proto_msgTypes[33].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_job_proto_rawDesc), len(file_job_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   36,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
