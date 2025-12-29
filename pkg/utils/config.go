@@ -12,9 +12,8 @@ type MonitorConfig struct {
 }
 
 type Config struct {
-	BindPort   int           `mapstructure:"bind-port"`
-	LogLevel   string        `mapstructure:"log-level"`
-	ModulePath string        `mapstructure:"module-path"`
-	Ssl        SslConfig     `yaml:"ssl"`
-	Monitor    MonitorConfig `yaml:"monitor"`
+	BindPort int           `mapstructure:"bind-port"`
+	LogLevel string        `mapstructure:"log-level"`
+	Ssl      SslConfig     `yaml:"ssl"`
+	Monitor  MonitorConfig `yaml:"monitor"`
 }

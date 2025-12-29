@@ -38,6 +38,10 @@ const (
 	JobService_CancelJob_FullMethodName            = "/scow.scheduler_adapter.JobService/CancelJob"
 	JobService_SubmitScriptAsJob_FullMethodName    = "/scow.scheduler_adapter.JobService/SubmitScriptAsJob"
 	JobService_RunCommandOnJobNodes_FullMethodName = "/scow.scheduler_adapter.JobService/RunCommandOnJobNodes"
+	JobService_SubmitInferJob_FullMethodName       = "/scow.scheduler_adapter.JobService/SubmitInferJob"
+	JobService_GetPodLogs_FullMethodName           = "/scow.scheduler_adapter.JobService/GetPodLogs"
+	JobService_GetPodMonitorInfo_FullMethodName    = "/scow.scheduler_adapter.JobService/GetPodMonitorInfo"
+	JobService_CreateDevHost_FullMethodName        = "/scow.scheduler_adapter.JobService/CreateDevHost"
 )
 
 // JobServiceClient is the client API for JobService service.
@@ -101,6 +105,31 @@ type JobServiceClient interface {
 	// - job not found
 	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	RunCommandOnJobNodes(ctx context.Context, in *RunCommandOnJobNodesRequest, opts ...grpc.CallOption) (*RunCommandOnJobNodesResponse, error)
+	//
+	// description: submit infer job
+	// errors:
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
+	//     reason: string
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
+	SubmitInferJob(ctx context.Context, in *SubmitInferJobRequest, opts ...grpc.CallOption) (*SubmitInferJobResponse, error)
+	//
+	// description: get pod log
+	// errors:
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
+	GetPodLogs(ctx context.Context, in *GetPodLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetPodLogsResponse], error)
+	//
+	// description: get pod monitor info
+	// errors:
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
+	GetPodMonitorInfo(ctx context.Context, in *GetPodMonitorInfoRequest, opts ...grpc.CallOption) (*GetPodMonitorInfoResponse, error)
+	//
+	// description: create a dev host job
+	CreateDevHost(ctx context.Context, in *CreateDevHostRequest, opts ...grpc.CallOption) (*CreateDevHostResponse, error)
 }
 
 type jobServiceClient struct {
@@ -191,6 +220,55 @@ func (c *jobServiceClient) RunCommandOnJobNodes(ctx context.Context, in *RunComm
 	return out, nil
 }
 
+func (c *jobServiceClient) SubmitInferJob(ctx context.Context, in *SubmitInferJobRequest, opts ...grpc.CallOption) (*SubmitInferJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitInferJobResponse)
+	err := c.cc.Invoke(ctx, JobService_SubmitInferJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobServiceClient) GetPodLogs(ctx context.Context, in *GetPodLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetPodLogsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &JobService_ServiceDesc.Streams[0], JobService_GetPodLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetPodLogsRequest, GetPodLogsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type JobService_GetPodLogsClient = grpc.ServerStreamingClient[GetPodLogsResponse]
+
+func (c *jobServiceClient) GetPodMonitorInfo(ctx context.Context, in *GetPodMonitorInfoRequest, opts ...grpc.CallOption) (*GetPodMonitorInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPodMonitorInfoResponse)
+	err := c.cc.Invoke(ctx, JobService_GetPodMonitorInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobServiceClient) CreateDevHost(ctx context.Context, in *CreateDevHostRequest, opts ...grpc.CallOption) (*CreateDevHostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateDevHostResponse)
+	err := c.cc.Invoke(ctx, JobService_CreateDevHost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // JobServiceServer is the server API for JobService service.
 // All implementations should embed UnimplementedJobServiceServer
 // for forward compatibility.
@@ -252,6 +330,31 @@ type JobServiceServer interface {
 	// - job not found
 	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	RunCommandOnJobNodes(context.Context, *RunCommandOnJobNodesRequest) (*RunCommandOnJobNodesResponse, error)
+	//
+	// description: submit infer job
+	// errors:
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
+	//     reason: string
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
+	SubmitInferJob(context.Context, *SubmitInferJobRequest) (*SubmitInferJobResponse, error)
+	//
+	// description: get pod log
+	// errors:
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
+	GetPodLogs(*GetPodLogsRequest, grpc.ServerStreamingServer[GetPodLogsResponse]) error
+	//
+	// description: get pod monitor info
+	// errors:
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
+	GetPodMonitorInfo(context.Context, *GetPodMonitorInfoRequest) (*GetPodMonitorInfoResponse, error)
+	//
+	// description: create a dev host job
+	CreateDevHost(context.Context, *CreateDevHostRequest) (*CreateDevHostResponse, error)
 }
 
 // UnimplementedJobServiceServer should be embedded to have
@@ -284,6 +387,18 @@ func (UnimplementedJobServiceServer) SubmitScriptAsJob(context.Context, *SubmitS
 }
 func (UnimplementedJobServiceServer) RunCommandOnJobNodes(context.Context, *RunCommandOnJobNodesRequest) (*RunCommandOnJobNodesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunCommandOnJobNodes not implemented")
+}
+func (UnimplementedJobServiceServer) SubmitInferJob(context.Context, *SubmitInferJobRequest) (*SubmitInferJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitInferJob not implemented")
+}
+func (UnimplementedJobServiceServer) GetPodLogs(*GetPodLogsRequest, grpc.ServerStreamingServer[GetPodLogsResponse]) error {
+	return status.Error(codes.Unimplemented, "method GetPodLogs not implemented")
+}
+func (UnimplementedJobServiceServer) GetPodMonitorInfo(context.Context, *GetPodMonitorInfoRequest) (*GetPodMonitorInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPodMonitorInfo not implemented")
+}
+func (UnimplementedJobServiceServer) CreateDevHost(context.Context, *CreateDevHostRequest) (*CreateDevHostResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateDevHost not implemented")
 }
 func (UnimplementedJobServiceServer) testEmbeddedByValue() {}
 
@@ -449,6 +564,71 @@ func _JobService_RunCommandOnJobNodes_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _JobService_SubmitInferJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitInferJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServiceServer).SubmitInferJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobService_SubmitInferJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServiceServer).SubmitInferJob(ctx, req.(*SubmitInferJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _JobService_GetPodLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetPodLogsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServiceServer).GetPodLogs(m, &grpc.GenericServerStream[GetPodLogsRequest, GetPodLogsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type JobService_GetPodLogsServer = grpc.ServerStreamingServer[GetPodLogsResponse]
+
+func _JobService_GetPodMonitorInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPodMonitorInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServiceServer).GetPodMonitorInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobService_GetPodMonitorInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServiceServer).GetPodMonitorInfo(ctx, req.(*GetPodMonitorInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _JobService_CreateDevHost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDevHostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServiceServer).CreateDevHost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobService_CreateDevHost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServiceServer).CreateDevHost(ctx, req.(*CreateDevHostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // JobService_ServiceDesc is the grpc.ServiceDesc for JobService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -488,7 +668,25 @@ var JobService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RunCommandOnJobNodes",
 			Handler:    _JobService_RunCommandOnJobNodes_Handler,
 		},
+		{
+			MethodName: "SubmitInferJob",
+			Handler:    _JobService_SubmitInferJob_Handler,
+		},
+		{
+			MethodName: "GetPodMonitorInfo",
+			Handler:    _JobService_GetPodMonitorInfo_Handler,
+		},
+		{
+			MethodName: "CreateDevHost",
+			Handler:    _JobService_CreateDevHost_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetPodLogs",
+			Handler:       _JobService_GetPodLogs_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "job.proto",
 }

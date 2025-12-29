@@ -103,7 +103,7 @@ type AccountServiceClient interface {
 	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: block an account with specified partitions
 	// errors:
 	// - account not exist
@@ -112,7 +112,9 @@ type AccountServiceClient interface {
 	// - account already blocked, don't throw error
 	BlockAccountWithPartitions(ctx context.Context, in *BlockAccountWithPartitionsRequest, opts ...grpc.CallOption) (*BlockAccountWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	//
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
+	//
 	// description: unblock an account with specified partitions
 	// errors:
 	// - account not exist
@@ -121,14 +123,14 @@ type AccountServiceClient interface {
 	// - account already unblocked, don't throw error
 	UnblockAccountWithPartitions(ctx context.Context, in *UnblockAccountWithPartitionsRequest, opts ...grpc.CallOption) (*UnblockAccountWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: query if an account is blocked with specified partitions
 	// errors:
 	// - account not exist
 	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatusWithPartitions(ctx context.Context, in *QueryAccountBlockStatusWithPartitionsRequest, opts ...grpc.CallOption) (*QueryAccountBlockStatusWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: get all accounts with blocked partitions' detail and all associated users
 	// special case:
 	// - account no users, exclude this account
@@ -136,7 +138,7 @@ type AccountServiceClient interface {
 	//
 	// description: sync accounts and related users
 	// special case:
-	// - If processing time exceeds timeout_seconds specified in the request:
+	// - If processing time exceeds timeout_milliseconds specified in the request:
 	// the operation will be terminated
 	// only data processed before timeout will be returned
 	// the completely_executed field in the response will be set to false
@@ -330,7 +332,7 @@ type AccountServiceServer interface {
 	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: block an account with specified partitions
 	// errors:
 	// - account not exist
@@ -339,7 +341,9 @@ type AccountServiceServer interface {
 	// - account already blocked, don't throw error
 	BlockAccountWithPartitions(context.Context, *BlockAccountWithPartitionsRequest) (*BlockAccountWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	//
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
+	//
 	// description: unblock an account with specified partitions
 	// errors:
 	// - account not exist
@@ -348,14 +352,14 @@ type AccountServiceServer interface {
 	// - account already unblocked, don't throw error
 	UnblockAccountWithPartitions(context.Context, *UnblockAccountWithPartitionsRequest) (*UnblockAccountWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: query if an account is blocked with specified partitions
 	// errors:
 	// - account not exist
 	//   NOT_FOUND, ACCOUNT_NOT_FOUND, {}
 	QueryAccountBlockStatusWithPartitions(context.Context, *QueryAccountBlockStatusWithPartitionsRequest) (*QueryAccountBlockStatusWithPartitionsResponse, error)
 	//
-	// FOR OPTIOANL FEATURE: RESOURCE_MANAGEMENT
+	// FOR OPTIONAL FEATURE: RESOURCE_MANAGEMENT
 	// description: get all accounts with blocked partitions' detail and all associated users
 	// special case:
 	// - account no users, exclude this account
@@ -363,7 +367,7 @@ type AccountServiceServer interface {
 	//
 	// description: sync accounts and related users
 	// special case:
-	// - If processing time exceeds timeout_seconds specified in the request:
+	// - If processing time exceeds timeout_milliseconds specified in the request:
 	// the operation will be terminated
 	// only data processed before timeout will be returned
 	// the completely_executed field in the response will be set to false
