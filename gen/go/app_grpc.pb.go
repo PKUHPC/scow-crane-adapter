@@ -37,13 +37,14 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AppServiceClient interface {
+	//
 	// description: get real connection config when connecting to an app
 	// special case:
-	//   - For interactive applications running on bare metal:
-	//     Directly use the configuration recorded in scow, so all fields can be empty.
-	//   - For interactive applications running in containers:
-	//     This interface needs to provide the host and port information of the host machine to ensure scow can connect to the correct address.
-	//     Sometimes it needs to provide password for app
+	// - For interactive applications running on bare metal:
+	//   Directly use the configuration recorded in scow, so all fields can be empty.
+	// - For interactive applications running in containers:
+	//   This interface needs to provide the host and port information of the host machine to ensure scow can connect to the correct address.
+	//   Sometimes it needs to provide password for app
 	GetAppConnectionInfo(ctx context.Context, in *GetAppConnectionInfoRequest, opts ...grpc.CallOption) (*GetAppConnectionInfoResponse, error)
 }
 
@@ -69,13 +70,14 @@ func (c *appServiceClient) GetAppConnectionInfo(ctx context.Context, in *GetAppC
 // All implementations should embed UnimplementedAppServiceServer
 // for forward compatibility.
 type AppServiceServer interface {
+	//
 	// description: get real connection config when connecting to an app
 	// special case:
-	//   - For interactive applications running on bare metal:
-	//     Directly use the configuration recorded in scow, so all fields can be empty.
-	//   - For interactive applications running in containers:
-	//     This interface needs to provide the host and port information of the host machine to ensure scow can connect to the correct address.
-	//     Sometimes it needs to provide password for app
+	// - For interactive applications running on bare metal:
+	//   Directly use the configuration recorded in scow, so all fields can be empty.
+	// - For interactive applications running in containers:
+	//   This interface needs to provide the host and port information of the host machine to ensure scow can connect to the correct address.
+	//   Sometimes it needs to provide password for app
 	GetAppConnectionInfo(context.Context, *GetAppConnectionInfoRequest) (*GetAppConnectionInfoResponse, error)
 }
 
