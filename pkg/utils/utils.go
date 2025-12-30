@@ -582,7 +582,7 @@ func LocalRunCommandOnNodes(nodeList string, command string, username string, ti
 
 	// We need to escape single quotes in the command because they are inside the outer single quotes of su -c
 	safeCommand := strings.ReplaceAll(command, "'", "'\\''")
-	
+
 	// Use -- to separate crun flags from the command to execute
 	// This prevents crun from parsing flags in the command (like -o) as crun flags
 	cmdLine := fmt.Sprintf("su - %s -c 'crun -w %s -- %s'", username, nodeList, safeCommand)
@@ -946,7 +946,7 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		resultRatio := float32(runningCpuCount) / float32(cpuCoreCount)
 		cpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
 	}
-	if nodeCount > 0 {
+	if gpuCoreCount > 0 {
 		resultRatio := float32(runningGpuCount) / float32(gpuCoreCount)
 		gpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
 	}
