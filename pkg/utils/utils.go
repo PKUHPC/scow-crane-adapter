@@ -883,6 +883,18 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 			continue
 		}
 		nodeName := nodeInfo.GetHostname()
+		nodeCount++
+		state := nodeInfo.GetResourceState()
+		switch state {
+		case craneProtos.CranedResourceState_CRANE_IDLE:
+			idleNodeCount++
+		case craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_ALLOC:
+			runningNodeCount++
+		case craneProtos.CranedResourceState_CRANE_DOWN:
+			notAvailableNodeCount++
+		default: // 其他不知道的状态默认为不可用的状态
+			logrus.Warnf("Unknown node state: %s", state)
+		}
 
 		totalCpuCores := nodeInfo.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
 		allocCpuCores := nodeInfo.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
@@ -895,11 +907,14 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		idleGpus := getGpuNums(IdleGpuCountTypeMap)
 
 		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalGpu: %v, allocGpus: %v, idleGpuCount: %v", nodeName, totalGpus, allocGpus, idleGpus)
-		nodeCount++
 
 		CpuCoreCount := uint32(totalCpuCores)
 		AllocCpuCoreCount := uint32(allocCpuCores)
 		IdleCpuCoreCount := uint32(totalCpuCores) - uint32(allocCpuCores)
+		if state == craneProtos.CranedResourceState_CRANE_DOWN {
+			IdleCpuCoreCount = 0
+			idleGpus = 0
+		}
 
 		cpuCoreCount += CpuCoreCount
 		runningCpuCount += AllocCpuCoreCount
@@ -908,18 +923,6 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		gpuCoreCount += totalGpus
 		runningGpuCount += allocGpus
 		idleGpuCount += idleGpus
-
-		state := nodeInfo.GetResourceState()
-		switch state {
-		case craneProtos.CranedResourceState_CRANE_IDLE:
-			idleNodeCount++
-		case craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_ALLOC:
-			runningNodeCount++
-		case craneProtos.CranedResourceState_CRANE_DOWN:
-			notAvailableNodeCount++
-		default: // 其他不知道的状态默认为不可用的状态
-			logrus.Warnf("Unknown node state: %s", state)
-		}
 	}
 
 	// 计算不可用资源
