@@ -371,6 +371,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		} else if job.GetStatus().String() == "ExceedTimeLimit" {
 			state = "TIMEOUT"
 			reason = "Timeout"
+			endTime = job.GetEndTime()
 		} else {
 			state = "IVALID"
 			reason = "Ivalid"
