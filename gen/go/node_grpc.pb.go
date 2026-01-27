@@ -38,15 +38,17 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NodeServiceClient interface {
+	//
 	// description: migrate node, remove node from origin cluster
 	// errors:
-	//   - node not found
-	//     NOT_FOUND, NODE_NOT_FOUND, {}
+	// - node not found
+	//   NOT_FOUND, NODE_NOT_FOUND, {}
 	RemoveNodeFromCluster(ctx context.Context, in *RemoveNodeFromClusterRequest, opts ...grpc.CallOption) (*RemoveNodeFromClusterResponse, error)
+	//
 	// description: migrate node, add node to destination cluster
 	// errors:
-	//   - node not found
-	//     NOT_FOUND, NODE_NOT_FOUND, {}
+	// - node not found
+	//   NOT_FOUND, NODE_NOT_FOUND, {}
 	AddNodeToCluster(ctx context.Context, in *AddNodeToClusterRequest, opts ...grpc.CallOption) (*AddNodeToClusterResponse, error)
 }
 
@@ -82,15 +84,17 @@ func (c *nodeServiceClient) AddNodeToCluster(ctx context.Context, in *AddNodeToC
 // All implementations should embed UnimplementedNodeServiceServer
 // for forward compatibility.
 type NodeServiceServer interface {
+	//
 	// description: migrate node, remove node from origin cluster
 	// errors:
-	//   - node not found
-	//     NOT_FOUND, NODE_NOT_FOUND, {}
+	// - node not found
+	//   NOT_FOUND, NODE_NOT_FOUND, {}
 	RemoveNodeFromCluster(context.Context, *RemoveNodeFromClusterRequest) (*RemoveNodeFromClusterResponse, error)
+	//
 	// description: migrate node, add node to destination cluster
 	// errors:
-	//   - node not found
-	//     NOT_FOUND, NODE_NOT_FOUND, {}
+	// - node not found
+	//   NOT_FOUND, NODE_NOT_FOUND, {}
 	AddNodeToCluster(context.Context, *AddNodeToClusterRequest) (*AddNodeToClusterResponse, error)
 }
 

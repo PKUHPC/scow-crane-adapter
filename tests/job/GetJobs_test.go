@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	protos "scow-crane-adapter/gen/go"
 )
 
@@ -23,12 +22,12 @@ func TestGetJobs(t *testing.T) {
 	// Call the Add RPC with test data
 	user := []string{"root"}
 	// account := []string{"C_admin", "a_admin"}
-	state := []string{"COMPLETED", "FAILED"}
+	state := []string{"PENDING", "RUNNING"}
 	req := &protos.GetJobsRequest{
 		Fields: []string{},
 		// Filter: &pb.GetJobsRequest_Filter{Users: user, Accounts: account, States: state, EndTime: &pb.TimeRange{StartTime: &timestamppb.Timestamp{Seconds: 1682066342}, EndTime: &timestamppb.Timestamp{Seconds: 1682586485}}}, PageInfo: &pb.PageInfo{Page: 1, PageSize: 10},
-		Filter: &protos.GetJobsRequest_Filter{Users: user, States: state, EndTime: &protos.TimeRange{EndTime: &timestamppb.Timestamp{Seconds: 1686883307}}},
-		// Filter: &protos.GetJobsRequest_Filter{Users: user, States: state},
+		// Filter: &protos.GetJobsRequest_Filter{Users: user, States: state, EndTime: &protos.TimeRange{EndTime: &timestamppb.Timestamp{Seconds: 1686883307}}},
+		Filter: &protos.GetJobsRequest_Filter{Users: user, States: state},
 	}
 	res, err := client.GetJobs(context.Background(), req)
 	if err != nil {

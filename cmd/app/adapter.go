@@ -5,8 +5,10 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -97,6 +99,21 @@ func Run() {
 		http.ListenAndServe(monitorPortString, nil)
 	}()
 
+	jm, err := utils.NewJobManager(utils.JobsInfos)
+	if err != nil {
+		log.Fatalf("init job manager failed: %v", err)
+	}
+
+	// 1. 程序启动时先恢复代理服务
+	if err := utils.GlobalProxyManager.RecoverProxies(); err != nil {
+		logrus.Warnf("Failed to restore proxy service: %v", err)
+	}
+
+	// 2. 启动定时清理任务（每30分钟执行一次）
+	// 测试时可改为10*time.Second，生产环境用30*time.Minute
+	utils.GlobalProxyManager.StartPeriodicClean(30 * time.Minute)
+	defer utils.GlobalProxyManager.StopPeriodicClean()
+
 	s := grpc.NewServer(
 		grpc.MaxRecvMsgSize(1024*1024*1024), // 最大接受size 1GB
 		grpc.MaxSendMsgSize(1024*1024*1024), // 最大发送size 1GB
@@ -139,12 +156,12 @@ func Run() {
 	}
 
 	// 注册服务
-	protos.RegisterJobServiceServer(s, &job.ServerJob{})
+	protos.RegisterJobServiceServer(s, &job.ServerJob{JM: jm})
 	protos.RegisterAccountServiceServer(s, &account.ServerAccount{})
 	protos.RegisterConfigServiceServer(s, &config.ServerConfig{})
 	protos.RegisterUserServiceServer(s, &user.ServerUser{})
 	protos.RegisterVersionServiceServer(s, &version.ServerVersion{})
-	protos.RegisterAppServiceServer(s, &app.ServerApp{})
+	protos.RegisterAppServiceServer(s, &app.ServerApp{JM: jm})
 
 	logrus.Infof("gRPC server listening on %d", GConfig.BindPort)
 	portString := fmt.Sprintf(":%d", GConfig.BindPort)

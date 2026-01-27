@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,6 +28,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	DefaultConfigPath  = "/etc/crane/config.yaml"
+	DefaultMongoDBPath = "/etc/crane/database.yaml"
 )
 
 type CraneConfig struct {
@@ -80,10 +86,11 @@ type ClusterNodesInfo struct {
 	GpuUsage              float32
 }
 
-var (
-	DefaultConfigPath  = "/etc/crane/config.yaml"
-	DefaultMongoDBPath = "/etc/crane/database.yaml"
-)
+// MountModel 挂载点路径及模式，如公共数据集或者私有数据集
+type MountModel struct {
+	Path     string `json:"path"`
+	IsPublic bool   `json:"isPublic"`
+}
 
 // ParseConfig 解析crane配置文件
 func ParseConfig(configFilePath string) *CraneConfig {
@@ -212,6 +219,22 @@ func GetAccountByName(accountName string) (*craneProtos.AccountInfo, error) {
 		return nil, fmt.Errorf("failed get account %v, error: %v", accountName, response.RichErrorList[0].GetDescription())
 	}
 	return response.GetAccountList()[0], nil
+}
+
+func GetUserByName(userName string) (*craneProtos.UserInfo, error) {
+	request := &craneProtos.QueryUserInfoRequest{
+		Uid:      0,
+		UserList: []string{userName},
+	}
+	response, err := CraneCtld.QueryUserInfo(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	if !response.GetOk() {
+		return nil, fmt.Errorf("failed get user %v, error: %v", userName, response.GetRichErrorList()[0].GetDescription())
+	}
+
+	return response.GetUserList()[0], nil
 }
 
 func GetAccountByUser(userName string) ([]string, error) {
@@ -386,7 +409,7 @@ func GetPartitionByName(partitionName string) (*craneProtos.PartitionInfo, error
 func GetTaskByPartitionAndStatus(partitionList []string, statusList []craneProtos.TaskStatus) ([]*craneProtos.TaskInfo, error) {
 	req := craneProtos.QueryTasksInfoRequest{
 		FilterPartitions:            partitionList,
-		FilterTaskStates:            statusList,
+		FilterStates:                statusList,
 		OptionIncludeCompletedTasks: false,
 	}
 
@@ -445,12 +468,34 @@ func GetNodeByPartitionAndStatus(partitionList []string, cranedStateList []crane
 func GetNodeByPartition(partitionList []string) (uint32, uint32, uint32, uint32, error) {
 	var idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount uint32
 
-	cranedStateList := []craneProtos.CranedResourceState{craneProtos.CranedResourceState_CRANE_IDLE, craneProtos.CranedResourceState_CRANE_ALLOC, craneProtos.CranedResourceState_CRANE_MIX, craneProtos.CranedResourceState_CRANE_DOWN}
-	controlStateList := []craneProtos.CranedControlState{craneProtos.CranedControlState_CRANE_NONE, craneProtos.CranedControlState_CRANE_DRAIN}
+	resourceStateList := []craneProtos.CranedResourceState{
+		craneProtos.CranedResourceState_CRANE_IDLE,
+		craneProtos.CranedResourceState_CRANE_MIX,
+		craneProtos.CranedResourceState_CRANE_ALLOC,
+		craneProtos.CranedResourceState_CRANE_DOWN,
+	}
+
+	controlStateList := []craneProtos.CranedControlState{
+		craneProtos.CranedControlState_CRANE_NONE,
+		craneProtos.CranedControlState_CRANE_DRAIN,
+	}
+
+	powerStateList := []craneProtos.CranedPowerState{
+		craneProtos.CranedPowerState_CRANE_POWER_ACTIVE,
+		craneProtos.CranedPowerState_CRANE_POWER_IDLE,
+		craneProtos.CranedPowerState_CRANE_POWER_SLEEPING,
+		craneProtos.CranedPowerState_CRANE_POWER_POWEREDOFF,
+		craneProtos.CranedPowerState_CRANE_POWER_TO_SLEEPING,
+		craneProtos.CranedPowerState_CRANE_POWER_WAKING_UP,
+		craneProtos.CranedPowerState_CRANE_POWER_POWERING_ON,
+		craneProtos.CranedPowerState_CRANE_POWER_POWERING_OFF,
+	}
+
 	req := craneProtos.QueryClusterInfoRequest{
 		FilterPartitions:           partitionList,
-		FilterCranedResourceStates: cranedStateList,
+		FilterCranedResourceStates: resourceStateList,
 		FilterCranedControlStates:  controlStateList,
+		FilterCranedPowerStates:    powerStateList,
 	}
 
 	response, err := CraneCtld.QueryClusterInfo(context.Background(), &req)
@@ -458,8 +503,15 @@ func GetNodeByPartition(partitionList []string) (uint32, uint32, uint32, uint32,
 		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, err
 	}
 
-	for _, partitionCraned := range response.Partitions {
-		for _, commonCranedStateList := range partitionCraned.CranedLists {
+	if !response.GetOk() {
+		return idleNodeCount, allocNodeCount, mixNodeCount, downNodeCount, fmt.Errorf("get cluster info failed")
+	}
+
+	logrus.Tracef("GetNodeByPartition: cluster info: %v", response)
+	logrus.Tracef("GetNodeByPartition: cluster info: %v", response.Partitions)
+	logrus.Tracef("GetNodeByPartition: cluster info: %v", response.Partitions[0].GetCranedLists())
+	for _, partition := range response.Partitions {
+		for _, commonCranedStateList := range partition.CranedLists {
 			if commonCranedStateList.Count > 0 {
 				switch commonCranedStateList.ResourceState {
 				case craneProtos.CranedResourceState_CRANE_IDLE:
@@ -855,31 +907,7 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		}
 		nodeName := nodeInfo.GetHostname()
 
-		totalCpuCores := nodeInfo.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
-		allocCpuCores := nodeInfo.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
-
-		totalGpusTypeMap := nodeInfo.GetResTotal().GetDedicatedResInNode()
-		totalGpus := getGpuNums(totalGpusTypeMap)
-		allocGpusTypeMap := nodeInfo.GetResAlloc().GetDedicatedResInNode()
-		allocGpus := getGpuNums(allocGpusTypeMap)
-		IdleGpuCountTypeMap := nodeInfo.GetResAvail().GetDedicatedResInNode()
-		idleGpus := getGpuNums(IdleGpuCountTypeMap)
-
-		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalGpu: %v, allocGpus: %v, idleGpuCount: %v", nodeName, totalGpus, allocGpus, idleGpus)
 		nodeCount++
-
-		CpuCoreCount := uint32(totalCpuCores)
-		AllocCpuCoreCount := uint32(allocCpuCores)
-		IdleCpuCoreCount := uint32(totalCpuCores) - uint32(allocCpuCores)
-
-		cpuCoreCount += CpuCoreCount
-		runningCpuCount += AllocCpuCoreCount
-		idleCpuCount += IdleCpuCoreCount
-
-		gpuCoreCount += totalGpus
-		runningGpuCount += allocGpus
-		idleGpuCount += idleGpus
-
 		state := nodeInfo.GetResourceState()
 		switch state {
 		case craneProtos.CranedResourceState_CRANE_IDLE:
@@ -891,6 +919,35 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		default: // 其他不知道的状态默认为不可用的状态
 			logrus.Warnf("Unknown node state: %s", state)
 		}
+
+		totalCpuCores := nodeInfo.GetResTotal().GetAllocatableResInNode().GetCpuCoreLimit()
+		allocCpuCores := nodeInfo.GetResAlloc().GetAllocatableResInNode().GetCpuCoreLimit()
+
+		totalGpusTypeMap := nodeInfo.GetResTotal().GetDedicatedResInNode()
+		totalGpus := getGpuNums(totalGpusTypeMap)
+		allocGpusTypeMap := nodeInfo.GetResAlloc().GetDedicatedResInNode()
+		allocGpus := getGpuNums(allocGpusTypeMap)
+		IdleGpuCountTypeMap := nodeInfo.GetResAvail().GetDedicatedResInNode()
+		idleGpus := getGpuNums(IdleGpuCountTypeMap)
+
+		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalGpu: %v, allocGpus: %v, idleGpuCount: %v", nodeName, totalGpus, allocGpus, idleGpus)
+
+		CpuCoreCount := uint32(totalCpuCores)
+		AllocCpuCoreCount := uint32(allocCpuCores)
+		IdleCpuCoreCount := uint32(totalCpuCores) - uint32(allocCpuCores)
+		if state == craneProtos.CranedResourceState_CRANE_DOWN {
+			IdleCpuCoreCount = 0
+			idleGpus = 0
+		}
+		
+		cpuCoreCount += CpuCoreCount
+		runningCpuCount += AllocCpuCoreCount
+		idleCpuCount += IdleCpuCoreCount
+
+		gpuCoreCount += totalGpus
+		runningGpuCount += allocGpus
+		idleGpuCount += idleGpus
+
 	}
 
 	// 计算不可用资源
@@ -917,7 +974,7 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		resultRatio := float32(runningCpuCount) / float32(cpuCoreCount)
 		cpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
 	}
-	if nodeCount > 0 {
+	if gpuCoreCount > 0 {
 		resultRatio := float32(runningGpuCount) / float32(gpuCoreCount)
 		gpuUsage = float32(math.Round(float64(resultRatio)*100*100) / 100)
 	}
@@ -949,6 +1006,8 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 
 func GetSummaryPartitionsInfo(authorizedPartitions []string) ([]*protos.SummaryPartitionInfo, error) {
 	var partitions []*protos.SummaryPartitionInfo
+	logrus.Infof("GetSummaryPartitionsInfo CConfig: %v", CConfig)
+	logrus.Infof("GetSummaryPartitionsInfo partitions: %v", CConfig.Partitions)
 	for _, part := range CConfig.Partitions { // 遍历每个计算分区、分别获取信息  分区从接口获取
 		logrus.Infof("GetSummaryPartitionsInfo partition name: %v", part.Name)
 		if !slices.Contains(authorizedPartitions, part.Name) {
@@ -1044,4 +1103,135 @@ func anyAuthorized(a, b []string) bool {
 		}
 	}
 	return false
+}
+
+func ParseGres(gres string) *craneProtos.DeviceMap {
+	result := &craneProtos.DeviceMap{NameTypeMap: make(map[string]*craneProtos.TypeCountMap)}
+	if gres == "" {
+		return result
+	}
+	gresList := strings.Split(gres, ",")
+	for _, g := range gresList {
+		parts := strings.Split(g, ":")
+		name := parts[0]
+		if len(parts) == 2 {
+			gresNameCount, err := strconv.ParseUint(parts[1], 10, 64)
+			if err != nil {
+				logrus.Errorf("Error parsing gres count: %s\n", g)
+			}
+			if gresNameCount == 0 {
+				continue
+			}
+			if _, exist := result.NameTypeMap[name]; !exist {
+				result.NameTypeMap[name] = &craneProtos.TypeCountMap{TypeCountMap: make(map[string]uint64), Total: gresNameCount}
+			} else {
+				result.NameTypeMap[name].Total += gresNameCount
+			}
+		} else if len(parts) == 3 {
+			gresType := parts[1]
+			count, err := strconv.ParseUint(parts[2], 10, 64)
+			if err != nil {
+				fmt.Printf("Error parsing count for %s: %v\n", name, err)
+				continue
+			}
+			if count == 0 {
+				continue
+			}
+			if _, exist := result.NameTypeMap[name]; !exist {
+				typeCountMap := make(map[string]uint64)
+				typeCountMap[gresType] = count
+				result.NameTypeMap[name] = &craneProtos.TypeCountMap{TypeCountMap: typeCountMap, Total: 0}
+			} else {
+				result.NameTypeMap[name].TypeCountMap[gresType] = count
+			}
+		} else {
+			logrus.Errorf("Error parsing gres: %s\n", g)
+		}
+	}
+
+	return result
+}
+
+func ParseMountModel(mount string) ([]MountModel, error) {
+	var info []MountModel
+
+	var rawStrings []string
+	err := json.Unmarshal([]byte(mount), &rawStrings)
+	if err != nil {
+		return info, err
+	}
+
+	for _, s := range rawStrings {
+		var mm MountModel
+		err = json.Unmarshal([]byte(s), &mm)
+		if err != nil {
+			return info, err
+		}
+		info = append(info, mm)
+	}
+
+	return info, nil
+}
+
+// GetUIDGIDByName 支持返回字符串格式
+func GetUIDGIDByName(username string) (uid, gid string, err error) {
+	u, err := user.Lookup(username)
+	if err != nil {
+		return "", "", fmt.Errorf("found user failed: %w", err)
+	}
+
+	return u.Uid, u.Gid, nil
+}
+
+func AcceleratorIsAscend(accelerator string) bool {
+	if strings.Contains(accelerator, HuaweiAscend) {
+		return true
+	}
+	return false
+}
+
+func GetDirPathWithSlash(inputPath string) string {
+	if inputPath == "" {
+		return ""
+	}
+
+	// 使用filepath.Dir获取目录
+	// 例如：/data/home/test/entry.sh → /data/home/test
+	//      /data/home/test/ → /data/home/test
+	//      / → /
+	dir := filepath.Dir(inputPath)
+
+	// 保证目录末尾带斜杠（兼容Unix/Linux系统）
+	// 根目录特殊处理：filepath.Dir("/") 返回 "/", 无需额外添加
+	if dir != "/" && !strings.HasSuffix(dir, "/") {
+		dir += "/"
+	}
+
+	return dir
+}
+
+func GetExecutableDir() (string, error) {
+	// 获取可执行文件的绝对路径
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to obtain executable file path: %w", err)
+	}
+
+	// 剥离文件名，只保留目录路径
+	// filepath.Dir() 跨平台兼容（Windows/Linux/Mac）
+	exeDir := filepath.Dir(exePath)
+
+	return exeDir + "/", nil
+}
+
+func SplitBeforeUser(fullPath, username string) string {
+	// 构造待查找的段，例如 "/demo_admin/"
+	segment := "/" + username + "/"
+	// 找第一次出现的位置
+	idx := strings.Index(fullPath, segment)
+	if idx == -1 {
+		return ""
+	}
+
+	return fullPath[:idx+1]
 }

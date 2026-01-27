@@ -22,29 +22,29 @@ func TestSubmitJob(t *testing.T) {
 	client := pb.NewJobServiceClient(conn)
 	memory := uint64(2048)
 	lt := uint32(3000)
-	qos := "normal"
+	qos := "UNLIMITED"
 	extraOptions := []string{
 		"app",
 		"web",
 		"ccrepo.pku.edu.cn/dockerhub/library/scipy-notebook:x86_64-notebook-7.2.1",
 		"[]",
 		"[]",
-		"/data/home/test/crane-ai/module",
-		"/data/home/test/crane-ai/mount/test1,/data/home/test/crane-ai/mount/test2",
+		"/data/crane-ai/module",
+		"/data/crane-ai/mount/test1,/data/crane-ai/mount/test2",
 		"",
-		"/data/home/test/crane-ai/mount/test3,/data/home/test/crane-ai/mount/test4",
+		"/data/crane-ai/mount/test3,/data/crane-ai/mount/test4",
 	}
 
 	req := &pb.SubmitJobRequest{
-		UserId:           "demo_admin",
+		UserId:           "test",
 		JobName:          "testApp",
-		Account:          "a_admin",
-		Partition:        "compute",
+		Account:          "test",
+		Partition:        "CPU",
 		Qos:              &qos,
 		CoreCount:        1,
 		MemoryMb:         &memory,
-		WorkingDirectory: "/data/home/test/",
-		Script:           "/data/home/test/app-entry.sh",
+		WorkingDirectory: "/root/",
+		Script:           "/root/app-entry.sh",
 		ExtraOptions:     extraOptions,
 		TimeLimitMinutes: &lt,
 	}
@@ -70,7 +70,7 @@ func TestSubmitApp(t *testing.T) {
 	client := pb.NewJobServiceClient(conn)
 	memory := uint64(2048)
 	lt := uint32(3000)
-	qos := "normal"
+	qos := "UNLIMITED"
 	extraOptions := []string{
 		"app",
 		"web",
@@ -78,15 +78,15 @@ func TestSubmitApp(t *testing.T) {
 		"[]",
 		"[]",
 		"/data/home/test/crane-ai/module",
-		"/data/home/test/crane-ai/mount/test1,/data/home/test/crane-ai/mount/test2,/usr/bin/",
+		"/data/home/test/crane-ai/mount/test1,/data/home/test/crane-ai/mount/test2",
 		"",
 		"/data/home/test/crane-ai/mount/test3,/data/home/test/crane-ai/mount/test4",
 	}
 
 	req := &pb.SubmitJobRequest{
-		UserId:           "demo_admin",
+		UserId:           "test",
 		JobName:          "testApp",
-		Account:          "a_admin",
+		Account:          "test",
 		Partition:        "compute",
 		Qos:              &qos,
 		CoreCount:        1,
@@ -114,13 +114,13 @@ func TestSubmitInference(t *testing.T) {
 	defer conn.Close()
 	client := pb.NewJobServiceClient(conn)
 	memory := uint64(2048)
-	qos := "normal"
-	extraOptions := []string{"docker.io/library/nginx:1.27", "/data/home/test/crane-ai/module/",
-		"/usr/bin/", "", ""}
+	qos := "UNLIMITED"
+	extraOptions := []string{"docker.io/library/nginx:1.27", "/data/home/test/module/",
+		"", "", ""}
 	req := &pb.SubmitInferJobRequest{
-		UserId:               "demo_admin",
+		UserId:               "test",
 		JobName:              "testInf",
-		Account:              "a_admin",
+		Account:              "test",
 		Partition:            "compute",
 		Qos:                  &qos,
 		CoreCount:            1,
@@ -139,41 +139,6 @@ func TestSubmitInference(t *testing.T) {
 	fmt.Println(res)
 }
 
-func TestSubmitInference1(t *testing.T) {
-	// Set up a connection to the server
-	conn, err := grpc.Dial("localhost:8972", grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
-	if err != nil {
-		t.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	client := pb.NewJobServiceClient(conn)
-	memory := uint64(2048)
-	qos := "normal"
-	extraOptions := []string{"docker.io/library/nginx:1.27", "/root/home/test/crane-ai/module/",
-		"/usr/bin/", "", ""}
-	req := &pb.SubmitInferJobRequest{
-		UserId:               "demo_admin",
-		JobName:              "testInf",
-		Account:              "a_admin",
-		Partition:            "compute",
-		Qos:                  &qos,
-		CoreCount:            1,
-		MemoryMb:             &memory,
-		WorkingDirectory:     "/root/home/test/",
-		NodeCount:            1,
-		ExtraOptions:         extraOptions,
-		Script:               "/root/home/test/entry.sh",
-		ContainerServicePort: 80,
-	}
-	res, err := client.SubmitInferJob(context.Background(), req)
-	fmt.Println(err)
-	if err != nil {
-		t.Fatalf("create inference failed: %v", err)
-	}
-	fmt.Println(res)
-
-}
-
 func TestSubmitDevHost1(t *testing.T) {
 
 	// Set up a connection to the server
@@ -186,21 +151,21 @@ func TestSubmitDevHost1(t *testing.T) {
 	memory := uint64(2048)
 	lt := uint32(3000)
 	req := &pb.CreateDevHostRequest{
-		UserId:           "demo_admin",
+		UserId:           "test",
 		JobName:          "test123",
-		Account:          "a_admin",
+		Account:          "test",
 		Partition:        "compute",
-		Qos:              "normal",
+		Qos:              "UNLIMITED",
 		CoreCount:        1,
 		MemoryMb:         &memory,
 		WorkingDirectory: "/data/home/test/",
 		VscodeInfo: &pb.CreateDevHostRequest_VscodeInfo{
-			VscodeBinPath: "/root/home/vscode/code-server-4.96.2-linux-amd64/bin/code-server",
+			VscodeBinPath: "/root/devhost/code-server-4.96.2-linux-amd64/bin/code-server",
 		},
 		JupyterLabInfo: &pb.CreateDevHostRequest_JupyterLabInfo{
-			ProxyBasePath: "/root/home/proxy/dev-k8s-c/absolute",
+			ProxyBasePath: "/api/proxy/jyb-k8s/absolute",
 		},
-		Mounts:           []string{"/usr/bin/"},
+		Mounts:           []string{},
 		Image:            "ccrepo.pku.edu.cn/dockerhub/library/pytorch-ddp-test:v1",
 		TimeLimitMinutes: &lt,
 	}
@@ -224,14 +189,14 @@ func TestSubmitDevHost(t *testing.T) {
 	memory := uint64(2048)
 	lt := uint32(3000)
 	req := &pb.CreateDevHostRequest{
-		UserId:           "demo_admin",
+		UserId:           "test",
 		JobName:          "test-dev",
-		Account:          "a_admin",
+		Account:          "test",
 		Partition:        "compute",
-		Qos:              "normal",
+		Qos:              "UNLIMITED",
 		CoreCount:        1,
 		MemoryMb:         &memory,
-		WorkingDirectory: "/data/home/",
+		WorkingDirectory: "/data/home/test/",
 		VscodeInfo: &pb.CreateDevHostRequest_VscodeInfo{
 			VscodeBinPath: "/data/home/vscode/code-server-4.96.2-linux-amd64/bin/code-server",
 		},

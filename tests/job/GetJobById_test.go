@@ -22,7 +22,7 @@ func TestGetJobById(t *testing.T) {
 	// Call the Add RPC with test data
 	req := &protos.GetJobByIdRequest{
 		// Fields: []string{"job_id"},
-		JobId: 8,
+		JobId: 16,
 	}
 	res, err := client.GetJobById(context.Background(), req)
 	if err != nil {

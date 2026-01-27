@@ -154,13 +154,16 @@ func BlockAccount(accountName string) error {
 func BlockAccountWithPartition(accountName string, partitions []string) error {
 	// 封锁账户请求体
 	request := &craneProtos.ModifyAccountRequest{
+		Name:  accountName,
+		Uid:   0,
+		Force: true,
+	}
+
+	request.Operations = append(request.Operations, &craneProtos.ModifyFieldOperation{
 		ModifyField: craneProtos.ModifyField_Partition,
 		ValueList:   partitions,
-		Name:        accountName,
 		Type:        craneProtos.OperationType_Delete,
-		Uid:         0,
-		Force:       true,
-	}
+	})
 
 	response, err := CraneCtld.ModifyAccount(context.Background(), request)
 	if err != nil {
@@ -202,12 +205,16 @@ func UnblockAccount(accountName string) error {
 func UnblockAccountWithPartition(accountName string, partitions []string) error {
 	// 封锁账户请求体
 	request := &craneProtos.ModifyAccountRequest{
+		Name:  accountName,
+		Uid:   0,
+		Force: true,
+	}
+
+	request.Operations = append(request.Operations, &craneProtos.ModifyFieldOperation{
 		ModifyField: craneProtos.ModifyField_Partition,
 		ValueList:   partitions,
-		Name:        accountName,
 		Type:        craneProtos.OperationType_Add,
-		Uid:         0,
-	}
+	})
 
 	response, err := CraneCtld.ModifyAccount(context.Background(), request)
 	if err != nil {
@@ -241,13 +248,16 @@ func modifyUserAllowedPartitions(accountName string, partitions []string) error 
 	for _, user := range users {
 		logrus.Infof("modify account %v user %v partitions %v", accountName, user, partitions)
 		request := &craneProtos.ModifyUserRequest{
+			Name:    user.Name,
+			Account: accountName,
+			Uid:     0,
+		}
+
+		request.Operations = append(request.Operations, &craneProtos.ModifyFieldOperation{
 			ModifyField: craneProtos.ModifyField_Partition,
 			ValueList:   partitions,
-			Name:        user.Name,
-			Account:     accountName,
 			Type:        craneProtos.OperationType_Add,
-			Uid:         0,
-		}
+		})
 
 		response, err := CraneCtld.ModifyUser(context.Background(), request)
 		if err != nil {

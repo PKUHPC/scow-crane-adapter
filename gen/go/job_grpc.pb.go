@@ -30,88 +30,110 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	JobService_GetJobs_FullMethodName            = "/scow.scheduler_adapter.JobService/GetJobs"
-	JobService_GetJobById_FullMethodName         = "/scow.scheduler_adapter.JobService/GetJobById"
-	JobService_ChangeJobTimeLimit_FullMethodName = "/scow.scheduler_adapter.JobService/ChangeJobTimeLimit"
-	JobService_QueryJobTimeLimit_FullMethodName  = "/scow.scheduler_adapter.JobService/QueryJobTimeLimit"
-	JobService_SubmitJob_FullMethodName          = "/scow.scheduler_adapter.JobService/SubmitJob"
-	JobService_CancelJob_FullMethodName          = "/scow.scheduler_adapter.JobService/CancelJob"
-	JobService_SubmitScriptAsJob_FullMethodName  = "/scow.scheduler_adapter.JobService/SubmitScriptAsJob"
-	JobService_SubmitInferJob_FullMethodName     = "/scow.scheduler_adapter.JobService/SubmitInferJob"
-	JobService_GetPodLogs_FullMethodName         = "/scow.scheduler_adapter.JobService/GetPodLogs"
-	JobService_GetPodMonitorInfo_FullMethodName  = "/scow.scheduler_adapter.JobService/GetPodMonitorInfo"
-	JobService_CreateDevHost_FullMethodName      = "/scow.scheduler_adapter.JobService/CreateDevHost"
+	JobService_GetJobs_FullMethodName              = "/scow.scheduler_adapter.JobService/GetJobs"
+	JobService_GetJobById_FullMethodName           = "/scow.scheduler_adapter.JobService/GetJobById"
+	JobService_ChangeJobTimeLimit_FullMethodName   = "/scow.scheduler_adapter.JobService/ChangeJobTimeLimit"
+	JobService_QueryJobTimeLimit_FullMethodName    = "/scow.scheduler_adapter.JobService/QueryJobTimeLimit"
+	JobService_SubmitJob_FullMethodName            = "/scow.scheduler_adapter.JobService/SubmitJob"
+	JobService_CancelJob_FullMethodName            = "/scow.scheduler_adapter.JobService/CancelJob"
+	JobService_SubmitScriptAsJob_FullMethodName    = "/scow.scheduler_adapter.JobService/SubmitScriptAsJob"
+	JobService_RunCommandOnJobNodes_FullMethodName = "/scow.scheduler_adapter.JobService/RunCommandOnJobNodes"
+	JobService_SubmitInferJob_FullMethodName       = "/scow.scheduler_adapter.JobService/SubmitInferJob"
+	JobService_GetPodLogs_FullMethodName           = "/scow.scheduler_adapter.JobService/GetPodLogs"
+	JobService_GetPodMonitorInfo_FullMethodName    = "/scow.scheduler_adapter.JobService/GetPodMonitorInfo"
+	JobService_CreateDevHost_FullMethodName        = "/scow.scheduler_adapter.JobService/CreateDevHost"
+	JobService_StreamJobShell_FullMethodName       = "/scow.scheduler_adapter.JobService/StreamJobShell"
 )
 
 // JobServiceClient is the client API for JobService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type JobServiceClient interface {
+	//
 	// description: get jobs with filter options
 	// special case:
 	// - some of fields not exist, discard them
 	GetJobs(ctx context.Context, in *GetJobsRequest, opts ...grpc.CallOption) (*GetJobsResponse, error)
+	//
 	// description: get job info by id
 	// special case:
 	// - job id not exist, don't throw
 	// - some of fields not exist, discard them
 	GetJobById(ctx context.Context, in *GetJobByIdRequest, opts ...grpc.CallOption) (*GetJobByIdResponse, error)
+	//
 	// description: change a job's time limit
 	// errors:
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	ChangeJobTimeLimit(ctx context.Context, in *ChangeJobTimeLimitRequest, opts ...grpc.CallOption) (*ChangeJobTimeLimitResponse, error)
+	//
 	// description: query time limit
 	// errors:
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	QueryJobTimeLimit(ctx context.Context, in *QueryJobTimeLimitRequest, opts ...grpc.CallOption) (*QueryJobTimeLimitResponse, error)
+	//
 	// description: submit job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitJob(ctx context.Context, in *SubmitJobRequest, opts ...grpc.CallOption) (*SubmitJobResponse, error)
+	//
 	// description: cancel a job
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*CancelJobResponse, error)
+	//
 	// description: submit a script  as a job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitScriptAsJob(ctx context.Context, in *SubmitScriptAsJobRequest, opts ...grpc.CallOption) (*SubmitScriptAsJobResponse, error)
+	//
+	// description: run a command on job nodes
+	// errors:
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
+	RunCommandOnJobNodes(ctx context.Context, in *RunCommandOnJobNodesRequest, opts ...grpc.CallOption) (*RunCommandOnJobNodesResponse, error)
+	//
 	// description: submit infer job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitInferJob(ctx context.Context, in *SubmitInferJobRequest, opts ...grpc.CallOption) (*SubmitInferJobResponse, error)
+	//
 	// description: get pod log
 	// errors:
-	//   - pod not found
-	//     NOT_FOUND, POD_NOT_FOUND, {}
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
 	GetPodLogs(ctx context.Context, in *GetPodLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetPodLogsResponse], error)
+	//
 	// description: get pod monitor info
 	// errors:
-	//   - pod not found
-	//     NOT_FOUND, POD_NOT_FOUND, {}
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
 	GetPodMonitorInfo(ctx context.Context, in *GetPodMonitorInfoRequest, opts ...grpc.CallOption) (*GetPodMonitorInfoResponse, error)
+	//
 	// description: create a dev host job
 	CreateDevHost(ctx context.Context, in *CreateDevHostRequest, opts ...grpc.CallOption) (*CreateDevHostResponse, error)
+	//
+	// description: job shell
+	StreamJobShell(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamJobShellRequest, StreamJobShellResponse], error)
 }
 
 type jobServiceClient struct {
@@ -192,6 +214,16 @@ func (c *jobServiceClient) SubmitScriptAsJob(ctx context.Context, in *SubmitScri
 	return out, nil
 }
 
+func (c *jobServiceClient) RunCommandOnJobNodes(ctx context.Context, in *RunCommandOnJobNodesRequest, opts ...grpc.CallOption) (*RunCommandOnJobNodesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunCommandOnJobNodesResponse)
+	err := c.cc.Invoke(ctx, JobService_RunCommandOnJobNodes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *jobServiceClient) SubmitInferJob(ctx context.Context, in *SubmitInferJobRequest, opts ...grpc.CallOption) (*SubmitInferJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SubmitInferJobResponse)
@@ -241,75 +273,108 @@ func (c *jobServiceClient) CreateDevHost(ctx context.Context, in *CreateDevHostR
 	return out, nil
 }
 
+func (c *jobServiceClient) StreamJobShell(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamJobShellRequest, StreamJobShellResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &JobService_ServiceDesc.Streams[1], JobService_StreamJobShell_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamJobShellRequest, StreamJobShellResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type JobService_StreamJobShellClient = grpc.BidiStreamingClient[StreamJobShellRequest, StreamJobShellResponse]
+
 // JobServiceServer is the server API for JobService service.
 // All implementations should embed UnimplementedJobServiceServer
 // for forward compatibility.
 type JobServiceServer interface {
+	//
 	// description: get jobs with filter options
 	// special case:
 	// - some of fields not exist, discard them
 	GetJobs(context.Context, *GetJobsRequest) (*GetJobsResponse, error)
+	//
 	// description: get job info by id
 	// special case:
 	// - job id not exist, don't throw
 	// - some of fields not exist, discard them
 	GetJobById(context.Context, *GetJobByIdRequest) (*GetJobByIdResponse, error)
+	//
 	// description: change a job's time limit
 	// errors:
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	ChangeJobTimeLimit(context.Context, *ChangeJobTimeLimitRequest) (*ChangeJobTimeLimitResponse, error)
+	//
 	// description: query time limit
 	// errors:
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	QueryJobTimeLimit(context.Context, *QueryJobTimeLimitRequest) (*QueryJobTimeLimitResponse, error)
+	//
 	// description: submit job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitJob(context.Context, *SubmitJobRequest) (*SubmitJobResponse, error)
+	//
 	// description: cancel a job
 	// errors:
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
-	//   - job not found
-	//     NOT_FOUND, JOB_NOT_FOUND, {}
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
 	CancelJob(context.Context, *CancelJobRequest) (*CancelJobResponse, error)
+	//
 	// description: submit a script  as a job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitScriptAsJob(context.Context, *SubmitScriptAsJobRequest) (*SubmitScriptAsJobResponse, error)
+	//
+	// description: run a command on job nodes
+	// errors:
+	// - job not found
+	//   NOT_FOUND, JOB_NOT_FOUND, {}
+	RunCommandOnJobNodes(context.Context, *RunCommandOnJobNodesRequest) (*RunCommandOnJobNodesResponse, error)
+	//
 	// description: submit infer job
 	// errors:
-	//   - sbatch failed
-	//     UNKNOWN, SBATCH_FAILED, {
+	// - sbatch failed
+	//   UNKNOWN, SBATCH_FAILED, {
 	//     reason: string
-	//     }
-	//   - user not exist
-	//     NOT_FOUND, USER_NOT_FOUND, {}
+	//   }
+	// - user not exist
+	//   NOT_FOUND, USER_NOT_FOUND, {}
 	SubmitInferJob(context.Context, *SubmitInferJobRequest) (*SubmitInferJobResponse, error)
+	//
 	// description: get pod log
 	// errors:
-	//   - pod not found
-	//     NOT_FOUND, POD_NOT_FOUND, {}
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
 	GetPodLogs(*GetPodLogsRequest, grpc.ServerStreamingServer[GetPodLogsResponse]) error
+	//
 	// description: get pod monitor info
 	// errors:
-	//   - pod not found
-	//     NOT_FOUND, POD_NOT_FOUND, {}
+	// - pod not found
+	//   NOT_FOUND, POD_NOT_FOUND, {}
 	GetPodMonitorInfo(context.Context, *GetPodMonitorInfoRequest) (*GetPodMonitorInfoResponse, error)
+	//
 	// description: create a dev host job
 	CreateDevHost(context.Context, *CreateDevHostRequest) (*CreateDevHostResponse, error)
+	//
+	// description: job shell
+	StreamJobShell(grpc.BidiStreamingServer[StreamJobShellRequest, StreamJobShellResponse]) error
 }
 
 // UnimplementedJobServiceServer should be embedded to have
@@ -340,6 +405,9 @@ func (UnimplementedJobServiceServer) CancelJob(context.Context, *CancelJobReques
 func (UnimplementedJobServiceServer) SubmitScriptAsJob(context.Context, *SubmitScriptAsJobRequest) (*SubmitScriptAsJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitScriptAsJob not implemented")
 }
+func (UnimplementedJobServiceServer) RunCommandOnJobNodes(context.Context, *RunCommandOnJobNodesRequest) (*RunCommandOnJobNodesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunCommandOnJobNodes not implemented")
+}
 func (UnimplementedJobServiceServer) SubmitInferJob(context.Context, *SubmitInferJobRequest) (*SubmitInferJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitInferJob not implemented")
 }
@@ -351,6 +419,9 @@ func (UnimplementedJobServiceServer) GetPodMonitorInfo(context.Context, *GetPodM
 }
 func (UnimplementedJobServiceServer) CreateDevHost(context.Context, *CreateDevHostRequest) (*CreateDevHostResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateDevHost not implemented")
+}
+func (UnimplementedJobServiceServer) StreamJobShell(grpc.BidiStreamingServer[StreamJobShellRequest, StreamJobShellResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamJobShell not implemented")
 }
 func (UnimplementedJobServiceServer) testEmbeddedByValue() {}
 
@@ -498,6 +569,24 @@ func _JobService_SubmitScriptAsJob_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _JobService_RunCommandOnJobNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunCommandOnJobNodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServiceServer).RunCommandOnJobNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobService_RunCommandOnJobNodes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServiceServer).RunCommandOnJobNodes(ctx, req.(*RunCommandOnJobNodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _JobService_SubmitInferJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SubmitInferJobRequest)
 	if err := dec(in); err != nil {
@@ -563,6 +652,13 @@ func _JobService_CreateDevHost_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _JobService_StreamJobShell_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(JobServiceServer).StreamJobShell(&grpc.GenericServerStream[StreamJobShellRequest, StreamJobShellResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type JobService_StreamJobShellServer = grpc.BidiStreamingServer[StreamJobShellRequest, StreamJobShellResponse]
+
 // JobService_ServiceDesc is the grpc.ServiceDesc for JobService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -599,6 +695,10 @@ var JobService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _JobService_SubmitScriptAsJob_Handler,
 		},
 		{
+			MethodName: "RunCommandOnJobNodes",
+			Handler:    _JobService_RunCommandOnJobNodes_Handler,
+		},
+		{
 			MethodName: "SubmitInferJob",
 			Handler:    _JobService_SubmitInferJob_Handler,
 		},
@@ -616,6 +716,12 @@ var JobService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetPodLogs",
 			Handler:       _JobService_GetPodLogs_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamJobShell",
+			Handler:       _JobService_StreamJobShell_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "job.proto",

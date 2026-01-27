@@ -42,16 +42,22 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ConfigServiceClient interface {
+	//
 	// description: get cluster config
 	GetClusterConfig(ctx context.Context, in *GetClusterConfigRequest, opts ...grpc.CallOption) (*GetClusterConfigResponse, error)
+	//
 	// description: get available partitions and qos by user id and account name
 	GetAvailablePartitions(ctx context.Context, in *GetAvailablePartitionsRequest, opts ...grpc.CallOption) (*GetAvailablePartitionsResponse, error)
+	//
 	// description: get cluster information
 	GetClusterInfo(ctx context.Context, in *GetClusterInfoRequest, opts ...grpc.CallOption) (*GetClusterInfoResponse, error)
+	//
 	// description: get calculated cluster information
 	GetSummaryClusterInfo(ctx context.Context, in *GetSummaryClusterInfoRequest, opts ...grpc.CallOption) (*GetSummaryClusterInfoResponse, error)
+	//
 	// description: get cluster nodes information
 	GetClusterNodesInfo(ctx context.Context, in *GetClusterNodesInfoRequest, opts ...grpc.CallOption) (*GetClusterNodesInfoResponse, error)
+	//
 	// description: List optional features implemented by this scheduler adapter
 	ListImplementedOptionalFeatures(ctx context.Context, in *ListImplementedOptionalFeaturesRequest, opts ...grpc.CallOption) (*ListImplementedOptionalFeaturesResponse, error)
 }
@@ -128,16 +134,22 @@ func (c *configServiceClient) ListImplementedOptionalFeatures(ctx context.Contex
 // All implementations should embed UnimplementedConfigServiceServer
 // for forward compatibility.
 type ConfigServiceServer interface {
+	//
 	// description: get cluster config
 	GetClusterConfig(context.Context, *GetClusterConfigRequest) (*GetClusterConfigResponse, error)
+	//
 	// description: get available partitions and qos by user id and account name
 	GetAvailablePartitions(context.Context, *GetAvailablePartitionsRequest) (*GetAvailablePartitionsResponse, error)
+	//
 	// description: get cluster information
 	GetClusterInfo(context.Context, *GetClusterInfoRequest) (*GetClusterInfoResponse, error)
+	//
 	// description: get calculated cluster information
 	GetSummaryClusterInfo(context.Context, *GetSummaryClusterInfoRequest) (*GetSummaryClusterInfoResponse, error)
+	//
 	// description: get cluster nodes information
 	GetClusterNodesInfo(context.Context, *GetClusterNodesInfoRequest) (*GetClusterNodesInfoResponse, error)
+	//
 	// description: List optional features implemented by this scheduler adapter
 	ListImplementedOptionalFeatures(context.Context, *ListImplementedOptionalFeaturesRequest) (*ListImplementedOptionalFeaturesResponse, error)
 }

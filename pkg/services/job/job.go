@@ -1,11 +1,9 @@
 package job
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"math/rand"
-	"os"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -17,6 +15,7 @@ import (
 
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
+	"scow-crane-adapter/pkg/services/job/internal/builder"
 	"scow-crane-adapter/pkg/utils"
 )
 
@@ -24,34 +23,57 @@ const maxUint = 4294967295
 
 type ServerJob struct {
 	protos.UnimplementedJobServiceServer
+	JM *utils.JobManager
 }
 
 func (s *ServerJob) CancelJob(ctx context.Context, in *protos.CancelJobRequest) (*protos.CancelJobResponse, error) {
 	logrus.Infof("Received request CancelJob: %v", in)
-	request := &craneProtos.CancelTaskRequest{
-		OperatorUid:   0,
-		FilterTaskIds: []uint32{uint32(in.JobId)},
-		FilterState:   craneProtos.TaskStatus_Invalid,
-	}
-	_, err := utils.CraneCtld.CancelTask(context.Background(), request)
+
+	jobInfo, err := utils.GetJobById(in.JobId, in.UserId)
 	if err != nil {
-		logrus.Errorf("CancelJob failed: %v", err)
+		message := fmt.Errorf("get job failed: %v", err)
+		logrus.Errorf("[CancelJob] %v", message)
+		return nil, utils.RichError(codes.Internal, "CRANE_FAILED", message.Error())
+	}
+	defer func() {
+		err = utils.GlobalProxyManager.StopAndRemoveProxy(jobInfo.Name, jobInfo.ExecutionNode)
+		if err != nil {
+			logrus.Warnf("[CancelJob] delete job proxy file failed: %v", err)
+		}
+		err := s.JM.DeleteJobInfo(in.JobId)
+		if err != nil {
+			logrus.Warnf("[CancelJob] delete job info file failed: %v", err)
+		}
+	}()
+
+	stepIds, err := utils.ParseStepIdList(strconv.Itoa(int(in.JobId)), ",")
+	if err != nil {
+		logrus.Errorf("[CancelJob] get job step ids failed: %v", err)
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Crane service call failed.")
 	}
-	logrus.Infof("CancelJob job: %v success", in.JobId)
+	request := &craneProtos.CancelTaskRequest{
+		OperatorUid:    0,
+		FilterIds:      stepIds,
+		FilterUsername: in.UserId,
+		FilterState:    craneProtos.TaskStatus_Invalid,
+	}
+	_, err = utils.CraneCtld.CancelTask(context.Background(), request)
+	if err != nil {
+		logrus.Errorf("[CancelJob] cancel job failed: %v", err)
+		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", "Crane service call failed.")
+	}
+	logrus.Infof("[CancelJob] cancel job: %v success", in.JobId)
 	return &protos.CancelJobResponse{}, nil
 }
 
 func (s *ServerJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTimeLimitRequest) (*protos.QueryJobTimeLimitResponse, error) {
-	var (
-		jobIdList []uint32
-		seconds   uint64
-	)
-	logrus.Infof("Received request QueryJobTimeLimit: %v", in)
+	var seconds uint64
 
-	jobIdList = append(jobIdList, in.JobId)
+	logrus.Infof("Received request QueryJobTimeLimit: %v", in)
+	filterIds := make(map[uint32]*craneProtos.JobStepIds)
+	filterIds[in.JobId] = &craneProtos.JobStepIds{Steps: []uint32{1}}
 	request := &craneProtos.QueryTasksInfoRequest{
-		FilterTaskIds:               jobIdList,
+		FilterIds:                   filterIds,
 		OptionIncludeCompletedTasks: true, // 包含运行结束的作业
 	}
 	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
@@ -77,15 +99,14 @@ func (s *ServerJob) QueryJobTimeLimit(ctx context.Context, in *protos.QueryJobTi
 }
 
 func (s *ServerJob) ChangeJobTimeLimit(ctx context.Context, in *protos.ChangeJobTimeLimitRequest) (*protos.ChangeJobTimeLimitResponse, error) {
-	var (
-		jobIdList []uint32
-		seconds   uint64
-	)
+	var seconds uint64
+
 	logrus.Infof("Received request ChangeJobTimeLimit: %v", in)
 	// 查询请求体
-	jobIdList = append(jobIdList, in.JobId)
+	filterIds := make(map[uint32]*craneProtos.JobStepIds)
+	filterIds[in.JobId] = &craneProtos.JobStepIds{Steps: []uint32{1}}
 	requestLimitTime := &craneProtos.QueryTasksInfoRequest{
-		FilterTaskIds: jobIdList,
+		FilterIds: filterIds,
 	}
 
 	responseLimitTime, err := utils.CraneCtld.QueryTasksInfo(context.Background(), requestLimitTime)
@@ -137,83 +158,75 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 		state          string
 		reason         string
 	)
-	logrus.Infof("Received request GetJobById: %v", in)
-	request := &craneProtos.QueryTasksInfoRequest{
-		FilterTaskIds:               []uint32{uint32(in.JobId)},
-		OptionIncludeCompletedTasks: true,
-	}
-	response, err := utils.CraneCtld.QueryTasksInfo(context.Background(), request)
+
+	logrus.Infof("[GetJobById] Received request: %v", in)
+	jobId := in.JobId
+	taskInfo, err := utils.GetJobById(jobId, "")
 	if err != nil {
-		logrus.Errorf("GetJobById failed: %v", err)
-		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
+		logrus.Errorf("[GetJobById] get job info err: %v", err)
+		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", err.Error())
 	}
-	if !response.GetOk() {
-		logrus.Errorf("GetJobById failed: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", "Crane service internal error.")
-	}
-	if len(response.GetTaskInfoList()) == 0 {
-		logrus.Errorf("GetJobById failed: %v", fmt.Errorf("JOB_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "JOB_NOT_FOUND", "The job not found in crane.")
-	}
-	// 获取作业信息
-	TaskInfoList := response.GetTaskInfoList()[0]
-	if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Running {
-		elapsedSeconds = time.Now().Unix() - TaskInfoList.GetStartTime().Seconds
-	} else if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Pending {
+
+	if taskInfo.GetStatus() == craneProtos.TaskStatus_Running {
+		elapsedSeconds = time.Now().Unix() - taskInfo.GetStartTime().Seconds
+	} else if taskInfo.GetStatus() == craneProtos.TaskStatus_Pending {
 		elapsedSeconds = 0
 	}
 	// 获取作业时长
 	// elapsedSeconds = TaskInfoList.GetEndTime().Seconds - TaskInfoList.GetStartTime().Seconds
-	if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Running {
-		elapsedSeconds = time.Now().Unix() - TaskInfoList.GetStartTime().Seconds
-	} else if TaskInfoList.GetStatus() == craneProtos.TaskStatus_Pending {
+	if taskInfo.GetStatus() == craneProtos.TaskStatus_Running {
+		elapsedSeconds = time.Now().Unix() - taskInfo.GetStartTime().Seconds
+	} else if taskInfo.GetStatus() == craneProtos.TaskStatus_Pending {
 		elapsedSeconds = 0
 	} else {
-		elapsedSeconds = TaskInfoList.GetEndTime().Seconds - TaskInfoList.GetStartTime().Seconds
+		elapsedSeconds = taskInfo.GetEndTime().Seconds - taskInfo.GetStartTime().Seconds
 	}
 
 	// 获取cpu核分配数
 	// cpusAlloc := TaskInfoList.GetAllocCpus()
-	cpusAlloc := TaskInfoList.GetResView().GetAllocatableRes().CpuCoreLimit
+	cpusAlloc := taskInfo.GetAllocatedResView().GetAllocatableRes().CpuCoreLimit
 	cpusAllocInt32 := int32(cpusAlloc)
 	// 获取节点列表
-	nodeList := TaskInfoList.GetCranedList()
+	nodeList := taskInfo.GetCranedList()
 
-	if TaskInfoList.GetStatus().String() == "Completed" {
+	if taskInfo.GetStatus().String() == "Completed" {
 		state = "COMPLETED"
 		reason = "ENDED"
-	} else if TaskInfoList.GetStatus().String() == "Failed" {
+	} else if taskInfo.GetStatus().String() == "Failed" {
 		state = "FAILED"
 		reason = "ENDED"
-	} else if TaskInfoList.GetStatus().String() == "Cancelled" {
+	} else if taskInfo.GetStatus().String() == "Cancelled" {
 		state = "CANCELLED"
 		reason = "ENDED"
-	} else if TaskInfoList.GetStatus().String() == "Running" {
+	} else if taskInfo.GetStatus().String() == "Running" {
 		state = "RUNNING"
 		reason = "Running"
-	} else if TaskInfoList.GetStatus().String() == "Pending" {
+	} else if taskInfo.GetStatus().String() == "Pending" {
 		state = "PENDING"
 		reason = "Pending"
 	}
 
+	pods := utils.ConvertStepInfoToPodInfo(taskInfo.GetStepInfoList())
+
 	if len(in.Fields) == 0 {
 		jobInfo := &protos.JobInfo{
-			JobId:            TaskInfoList.GetTaskId(),
-			Name:             TaskInfoList.GetName(),
-			Account:          TaskInfoList.GetAccount(),
-			User:             TaskInfoList.GetUsername(),
-			Partition:        TaskInfoList.GetPartition(),
+			JobId:            taskInfo.GetTaskId(),
+			Name:             taskInfo.GetName(),
+			Account:          taskInfo.GetAccount(),
+			User:             taskInfo.GetUsername(),
+			Partition:        taskInfo.GetPartition(),
 			NodeList:         &nodeList,
-			StartTime:        TaskInfoList.GetStartTime(),
-			EndTime:          TaskInfoList.GetEndTime(),
-			TimeLimitMinutes: TaskInfoList.GetTimeLimit().Seconds / 60, // 转换成分钟数
-			WorkingDirectory: TaskInfoList.GetCwd(),
+			StartTime:        taskInfo.GetStartTime(),
+			EndTime:          taskInfo.GetEndTime(),
+			TimeLimitMinutes: taskInfo.GetTimeLimit().Seconds / 60, // 转换成分钟数
+			WorkingDirectory: taskInfo.GetCwd(),
 			CpusAlloc:        &cpusAllocInt32,
 			State:            state,
 			ElapsedSeconds:   &elapsedSeconds,
 			Reason:           &reason,
-			Qos:              TaskInfoList.GetQos(),
-			SubmitTime:       TaskInfoList.GetStartTime(),
+			Qos:              taskInfo.GetQos(),
+			SubmitTime:       taskInfo.GetStartTime(),
+			Pods:             pods,
 		}
 		return &protos.GetJobByIdResponse{Job: jobInfo}, nil
 	}
@@ -221,25 +234,25 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 	for _, field := range in.Fields {
 		switch field {
 		case "job_id":
-			jobInfo.JobId = TaskInfoList.GetTaskId()
+			jobInfo.JobId = taskInfo.GetTaskId()
 		case "name":
-			jobInfo.Name = TaskInfoList.GetName()
+			jobInfo.Name = taskInfo.GetName()
 		case "account":
-			jobInfo.Account = TaskInfoList.GetAccount()
+			jobInfo.Account = taskInfo.GetAccount()
 		case "user":
-			jobInfo.User = TaskInfoList.GetUsername()
+			jobInfo.User = taskInfo.GetUsername()
 		case "partition":
-			jobInfo.Partition = TaskInfoList.GetPartition()
+			jobInfo.Partition = taskInfo.GetPartition()
 		case "node_list":
 			jobInfo.NodeList = &nodeList
 		case "start_time":
-			jobInfo.StartTime = TaskInfoList.GetStartTime()
+			jobInfo.StartTime = taskInfo.GetStartTime()
 		case "end_time":
-			jobInfo.EndTime = TaskInfoList.GetEndTime()
+			jobInfo.EndTime = taskInfo.GetEndTime()
 		case "time_limit_minutes":
-			jobInfo.TimeLimitMinutes = TaskInfoList.GetTimeLimit().Seconds / 60
+			jobInfo.TimeLimitMinutes = taskInfo.GetTimeLimit().Seconds / 60
 		case "working_directory":
-			jobInfo.WorkingDirectory = TaskInfoList.GetCwd()
+			jobInfo.WorkingDirectory = taskInfo.GetCwd()
 		case "cpus_alloc":
 			jobInfo.CpusAlloc = &cpusAllocInt32
 		case "state":
@@ -249,12 +262,14 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 		case "reason":
 			jobInfo.Reason = &reason
 		case "qos":
-			jobInfo.Qos = TaskInfoList.GetQos()
+			jobInfo.Qos = taskInfo.GetQos()
+		case "pods":
+			jobInfo.Pods = pods
 		case "submit_time":
-			jobInfo.SubmitTime = TaskInfoList.GetStartTime()
+			jobInfo.SubmitTime = taskInfo.GetStartTime()
 		}
 	}
-	logrus.Tracef("GetJobById job: %v", jobInfo)
+	logrus.Tracef("[GetJobById] job info: %v", jobInfo)
 	return &protos.GetJobByIdResponse{Job: jobInfo}, nil
 }
 
@@ -268,7 +283,8 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 
 	if in.Filter != nil {
 		base := &craneProtos.QueryTasksInfoRequest{
-			FilterTaskStates:            utils.GetCraneStatesList(in.Filter.States),
+			FilterTaskTypes:             []craneProtos.TaskType{craneProtos.TaskType_Container},
+			FilterStates:                utils.GetCraneStatesList(in.Filter.States),
 			FilterUsers:                 in.Filter.Users,
 			FilterAccounts:              in.Filter.Accounts,
 			OptionIncludeCompletedTasks: true,
@@ -339,13 +355,13 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			}
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
 		}
-		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
+		cpusAlloc := job.GetAllocatedResView().AllocatableRes.CpuCoreLimit
 		cpusAllocInt32 := int32(cpusAlloc)
 
-		jobMemAllocMb := job.GetResView().GetAllocatableRes().MemoryLimitBytes
+		jobMemAllocMb := job.GetAllocatedResView().GetAllocatableRes().MemoryLimitBytes
 		memAllocMb := int64(jobMemAllocMb / (1024 * 1024))
 
-		jobGpusAlloc := job.GetResView().GetDeviceMap()
+		jobGpusAlloc := job.GetAllocatedResView().GetDeviceMap()
 		gpusAlloc := utils.GetGpuNumsFromJob(jobGpusAlloc)
 
 		nodeList := job.GetCranedList()
@@ -371,6 +387,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		} else if job.GetStatus().String() == "ExceedTimeLimit" {
 			state = "TIMEOUT"
 			reason = "Timeout"
+			endTime = job.GetEndTime()
 		} else {
 			state = "IVALID"
 			reason = "Ivalid"
@@ -387,8 +404,12 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			}
 		}
 
+		logrus.Tracef("GetJobs: job pod Info %v", job.GetPodMeta())
+		logrus.Tracef("GetJobs: job step Info %v", job.GetStepInfoList())
+		pods := utils.ConvertStepInfoToPodInfo(job.GetStepInfoList())
 		if len(in.Fields) == 0 {
-			jobsInfo = append(jobsInfo, &protos.JobInfo{
+			subJobInfo := &protos.JobInfo{}
+			subJobInfo = &protos.JobInfo{
 				JobId:            job.GetTaskId(),
 				Name:             job.GetName(),
 				Account:          job.GetAccount(),
@@ -408,8 +429,10 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				SubmitTime:       job.GetSubmitTime(),
 				GpusAlloc:        &gpusAlloc,
 				MemAllocMb:       &memAllocMb,
-			})
-			logrus.Tracef("GetJobs: jobsInfo %v", jobsInfo)
+				Pods:             pods,
+			}
+			jobsInfo = append(jobsInfo, subJobInfo)
+			logrus.Tracef("GetJobs: jobsInfo %v", subJobInfo)
 		} else {
 			subJobInfo := &protos.JobInfo{}
 			for _, field := range in.Fields {
@@ -458,6 +481,8 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 					subJobInfo.GpusAlloc = &gpusAlloc
 				case "mem_req_mb":
 					subJobInfo.MemReqMb = memAllocMb
+				case "pods":
+					subJobInfo.Pods = pods
 				case "mem_alloc_mb":
 					subJobInfo.MemAllocMb = &memAllocMb
 				}
@@ -487,151 +512,325 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 	return &protos.GetJobsResponse{Jobs: jobsInfo, TotalCount: &totalNum}, nil
 }
 
+// SubmitJob 命令 ccon run --userns=false -itd alpine:latest /bin/sh
 func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) (*protos.SubmitJobResponse, error) {
-	var (
-		stdout, timeLimitString string
-		scriptString            = "#!/bin/bash\n"
-	)
-	logrus.Tracef("Received request SubmitJob: %v", in)
+	logrus.Tracef("[SubmitJob] Received request: %v", in)
 
-	if in.Stdout != nil {
-		stdout = *in.Stdout
-	} else { // 可选参数没传的情况
-		stdout = "job.%j.out"
+	err := s.checkJob(in.Account, in.UserId, in.WorkingDirectory)
+	if err != nil {
+		return nil, utils.RichError(codes.Internal, "SUBMIT_JOB_FAILED", err.Error())
+	}
+	//
+	//partitionInfo, err := utils.GetPartitionByName(partitionName)
+	//if err != nil {
+	//	message := fmt.Sprintf("get partition %s info failed", partitionName)
+	//	logrus.Errorf("[SubmitJob]: %v", message)
+	//	return nil, utils.RichError(codes.Internal, "CREATE_FAILED", message)
+	//}
+
+	// 构建容器作业
+	coordinator := builder.NewJobBuilderCoordinator()
+	task, err := coordinator.BuildJob(in)
+	if err != nil {
+		logrus.Errorf("[SubmitJob] build job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "BUILD_JOB_FAILED", err.Error())
+	}
+
+	logrus.Tracef("[SubmitJob] task info: %v", task)
+	// 提交到调度器
+	jobID, err := s.submitToScheduler(task)
+	if err != nil {
+		logrus.Errorf("[SubmitJob] submit job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "SUBMIT_JOB_FAILED", err.Error())
+	}
+
+	logrus.Infof("[SubmitJob] submit job sucess: %v", jobID)
+
+	//go func() {
+	//	if in.ExtraOptions[0] == utils.APP {
+	//		submitJobInfo := &utils.SubmitJobInfo{
+	//			JobName: in.JobName,
+	//			JobType: in.ExtraOptions[0],
+	//		}
+	//		jobInfo, err := getJobInfoWithRetry(jobID, 30, 2)
+	//		if err != nil {
+	//			logrus.Errorf("[SubmitJob] get job info err: %v", err)
+	//		}
+	//		forwardInfo, err := utils.BuildJobForwardInfo(jobInfo.PodMeta, jobInfo.StepInfoList)
+	//		if err != nil {
+	//			logrus.Warn("build job forward info failed: %v", err)
+	//		}
+	//		submitJobInfo.ForwardInfo = forwardInfo
+	//
+	//		err = utils.GlobalProxyManager.CreateAndStartProxy(submitJobInfo)
+	//		if err != nil {
+	//			logrus.Warn("Failed to create proxy for app job %v: %v", in.JobName, err)
+	//		}
+	//	}
+	//}()
+
+	var hostPorts, containerPorts []int32
+	for _, port := range task.PodMeta.Ports {
+		hostPorts = append(hostPorts, port.HostPort)
+		containerPorts = append(containerPorts, port.ContainerPort)
+	}
+	submitJobInfo := &utils.SubmitJobInfo{
+		JobName:        in.JobName,
+		JobId:          jobID,
+		JobType:        in.ExtraOptions[0],
+		HostPorts:      hostPorts,
+		ContainerPorts: containerPorts,
+	}
+	if err := s.JM.SaveJobInfo(submitJobInfo); err != nil {
+		logrus.Warn("save job submit info failed: %v", err)
+	}
+
+	return &protos.SubmitJobResponse{
+		JobId: jobID,
+	}, nil
+}
+
+func (s *ServerJob) SubmitInferJob(ctx context.Context, in *protos.SubmitInferJobRequest) (*protos.SubmitInferJobResponse, error) {
+	logrus.Tracef("[SubmitInferJob] Received request: %v", in)
+
+	err := s.checkJob(in.Account, in.UserId, in.WorkingDirectory)
+	if err != nil {
+		return nil, utils.RichError(codes.Internal, "SUBMIT_INFERENCE_JOB_FAILED", err.Error())
+	}
+
+	// 构建容器作业
+	coordinator := builder.NewJobBuilderCoordinator()
+	task, err := coordinator.BuildInferenceJob(in)
+	if err != nil {
+		logrus.Errorf("[SubmitInferJob] build job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "BUILD_INFERENCE_JOB_FAILED", err.Error())
+	}
+
+	logrus.Tracef("[SubmitInferJob] task info: %v", task)
+	// 提交到调度器
+	jobID, err := s.submitToScheduler(task)
+	if err != nil {
+		logrus.Errorf("[SubmitInferJob] submit job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "SUBMIT_INFERENCE_JOB_FAILED", err.Error())
+	}
+
+	logrus.Infof("[SubmitInferJob] submit job sucess: %v", jobID)
+
+	//go func() {
+	//	submitJobInfo := &utils.SubmitJobInfo{
+	//		JobName: in.JobName,
+	//		JobType: utils.Inference,
+	//	}
+	//	jobInfo, err := utils.GetJobById(jobID)
+	//	if err != nil {
+	//		logrus.Errorf("[SubmitJob] get job info err: %v", err)
+	//	}
+	//	forwardInfo, err := utils.BuildJobForwardInfo(jobInfo.PodMeta, jobInfo.StepInfoList)
+	//	if err != nil {
+	//		logrus.Warn("build job forward info failed: %v", err)
+	//	}
+	//	submitJobInfo.ForwardInfo = forwardInfo
+	//
+	//	err = utils.GlobalProxyManager.CreateAndStartProxy(submitJobInfo)
+	//	if err != nil {
+	//		logrus.Warn("Failed to create proxy for app job %v: %v", in.JobName, err)
+	//	}
+	//}()
+
+	var hostPorts, containerPorts []int32
+	for _, port := range task.PodMeta.Ports {
+		hostPorts = append(hostPorts, port.HostPort)
+		containerPorts = append(containerPorts, port.ContainerPort)
+	}
+	submitJobInfo := &utils.SubmitJobInfo{
+		JobName:        in.JobName,
+		JobType:        utils.Inference,
+		JobId:          jobID,
+		HostPorts:      hostPorts,
+		ContainerPorts: containerPorts,
+	}
+	if err := s.JM.SaveJobInfo(submitJobInfo); err != nil {
+		logrus.Warn("save job submit info failed: %v", err)
+	}
+
+	return &protos.SubmitInferJobResponse{
+		JobId: jobID,
+	}, nil
+}
+
+func (s *ServerJob) CreateDevHost(ctx context.Context, in *protos.CreateDevHostRequest) (*protos.CreateDevHostResponse, error) {
+	logrus.Tracef("[CreateDevHost] Received request: %v", in)
+
+	err := s.checkJob(in.Account, in.UserId, in.WorkingDirectory)
+	if err != nil {
+		return nil, utils.RichError(codes.Internal, "CREATE_DEV_HOST_FAILED", err.Error())
+	}
+	// 构建容器作业
+	coordinator := builder.NewJobBuilderCoordinator()
+	task, err := coordinator.BuildDevHostJob(in)
+	if err != nil {
+		logrus.Errorf("[CreateDevHost] build job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "BUILD_DEV_HOST_FAILED", err.Error())
+	}
+
+	logrus.Tracef("[CreateDevHost] task info: %v", task)
+	// 提交到调度器
+	jobID, err := s.submitToScheduler(task)
+	if err != nil {
+		logrus.Errorf("[CreateDevHost] submit job err: %v", err)
+		return nil, utils.RichError(codes.Internal, "CREATE_DEV_HOST_FAILED", err.Error())
+	}
+
+	logrus.Infof("[CreateDevHost] submit job sucess: %v", jobID)
+
+	var hostPorts, containerPorts []int32
+	for _, port := range task.PodMeta.Ports {
+		hostPorts = append(hostPorts, port.HostPort)
+		containerPorts = append(containerPorts, port.ContainerPort)
+	}
+	submitJobInfo := &utils.SubmitJobInfo{
+		JobName:        in.JobName,
+		JobType:        utils.DevHost,
+		JobId:          jobID,
+		HostPorts:      hostPorts,
+		ContainerPorts: containerPorts,
+	}
+
+	if err := s.JM.SaveJobInfo(submitJobInfo); err != nil {
+		logrus.Warn("save job submit info failed: %v", err)
+	}
+
+	//go func() {
+	//	submitJobInfo := &utils.SubmitJobInfo{
+	//		JobName: in.JobName,
+	//		JobType: utils.DevHost,
+	//	}
+	//	jobInfo, err := getJobInfoWithRetry(jobID, 30, 2)
+	//	if err != nil {
+	//		logrus.Errorf("[SubmitJob] get job info err: %v", err)
+	//	}
+	//	forwardInfo, err := utils.BuildJobForwardInfo(jobInfo.PodMeta, jobInfo.StepInfoList)
+	//	if err != nil {
+	//		logrus.Warn("build job forward info failed: %v", err)
+	//	}
+	//	submitJobInfo.ForwardInfo = forwardInfo
+	//
+	//	err = utils.GlobalProxyManager.CreateAndStartProxy(submitJobInfo)
+	//	if err != nil {
+	//		logrus.Warn("Failed to create proxy for app job %v: %v", in.JobName, err)
+	//	}
+	//}()
+
+	return &protos.CreateDevHostResponse{
+		JobId: jobID,
+	}, nil
+}
+
+func (s *ServerJob) StreamJobShell(stream protos.JobService_StreamJobShellServer) error {
+	connectReq, err := s.waitForConnect(stream)
+	if err != nil {
+		return err
+	}
+	logrus.Tracef("Received request StreamJobShell connectInfo: %v", connectReq)
+	jobID, stepID, nodeName, err := s.getJobIdStepIdNodeName(connectReq)
+	if err != nil {
+		logrus.Errorf("get job id step id failed: %v", err)
+		return fmt.Errorf("get job id step id failed: %v", err)
+	}
+
+	// 创建容器执行流
+	streamURL, err := s.createContainerExecStream(jobID, stepID, nodeName)
+	if err != nil {
+		logrus.Errorf("create container exec stream failed: %v", err)
+		return fmt.Errorf("create container exec stream failed: %v", err)
+	}
+	logrus.Tracef("StreamJobShell streamURL: %v", streamURL)
+	executor, err := s.createContainerExecutor(streamURL)
+	if err != nil {
+		logrus.Errorf("create container executor failed: %v", err)
+		return utils.RichError(codes.Internal, "CREATE_CONTAINER_EXECUTOR_FAILED", err.Error())
+	}
+
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	// 初始化流管道和终端队列
+	stdinR, stdinW := io.Pipe()   // 客户端输入 -> 容器 stdin
+	stdoutR, stdoutW := io.Pipe() // 容器 stdout -> 客户端输出
+	sizeQueue := NewTerminalSizeQueue()
+	defer sizeQueue.Stop()
+
+	// 启动容器流 Goroutine
+	streamErrChan := make(chan error, 1)
+	go s.runContainerStream(ctx, executor, stdinR, stdoutW, sizeQueue, streamErrChan)
+
+	// 启动 Goroutine：转发容器输出到 gRPC 客户端
+	stdoutDone := make(chan struct{})
+	go s.forwardContainerOutput(stdoutR, stream, stdoutDone)
+
+	// 处理客户端后续请求（数据输入/调整终端/断开）
+	clientDone := make(chan struct{})
+	go s.handleClientRequests(stream, stdinW, sizeQueue, clientDone)
+
+	// 等待所有 Goroutine 完成
+	streamErr := <-streamErrChan
+	<-stdoutDone
+	<-clientDone
+
+	// 处理容器退出信息
+	return s.handleStreamExit(stream, streamErr)
+}
+
+func (s *ServerJob) submitToScheduler(task *craneProtos.TaskToCtld) (uint32, error) {
+	if err := utils.ValidateContainerJob(task); err != nil {
+		return 0, fmt.Errorf("validation container job failed: %v", err)
+	}
+
+	reply, err := utils.SubmitContainerJob(task)
+	if err != nil {
+		return 0, fmt.Errorf(" submit container job failed: %v", err)
+	}
+
+	jobId, _, err := utils.GetContainerIDAndStepId(reply)
+	if err != nil {
+		return 0, fmt.Errorf(" get container job id failed: %v", err)
+	}
+
+	return jobId, nil
+}
+
+func (s *ServerJob) checkJob(accountName, userName, workdir string) error {
+	// 先查询账户
+	account, err := utils.GetAccountByName(accountName)
+	if err != nil {
+		message := fmt.Errorf("get account %v failed: %v", accountName, err)
+		logrus.Errorf("[SubmitJob] %v", message)
+		return message
+	}
+	if account.Blocked {
+		message := fmt.Errorf("account %v is blocked", accountName)
+		logrus.Errorf("[SubmitJob] %v", message)
+		return message
+	}
+
+	user, err := utils.GetUserByName(userName)
+	if err != nil {
+		message := fmt.Errorf("get user %v failed: %v", userName, err)
+		logrus.Errorf("[SubmitJob] %v", message)
+		return message
+	}
+	if user.Blocked {
+		message := fmt.Errorf("user %s is blocked", userName)
+		logrus.Errorf("[SubmitJob]: %v", message)
+		return message
 	}
 
 	// 工作目录由scow传过来一个绝对路径
-	workdir := in.WorkingDirectory
 	if !filepath.IsAbs(workdir) {
-		homedirTemp, _ := utils.GetUserHomedir(in.UserId)
-		workdir = homedirTemp + "/" + in.WorkingDirectory
+		message := fmt.Errorf("workdir %s is not absolute path", workdir)
+		logrus.Errorf("[SubmitJob]: %v", message)
+		return message
 	}
 
-	scriptString += "#CBATCH " + "-A " + in.Account + "\n"
-	scriptString += "#CBATCH " + "-p " + in.Partition + "\n"
-	if in.Qos != nil {
-		scriptString += "#CBATCH " + "--qos " + *in.Qos + "\n"
-	}
-	scriptString += "#CBATCH " + "-J " + in.JobName + "\n"
-	scriptString += "#CBATCH " + "-N " + strconv.Itoa(int(in.NodeCount)) + "\n"
-	scriptString += "#CBATCH " + "--ntasks-per-node " + strconv.Itoa(1) + "\n"
-	if in.GpuCount != 0 {
-		deviceType, err := utils.GetPartitionDeviceType(in.Partition)
-		if err != nil {
-			logrus.Errorf("SubmitJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
-			return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
-		}
-		scriptString += "#CBATCH " + "--gres " + deviceType + ":" + strconv.Itoa(int(in.GpuCount)) + "\n"
-	}
-	scriptString += "#CBATCH " + "-c " + strconv.Itoa(int(in.CoreCount)) + "\n"
-	if in.TimeLimitMinutes != nil {
-		// 要把时间换成字符串的形式
-		if *in.TimeLimitMinutes < 60 {
-			timeLimitString = fmt.Sprintf("00:%s:00", strconv.Itoa(int(*in.TimeLimitMinutes)))
-		} else if *in.TimeLimitMinutes == 60 {
-			timeLimitString = "1:00:00"
-		} else {
-			hours, minitues := *in.TimeLimitMinutes/60, *in.TimeLimitMinutes%60
-			timeLimitString = fmt.Sprintf("%s:%s:00", strconv.Itoa(int(hours)), strconv.Itoa(int(minitues)))
-		}
-		scriptString += "#CBATCH " + "--time " + timeLimitString + "\n"
-	}
-	scriptString += "#CBATCH " + "--chdir " + workdir + "\n"
-	if in.Stdout != nil {
-		scriptString += "#CBATCH " + "--output " + stdout + "\n"
-	}
-
-	if in.MemoryMb != nil {
-		scriptString += "#CBATCH " + "--mem " + strconv.Itoa(int(*in.MemoryMb/uint64(in.NodeCount))) + "M" + "\n"
-	}
-	if len(in.ExtraOptions) != 0 {
-		for _, extraVale := range in.ExtraOptions {
-			scriptString += "#CBATCH " + extraVale + "\n"
-		}
-	}
-	scriptString += "#CBATCH " + "--export ALL" + "\n"
-	scriptString += "#CBATCH " + "--get-user-env" + "\n"
-
-	scriptString += in.Script
-
-	// 将这个保存成一个脚本文件，通过脚本文件进行提交
-	// 生成一个随机的文件名
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
-	if err != nil {
-		logrus.Errorf("SubmitJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
-		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
-	}
-	defer file.Close()
-	writer := bufio.NewWriter(file)
-	writer.WriteString(scriptString)
-	writer.Flush()
-
-	os.Chmod(filePath, 0777)
-
-	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
-	os.Remove(filePath) // 删除掉提交脚本
-	if err != nil {
-		logrus.Errorf("SubmitJob failed: %v", err)
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
-	}
-	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
-	jobIdString := responseList[len(responseList)-1]
-
-	jobId1, _ := strconv.Atoi(jobIdString[:len(jobIdString)-1])
-
-	return &protos.SubmitJobResponse{JobId: uint32(jobId1), GeneratedScript: scriptString}, nil
-}
-
-func (s *ServerJob) SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScriptAsJobRequest) (*protos.SubmitScriptAsJobResponse, error) {
-	logrus.Tracef("Received request SubmitScriptAsJob: %v", in)
-	// 具体的提交逻辑
-	updateScript := "#!/bin/bash\n"
-	trimmedScript := strings.TrimLeft(in.Script, "\n")
-	// 通过换行符 "\n" 分割字符串
-	checkBool1 := strings.Contains(trimmedScript, "--chdir")
-	checkBool2 := strings.Contains(trimmedScript, " -D ")
-	if !checkBool1 && !checkBool2 {
-		chdirString := fmt.Sprintf("#SBATCH --chdir=%s\n", *in.ScriptFileFullPath)
-		updateScript = updateScript + chdirString
-		for _, value := range strings.Split(trimmedScript, "\n")[1:] {
-			updateScript = updateScript + value + "\n"
-		}
-		in.Script = updateScript
-	}
-	// 将这个保存成一个脚本文件，通过脚本文件进行提交
-	// 生成一个随机的文件名
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	filePath := "/tmp" + "/" + string(b) + ".sh" // 生成的脚本存放路径
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0777)
-	if err != nil {
-		logrus.Errorf("SubmitScriptAsJob failed: %v", fmt.Errorf("CREATE_SCRIPT_FAILED"))
-		return nil, utils.RichError(codes.Aborted, "CREATE_SCRIPT_FAILED", "Create submit script failed.")
-	}
-	defer file.Close()
-	writer := bufio.NewWriter(file)
-	writer.WriteString(in.Script)
-	writer.Flush()
-
-	submitResult, err := utils.LocalSubmitJob(filePath, in.UserId)
-	os.Remove(filePath) // 删除生成的提交脚本
-	if err != nil {
-		logrus.Errorf("SubmitScriptAsJob failed: %v", err)
-		return nil, utils.RichError(codes.Internal, "CRANE_INTERNAL_ERROR", submitResult)
-	}
-	responseList := strings.Split(strings.TrimSpace(string(submitResult)), " ")
-	jobIdString := responseList[len(responseList)-1]
-
-	jobId1, _ := strconv.Atoi(jobIdString[:len(jobIdString)-1])
-
-	return &protos.SubmitScriptAsJobResponse{JobId: uint32(jobId1)}, nil
+	return nil
 }
