@@ -939,7 +939,7 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 			IdleCpuCoreCount = 0
 			idleGpus = 0
 		}
-		
+
 		cpuCoreCount += CpuCoreCount
 		runningCpuCount += AllocCpuCoreCount
 		idleCpuCount += IdleCpuCoreCount
@@ -1234,4 +1234,41 @@ func SplitBeforeUser(fullPath, username string) string {
 	}
 
 	return fullPath[:idx+1]
+}
+
+func CheckAndAddExecPermission(dirPath string) error {
+	// 拼接entry.sh的完整路径
+	entryPath := filepath.Join(dirPath, "entry.sh")
+
+	// 检查文件是否存在并获取文件信息
+	fileInfo, err := os.Stat(entryPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("the entry.sh file does not exist in directory %s", dirPath)
+		}
+		return fmt.Errorf("failed to retrieve entry. sh file information: %w", err)
+	}
+
+	// 3. 检查是否是普通文件（排除目录、管道等特殊文件）
+	if fileInfo.IsDir() {
+		return fmt.Errorf("entry.sh is a directory, not an executable file")
+	}
+
+	// 4. 检查文件是否有可执行权限（判断用户、组、其他任意一方是否有可执行权限）
+	// Unix权限位说明：0100(用户可执行)、0010(组可执行)、0001(其他可执行)，组合为0111
+	perm := fileInfo.Mode().Perm()
+	hasExecPermission := perm&0111 != 0
+
+	if hasExecPermission {
+		fmt.Printf("file (%s) already has executable permission, permission bit: %#o\n", entryPath, perm)
+		return nil
+	}
+
+	// 5. 无执行权限时，添加可执行权限（保留原有读写权限，仅添加执行权限）
+	newPerm := perm | 0111 // 按位或操作，添加所有用户的可执行权限
+	if err := os.Chmod(entryPath, newPerm); err != nil {
+		return fmt.Errorf("failed to add executable permissions for entry.sh: %w", err)
+	}
+
+	return nil
 }

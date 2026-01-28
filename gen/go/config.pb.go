@@ -290,8 +290,10 @@ type Partition struct {
 	GpuModel *string `protobuf:"bytes,11,opt,name=gpu_model,json=gpuModel,proto3,oneof" json:"gpu_model,omitempty"`
 	// 适配器配置的，每个Pod加速卡数量限额
 	MaxAcceleratorsPerPod *uint32 `protobuf:"varint,12,opt,name=max_accelerators_per_pod,json=maxAcceleratorsPerPod,proto3,oneof" json:"max_accelerators_per_pod,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// cpu_model: 具体的 cpu 型号，如 "Intel(R) Xeon(R) Platinum 81633090" 等
+	CpuModel      *string `protobuf:"bytes,13,opt,name=cpu_model,json=cpuModel,proto3,oneof" json:"cpu_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Partition) Reset() {
@@ -406,6 +408,13 @@ func (x *Partition) GetMaxAcceleratorsPerPod() uint32 {
 		return *x.MaxAcceleratorsPerPod
 	}
 	return 0
+}
+
+func (x *Partition) GetCpuModel() string {
+	if x != nil && x.CpuModel != nil {
+		return *x.CpuModel
+	}
+	return ""
 }
 
 type GetClusterConfigResponse struct {
@@ -1641,7 +1650,7 @@ var File_config_proto protoreflect.FileDescriptor
 const file_config_proto_rawDesc = "" +
 	"\n" +
 	"\fconfig.proto\x12\x16scow.scheduler_adapter\"\x19\n" +
-	"\x17GetClusterConfigRequest\"\xd0\x03\n" +
+	"\x17GetClusterConfigRequest\"\x80\x04\n" +
 	"\tPartition\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x15\n" +
 	"\x06mem_mb\x18\x02 \x01(\x04R\x05memMb\x12\x14\n" +
@@ -1655,7 +1664,8 @@ const file_config_proto_rawDesc = "" +
 	"\x18accelerator_descriptions\x18\n" +
 	" \x03(\tR\x17acceleratorDescriptions\x12 \n" +
 	"\tgpu_model\x18\v \x01(\tH\x03R\bgpuModel\x88\x01\x01\x12<\n" +
-	"\x18max_accelerators_per_pod\x18\f \x01(\rH\x04R\x15maxAcceleratorsPerPod\x88\x01\x01B\n" +
+	"\x18max_accelerators_per_pod\x18\f \x01(\rH\x04R\x15maxAcceleratorsPerPod\x88\x01\x01\x12 \n" +
+	"\tcpu_model\x18\r \x01(\tH\x05R\bcpuModel\x88\x01\x01B\n" +
 	"\n" +
 	"\b_commentB\v\n" +
 	"\t_gpu_typeB\n" +
@@ -1663,7 +1673,9 @@ const file_config_proto_rawDesc = "" +
 	"\b_vram_mbB\f\n" +
 	"\n" +
 	"_gpu_modelB\x1b\n" +
-	"\x19_max_accelerators_per_pod\"\x84\x01\n" +
+	"\x19_max_accelerators_per_podB\f\n" +
+	"\n" +
+	"_cpu_model\"\x84\x01\n" +
 	"\x18GetClusterConfigResponse\x12A\n" +
 	"\n" +
 	"partitions\x18\x01 \x03(\v2!.scow.scheduler_adapter.PartitionR\n" +

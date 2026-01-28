@@ -90,8 +90,8 @@ func (a *DevHostJobAdapter) GetContainerPort() []uint32 {
 func (a *DevHostJobAdapter) GetMounts() (map[string]string, error) {
 	mounts := make(map[string]string)
 	for _, mount := range a.req.Mounts {
-		if mount != "" {
-			mounts[mount] = mount // + ":ro"
+		if mount.Path != "" {
+			mounts[mount.Path] = mount.Target // + ":ro"
 		}
 	}
 	for _, mount := range a.req.PublicMounts {

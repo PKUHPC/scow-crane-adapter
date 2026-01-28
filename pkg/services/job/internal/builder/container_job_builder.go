@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -424,6 +425,10 @@ func (b *ContainerJobBuilder) setJobName(adapter types.ContainerJobRequest, task
 
 // setExtendedProperties 设置扩展属性
 func (b *ContainerJobBuilder) setExtendedProperties(adapter types.ContainerJobRequest, task *craneProtos.TaskToCtld) {
+	err := utils.CheckAndAddExecPermission(adapter.GetWorkingDirectory())
+	if err != nil {
+		logrus.Errorf("file %v add exec permission error: %v", filepath.Join(adapter.GetWorkingDirectory(), "entry.sh"), err)
+	}
 }
 
 // generateDefaultJobName 生成默认作业名
@@ -516,6 +521,7 @@ func parsePortMapping(ports []uint32, portList *[]*craneProtos.PodTaskAdditional
 }
 
 func (b *ContainerJobBuilder) applyIOOptions(containerMeta *craneProtos.ContainerTaskAdditionalMeta) {
+	containerMeta.Detached = true
 	// TTY allocation: directly use -t flag
 	containerMeta.Tty = true
 

@@ -206,7 +206,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 		reason = "Pending"
 	}
 
-	pods := utils.ConvertStepInfoToPodInfo(taskInfo.GetStepInfoList())
+	pods := utils.ConvertStepInfoToPodInfo(taskInfo.Partition, taskInfo.GetStepInfoList())
 
 	if len(in.Fields) == 0 {
 		jobInfo := &protos.JobInfo{
@@ -406,7 +406,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 
 		logrus.Tracef("GetJobs: job pod Info %v", job.GetPodMeta())
 		logrus.Tracef("GetJobs: job step Info %v", job.GetStepInfoList())
-		pods := utils.ConvertStepInfoToPodInfo(job.GetStepInfoList())
+		pods := utils.ConvertStepInfoToPodInfo(job.Partition, job.GetStepInfoList())
 		if len(in.Fields) == 0 {
 			subJobInfo := &protos.JobInfo{}
 			subJobInfo = &protos.JobInfo{
@@ -729,25 +729,37 @@ func (s *ServerJob) CreateDevHost(ctx context.Context, in *protos.CreateDevHostR
 func (s *ServerJob) StreamJobShell(stream protos.JobService_StreamJobShellServer) error {
 	connectReq, err := s.waitForConnect(stream)
 	if err != nil {
-		return err
+		logrus.Errorf("[StreamJobShell] wait for connect failed: %v", err)
+		return utils.RichError(codes.Internal, "STREAM_JOB_SHELL_FAILED", err.Error())
 	}
-	logrus.Tracef("Received request StreamJobShell connectInfo: %v", connectReq)
+	logrus.Tracef("[StreamJobShell] Received request StreamJobShell connectInfo: %v", connectReq)
 	jobID, stepID, nodeName, err := s.getJobIdStepIdNodeName(connectReq)
 	if err != nil {
-		logrus.Errorf("get job id step id failed: %v", err)
-		return fmt.Errorf("get job id step id failed: %v", err)
+		logrus.Errorf("[StreamJobShell] get job id step id failed: %v", err)
+		return utils.RichError(codes.Internal, "STREAM_JOB_SHELL_FAILED", err.Error())
 	}
 
-	// 创建容器执行流
-	streamURL, err := s.createContainerExecStream(jobID, stepID, nodeName)
+	taskInfo, err := utils.GetJobById(jobID, "")
 	if err != nil {
-		logrus.Errorf("create container exec stream failed: %v", err)
+		logrus.Errorf("[StreamJobShell] get job info err: %v", err)
+		return utils.RichError(codes.Internal, "STREAM_JOB_SHELL_FAILED", err.Error())
+	}
+	// Check job step state
+	if taskInfo.Status != craneProtos.TaskStatus_Running {
+		message := fmt.Errorf("task %v state is: %s", jobID, taskInfo.Status.String())
+		logrus.Errorf("[StreamJobShell] %v", message)
+		return utils.RichError(codes.Internal, "STREAM_JOB_SHELL_FAILED", message.Error())
+	}
+	// 创建容器执行流
+	streamURL, err := s.createContainerExecStream(jobID, stepID, taskInfo.Uid, nodeName)
+	if err != nil {
+		logrus.Errorf("[StreamJobShell] create container exec stream failed: %v", err)
 		return fmt.Errorf("create container exec stream failed: %v", err)
 	}
-	logrus.Tracef("StreamJobShell streamURL: %v", streamURL)
+	logrus.Tracef("[StreamJobShell] streamURL: %v", streamURL)
 	executor, err := s.createContainerExecutor(streamURL)
 	if err != nil {
-		logrus.Errorf("create container executor failed: %v", err)
+		logrus.Errorf("[StreamJobShell] create container executor failed: %v", err)
 		return utils.RichError(codes.Internal, "CREATE_CONTAINER_EXECUTOR_FAILED", err.Error())
 	}
 

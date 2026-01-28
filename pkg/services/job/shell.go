@@ -4,22 +4,20 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc/status"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	craneProtos "scow-crane-adapter/gen/crane"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 
+	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
 )
@@ -71,16 +69,16 @@ func (s *ServerJob) waitForConnect(stream protos.JobService_StreamJobShellServer
 
 	select {
 	case <-ctx.Done():
-		return nil, status.Error(codes.DeadlineExceeded, "等待连接请求超时")
+		return nil, fmt.Errorf("waiting for connection request timeout")
 	case res := <-ch:
 		if res.err != nil {
-			return nil, status.Errorf(codes.Internal, "接收请求失败: %v", res.err)
+			return nil, fmt.Errorf("failed to receive request: %v", res.err)
 		}
 
 		// 检查是否是连接请求
 		connectReq := res.req.GetConnect()
 		if connectReq == nil {
-			return nil, status.Error(codes.InvalidArgument, "第一个消息必须是连接请求")
+			return nil, fmt.Errorf("the first message must be a connection request")
 		}
 
 		return connectReq, nil
@@ -149,10 +147,10 @@ func (s *ServerJob) resolveTargetNode(step *craneProtos.StepInfo) (string, error
 }
 
 // createContainerExecStream 创建容器执行流
-func (s *ServerJob) createContainerExecStream(jobID, stepID uint32, nodeName string) (string, error) {
+func (s *ServerJob) createContainerExecStream(jobID, stepID, uid uint32, nodeName string) (string, error) {
 	// 创建 exec 请求
 	execReq := &craneProtos.ExecInContainerStepRequest{
-		Uid:      uint32(os.Getuid()),
+		Uid:      uid,
 		JobId:    jobID,
 		StepId:   stepID,
 		NodeName: nodeName,
@@ -240,7 +238,7 @@ func (s *ServerJob) forwardContainerOutput(
 			if err := stream.Send(&protos.StreamJobShellResponse{
 				Payload: &protos.StreamJobShellResponse_Data{
 					Data: &protos.StreamJobShellResponse_DataOutput{
-						Data: string(buf[:n]),
+						Data: buf[:n],
 					},
 				},
 			}); err != nil {
@@ -330,7 +328,7 @@ func (s *ServerJob) handleStreamExit(
 		return nil
 	}
 	message := fmt.Errorf("container exec failed %v", streamErr)
-	log.Errorf("StreamJobShell: %v", message)
+	log.Errorf("[StreamJobShell] %v", message)
 	return utils.RichError(codes.Internal, "STREAM_JOB_SHELL_FAILED", message.Error())
 }
 

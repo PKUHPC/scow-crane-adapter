@@ -11,7 +11,7 @@ const (
 	//UserNs      = false
 	UserNs = true
 
-	StepToPodNameEscape = ":::"
+	StepToPodNameEscape = "-"
 
 	PullAlways       = "Always"
 	PullNever        = "Never"

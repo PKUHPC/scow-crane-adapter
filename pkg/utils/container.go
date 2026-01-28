@@ -395,7 +395,7 @@ func GetContainerIDAndStepId(reply protoreflect.ProtoMessage) (uint32, uint32, e
 	return jobId, stepId, nil
 }
 
-func ConvertStepInfoToPodInfo(stepList []*craneProtos.StepInfo) []*pb.JobInfo_PodInfo {
+func ConvertStepInfoToPodInfo(partition string, stepList []*craneProtos.StepInfo) []*pb.JobInfo_PodInfo {
 	var podInfoList []*pb.JobInfo_PodInfo
 
 	// 遍历StepInfo列表，筛选PRIMARY类型的条目
@@ -433,6 +433,7 @@ func ConvertStepInfoToPodInfo(stepList []*craneProtos.StepInfo) []*pb.JobInfo_Po
 			// 构造PodInfo对象
 			podInfo := &pb.JobInfo_PodInfo{
 				NodeName:       node,
+				Namespace:      partition,
 				PodName:        podName,
 				PodStatus:      podStatus,
 				PodCreatedTime: createdTime,
