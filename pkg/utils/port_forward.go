@@ -457,7 +457,7 @@ func (m *ProxyManager) StartPeriodicClean(interval time.Duration) {
 		for {
 			select {
 			case <-m.ticker.C:
-				// 到达间隔，执行清理
+				// 到达间隔，执行清理代理纪录信息
 				if err := m.CleanInvalidProxies(); err != nil {
 					logrus.Errorf("Timed cleaning of invalid agents failed: %v", err)
 				}

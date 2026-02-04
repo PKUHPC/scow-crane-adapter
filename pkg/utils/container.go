@@ -153,20 +153,38 @@ func GetJobById(jobId uint32, user string) (*craneProtos.TaskInfo, error) {
 	}
 	response, err := CraneCtld.QueryTasksInfo(context.Background(), request)
 	if err != nil {
-		log.Errorf("GetJobById failed: %v", err)
 		return nil, fmt.Errorf("query tasks info failed: %v", err)
 	}
 	if !response.GetOk() {
-		log.Errorf("GetJobById failed: %v", fmt.Errorf("CRANE_INTERNAL_ERROR"))
 		return nil, fmt.Errorf("query tasks info failed: %v", err)
 	}
 	if len(response.GetTaskInfoList()) == 0 {
-		log.Errorf("GetJobById failed: %v", fmt.Errorf("JOB_NOT_FOUND"))
 		return nil, fmt.Errorf("the job not found in crane")
 	}
 	// 获取作业信息
 	TaskInfo := response.GetTaskInfoList()[0]
 	return TaskInfo, nil
+}
+
+func CheckJobExit(jobId uint32) (bool, error) {
+	filterIds := make(map[uint32]*craneProtos.JobStepIds)
+	filterIds[jobId] = &craneProtos.JobStepIds{}
+	request := &craneProtos.QueryTasksInfoRequest{
+		FilterTaskTypes:             []craneProtos.TaskType{craneProtos.TaskType_Container},
+		FilterIds:                   filterIds,
+		OptionIncludeCompletedTasks: true,
+	}
+	response, err := CraneCtld.QueryTasksInfo(context.Background(), request)
+	if err != nil {
+		return false, fmt.Errorf("query tasks info failed: %v", err)
+	}
+	if !response.GetOk() {
+		return false, fmt.Errorf("query tasks info failed: %v", err)
+	}
+	if len(response.GetTaskInfoList()) == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 // CopyFromPod copyFromPod 从 Pod 复制文件到本地
