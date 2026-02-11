@@ -207,7 +207,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 			StartTime:        TaskInfoList.GetStartTime(),
 			EndTime:          TaskInfoList.GetEndTime(),
 			TimeLimitMinutes: TaskInfoList.GetTimeLimit().Seconds / 60, // 转换成分钟数
-			WorkingDirectory: TaskInfoList.GetCwd(),
+			WorkingDirectory: utils.EncodeNonUtf8Name(TaskInfoList.GetCwd()),
 			CpusAlloc:        &cpusAllocInt32,
 			State:            state,
 			ElapsedSeconds:   &elapsedSeconds,
@@ -399,7 +399,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				EndTime:          endTime,
 				NodesAlloc:       &nodeNum,
 				TimeLimitMinutes: timeLimitMinutes,
-				WorkingDirectory: job.GetCwd(),
+				WorkingDirectory: utils.EncodeNonUtf8Name(job.GetCwd()),
 				State:            state,
 				NodeList:         &nodeList,
 				CpusAlloc:        &cpusAllocInt32,
@@ -434,7 +434,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 				case "time_limit_minutes":
 					subJobInfo.TimeLimitMinutes = timeLimitMinutes
 				case "working_directory":
-					subJobInfo.WorkingDirectory = job.GetCwd()
+					subJobInfo.WorkingDirectory = utils.EncodeNonUtf8Name(job.GetCwd())
 				case "cpus_req":
 					subJobInfo.CpusReq = cpusAllocInt32
 				case "cpus_alloc":
@@ -502,7 +502,7 @@ func (s *ServerJob) SubmitJob(ctx context.Context, in *protos.SubmitJobRequest) 
 	}
 
 	// 工作目录由scow传过来一个绝对路径
-	workdir := in.WorkingDirectory
+	workdir := utils.DecodePath(in.WorkingDirectory)
 	if !filepath.IsAbs(workdir) {
 		homedirTemp, _ := utils.GetUserHomedir(in.UserId)
 		workdir = homedirTemp + "/" + in.WorkingDirectory
@@ -597,8 +597,9 @@ func (s *ServerJob) SubmitScriptAsJob(ctx context.Context, in *protos.SubmitScri
 	// 通过换行符 "\n" 分割字符串
 	checkBool1 := strings.Contains(trimmedScript, "--chdir")
 	checkBool2 := strings.Contains(trimmedScript, " -D ")
+	scriptFileFullPath := utils.DecodePath(*in.ScriptFileFullPath)
 	if !checkBool1 && !checkBool2 {
-		chdirString := fmt.Sprintf("#SBATCH --chdir=%s\n", *in.ScriptFileFullPath)
+		chdirString := fmt.Sprintf("#SBATCH --chdir=%s\n", scriptFileFullPath)
 		updateScript = updateScript + chdirString
 		for _, value := range strings.Split(trimmedScript, "\n")[1:] {
 			updateScript = updateScript + value + "\n"
