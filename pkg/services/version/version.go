@@ -5,8 +5,10 @@ import (
 	"scow-crane-adapter/pkg/utils"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	protos "scow-crane-adapter/gen/go"
 )
 
@@ -26,4 +28,20 @@ func (s *ServerVersion) GetVersion(ctx context.Context, in *protos.GetVersionReq
 	}
 	logrus.Infof("versionSlice: %v", versionSlice)
 	return &protos.GetVersionResponse{Major: 1, Minor: 9, Patch: 3}, nil
+}
+
+func (s *ServerVersion) GetAdapterInfo(ctx context.Context, in *protos.GetAdapterInfoRequest) (*protos.GetAdapterInfoResponse, error) {
+	logrus.Infof("Received request GetAdapterInfo: %v", in)
+
+	startTime := utils.AdapterStartTime
+	if startTime.IsZero() {
+		startTime = time.Now()
+	}
+
+	return &protos.GetAdapterInfoResponse{
+		StartTime:        timestamppb.New(startTime),
+		ValidUntil:       nil,
+		SchedulerType:    "crane",
+		SchedulerVersion: utils.GetCraneVersion(),
+	}, nil
 }

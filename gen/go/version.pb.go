@@ -20,6 +20,7 @@ package gen
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -128,19 +129,132 @@ func (x *GetVersionResponse) GetPatch() uint32 {
 	return 0
 }
 
+type GetAdapterInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAdapterInfoRequest) Reset() {
+	*x = GetAdapterInfoRequest{}
+	mi := &file_version_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAdapterInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAdapterInfoRequest) ProtoMessage() {}
+
+func (x *GetAdapterInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_version_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAdapterInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetAdapterInfoRequest) Descriptor() ([]byte, []int) {
+	return file_version_proto_rawDescGZIP(), []int{2}
+}
+
+type GetAdapterInfoResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StartTime        *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	ValidUntil       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=valid_until,json=validUntil,proto3" json:"valid_until,omitempty"`
+	SchedulerType    string                 `protobuf:"bytes,3,opt,name=scheduler_type,json=schedulerType,proto3" json:"scheduler_type,omitempty"`
+	SchedulerVersion string                 `protobuf:"bytes,4,opt,name=scheduler_version,json=schedulerVersion,proto3" json:"scheduler_version,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetAdapterInfoResponse) Reset() {
+	*x = GetAdapterInfoResponse{}
+	mi := &file_version_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAdapterInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAdapterInfoResponse) ProtoMessage() {}
+
+func (x *GetAdapterInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_version_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAdapterInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetAdapterInfoResponse) Descriptor() ([]byte, []int) {
+	return file_version_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetAdapterInfoResponse) GetStartTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTime
+	}
+	return nil
+}
+
+func (x *GetAdapterInfoResponse) GetValidUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ValidUntil
+	}
+	return nil
+}
+
+func (x *GetAdapterInfoResponse) GetSchedulerType() string {
+	if x != nil {
+		return x.SchedulerType
+	}
+	return ""
+}
+
+func (x *GetAdapterInfoResponse) GetSchedulerVersion() string {
+	if x != nil {
+		return x.SchedulerVersion
+	}
+	return ""
+}
+
 var File_version_proto protoreflect.FileDescriptor
 
 const file_version_proto_rawDesc = "" +
 	"\n" +
-	"\rversion.proto\x12\x16scow.scheduler_adapter\"\x13\n" +
+	"\rversion.proto\x12\x16scow.scheduler_adapter\x1a\x1fgoogle/protobuf/timestamp.proto\"\x13\n" +
 	"\x11GetVersionRequest\"V\n" +
 	"\x12GetVersionResponse\x12\x14\n" +
 	"\x05major\x18\x01 \x01(\rR\x05major\x12\x14\n" +
 	"\x05minor\x18\x02 \x01(\rR\x05minor\x12\x14\n" +
-	"\x05patch\x18\x03 \x01(\rR\x05patch2u\n" +
+	"\x05patch\x18\x03 \x01(\rR\x05patch\"\x17\n" +
+	"\x15GetAdapterInfoRequest\"\xe4\x01\n" +
+	"\x16GetAdapterInfoResponse\x129\n" +
+	"\n" +
+	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x12;\n" +
+	"\vvalid_until\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"validUntil\x12%\n" +
+	"\x0escheduler_type\x18\x03 \x01(\tR\rschedulerType\x12+\n" +
+	"\x11scheduler_version\x18\x04 \x01(\tR\x10schedulerVersion2\xe6\x01\n" +
 	"\x0eVersionService\x12c\n" +
 	"\n" +
-	"GetVersion\x12).scow.scheduler_adapter.GetVersionRequest\x1a*.scow.scheduler_adapter.GetVersionResponseB\xb7\x01\n" +
+	"GetVersion\x12).scow.scheduler_adapter.GetVersionRequest\x1a*.scow.scheduler_adapter.GetVersionResponse\x12o\n" +
+	"\x0eGetAdapterInfo\x12-.scow.scheduler_adapter.GetAdapterInfoRequest\x1a..scow.scheduler_adapter.GetAdapterInfoResponseB\xb7\x01\n" +
 	"\x1acom.scow.scheduler_adapterB\fVersionProtoP\x01Z\x16scow-crane-adapter/gen\xa2\x02\x03SSX\xaa\x02\x15Scow.SchedulerAdapter\xca\x02\x15Scow\\SchedulerAdapter\xe2\x02!Scow\\SchedulerAdapter\\GPBMetadata\xea\x02\x16Scow::SchedulerAdapterb\x06proto3"
 
 var (
@@ -155,19 +269,26 @@ func file_version_proto_rawDescGZIP() []byte {
 	return file_version_proto_rawDescData
 }
 
-var file_version_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_version_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_version_proto_goTypes = []any{
-	(*GetVersionRequest)(nil),  // 0: scow.scheduler_adapter.GetVersionRequest
-	(*GetVersionResponse)(nil), // 1: scow.scheduler_adapter.GetVersionResponse
+	(*GetVersionRequest)(nil),      // 0: scow.scheduler_adapter.GetVersionRequest
+	(*GetVersionResponse)(nil),     // 1: scow.scheduler_adapter.GetVersionResponse
+	(*GetAdapterInfoRequest)(nil),  // 2: scow.scheduler_adapter.GetAdapterInfoRequest
+	(*GetAdapterInfoResponse)(nil), // 3: scow.scheduler_adapter.GetAdapterInfoResponse
+	(*timestamppb.Timestamp)(nil),  // 4: google.protobuf.Timestamp
 }
 var file_version_proto_depIdxs = []int32{
-	0, // 0: scow.scheduler_adapter.VersionService.GetVersion:input_type -> scow.scheduler_adapter.GetVersionRequest
-	1, // 1: scow.scheduler_adapter.VersionService.GetVersion:output_type -> scow.scheduler_adapter.GetVersionResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	4, // 0: scow.scheduler_adapter.GetAdapterInfoResponse.start_time:type_name -> google.protobuf.Timestamp
+	4, // 1: scow.scheduler_adapter.GetAdapterInfoResponse.valid_until:type_name -> google.protobuf.Timestamp
+	0, // 2: scow.scheduler_adapter.VersionService.GetVersion:input_type -> scow.scheduler_adapter.GetVersionRequest
+	2, // 3: scow.scheduler_adapter.VersionService.GetAdapterInfo:input_type -> scow.scheduler_adapter.GetAdapterInfoRequest
+	1, // 4: scow.scheduler_adapter.VersionService.GetVersion:output_type -> scow.scheduler_adapter.GetVersionResponse
+	3, // 5: scow.scheduler_adapter.VersionService.GetAdapterInfo:output_type -> scow.scheduler_adapter.GetAdapterInfoResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_version_proto_init() }
@@ -181,7 +302,7 @@ func file_version_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_version_proto_rawDesc), len(file_version_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

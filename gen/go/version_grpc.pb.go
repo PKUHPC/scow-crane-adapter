@@ -30,7 +30,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VersionService_GetVersion_FullMethodName = "/scow.scheduler_adapter.VersionService/GetVersion"
+	VersionService_GetVersion_FullMethodName     = "/scow.scheduler_adapter.VersionService/GetVersion"
+	VersionService_GetAdapterInfo_FullMethodName = "/scow.scheduler_adapter.VersionService/GetAdapterInfo"
 )
 
 // VersionServiceClient is the client API for VersionService service.
@@ -40,6 +41,7 @@ type VersionServiceClient interface {
 	//
 	//Get the version currently implemented by the server.
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
+	GetAdapterInfo(ctx context.Context, in *GetAdapterInfoRequest, opts ...grpc.CallOption) (*GetAdapterInfoResponse, error)
 }
 
 type versionServiceClient struct {
@@ -60,6 +62,16 @@ func (c *versionServiceClient) GetVersion(ctx context.Context, in *GetVersionReq
 	return out, nil
 }
 
+func (c *versionServiceClient) GetAdapterInfo(ctx context.Context, in *GetAdapterInfoRequest, opts ...grpc.CallOption) (*GetAdapterInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAdapterInfoResponse)
+	err := c.cc.Invoke(ctx, VersionService_GetAdapterInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VersionServiceServer is the server API for VersionService service.
 // All implementations should embed UnimplementedVersionServiceServer
 // for forward compatibility.
@@ -67,6 +79,7 @@ type VersionServiceServer interface {
 	//
 	//Get the version currently implemented by the server.
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
+	GetAdapterInfo(context.Context, *GetAdapterInfoRequest) (*GetAdapterInfoResponse, error)
 }
 
 // UnimplementedVersionServiceServer should be embedded to have
@@ -78,6 +91,9 @@ type UnimplementedVersionServiceServer struct{}
 
 func (UnimplementedVersionServiceServer) GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetVersion not implemented")
+}
+func (UnimplementedVersionServiceServer) GetAdapterInfo(context.Context, *GetAdapterInfoRequest) (*GetAdapterInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAdapterInfo not implemented")
 }
 func (UnimplementedVersionServiceServer) testEmbeddedByValue() {}
 
@@ -117,6 +133,24 @@ func _VersionService_GetVersion_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VersionService_GetAdapterInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAdapterInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VersionServiceServer).GetAdapterInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VersionService_GetAdapterInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VersionServiceServer).GetAdapterInfo(ctx, req.(*GetAdapterInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VersionService_ServiceDesc is the grpc.ServiceDesc for VersionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -127,6 +161,10 @@ var VersionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVersion",
 			Handler:    _VersionService_GetVersion_Handler,
+		},
+		{
+			MethodName: "GetAdapterInfo",
+			Handler:    _VersionService_GetAdapterInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
