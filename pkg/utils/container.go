@@ -188,11 +188,11 @@ func CheckJobExit(jobId uint32) (bool, error) {
 }
 
 // CopyFromPod copyFromPod 从 Pod 复制文件到本地
-func CopyFromPod(jobId, stepId uint32, srcPath, localPath, nodeName string) error {
+func CopyFromPod(jobId, stepId, uid uint32, srcPath, localPath, nodeName string) error {
 	cmd := fmt.Sprintf("tar cf - --force-local %s", srcPath)
 
 	// 获取stream URL
-	streamURL, err := CreateContainerExecStream(jobId, stepId, nodeName, cmd)
+	streamURL, err := CreateContainerExecStream(jobId, stepId, uid, nodeName, cmd)
 	if err != nil {
 		return fmt.Errorf("create exec stream failed: %v", err)
 	}
@@ -210,7 +210,7 @@ func CopyFromPod(jobId, stepId uint32, srcPath, localPath, nodeName string) erro
 	}
 	defer localFile.Close()
 
-	// 超时设为10秒
+	// 超时设为5秒
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -273,9 +273,9 @@ func CopyFromPod(jobId, stepId uint32, srcPath, localPath, nodeName string) erro
 	return nil
 }
 
-func ExecContainerCMD(jobId, stepId uint32, nodeName, command string) error {
+func ExecContainerCMD(jobId, stepId, uid uint32, nodeName, command string) error {
 	var stdout, stderr bytes.Buffer
-	streamURL, err := CreateContainerExecStream(jobId, stepId, nodeName, command)
+	streamURL, err := CreateContainerExecStream(jobId, stepId, uid, nodeName, command)
 	if err != nil {
 		log.Errorf("create container exec stream failed: %v", err)
 		return fmt.Errorf("create container exec stream failed: %v", err)
@@ -314,18 +314,18 @@ func ResolveTargetNode(step *craneProtos.StepInfo) (string, error) {
 	}
 }
 
-func CreateContainerExecStream(jobID, stepID uint32, nodeName, cmd string) (string, error) {
+func CreateContainerExecStream(jobID, stepID, uid uint32, nodeName, cmd string) (string, error) {
 	// 创建 exec 请求
 	execReq := &craneProtos.ExecInContainerStepRequest{
-		Uid:      uint32(os.Getuid()),
+		Uid:      uid,
 		JobId:    jobID,
 		StepId:   stepID,
 		NodeName: nodeName,
 		Command:  []string{"sh", "-c", cmd},
-		Stdin:    true,
-		Tty:      true,
+		Stdin:    false,
+		Tty:      false,
 		Stdout:   true,
-		Stderr:   false,
+		Stderr:   true,
 	}
 
 	log.Debugf("Calling ExecInContainerStep RPC for container %d.%d on node %q",

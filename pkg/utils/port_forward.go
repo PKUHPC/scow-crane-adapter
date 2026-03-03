@@ -151,11 +151,15 @@ func (f *FilePersistence) Save(meta *ProxyMeta) error {
 	newMetas := make([]*ProxyMeta, 0)
 	found := false
 	for _, m := range metas {
-		if m.JobName != meta.JobName {
+		if m.JobId != meta.JobId { // 作业id都不等，肯定不重复
 			newMetas = append(newMetas, m)
 		} else {
-			newMetas = append(newMetas, meta)
-			found = true
+			if m.ProxyPort != meta.ProxyPort { // 作业id相等，但是代理端口不一样，也是不重复
+				newMetas = append(newMetas, m)
+			} else {
+				newMetas = append(newMetas, meta)
+				found = true
+			}
 		}
 	}
 	if !found {
@@ -625,6 +629,9 @@ func LoadJobProxyMetaFromFile(jobId uint32, nodeName string) (*ProxyMeta, error)
 	path := filepath.Join(ProxyInfos)
 	data, err := os.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // 文件不存在，返回空
+		}
 		return nil, fmt.Errorf("read file %s: %w", path, err)
 	}
 
@@ -645,11 +652,13 @@ func LoadJobProxyMetaFromFile(jobId uint32, nodeName string) (*ProxyMeta, error)
 func BuildJobForwardInfo(podMeta *craneProtos.PodTaskAdditionalMeta, stepList []*craneProtos.StepInfo) ([]*JobForwardNode, error) {
 	var jfi []*JobForwardNode
 	// 校验PodMeta的端口有效性
-	if podMeta.Ports[0].ContainerPort <= 0 {
-		return jfi, fmt.Errorf("container port in podMeta is invalid (value must be greater than 0)")
-	}
-	if podMeta.Ports[0].HostPort <= 0 {
-		return jfi, fmt.Errorf("host port in podMeta is invalid (value must be greater than 0)")
+	for _, port := range podMeta.Ports {
+		if port.ContainerPort <= 0 {
+			return jfi, fmt.Errorf("container port in podMeta is invalid (value must be greater than 0)")
+		}
+		if port.HostPort <= 0 {
+			return jfi, fmt.Errorf("host port in podMeta is invalid (value must be greater than 0)")
+		}
 	}
 
 	var jobId uint32

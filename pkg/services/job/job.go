@@ -279,7 +279,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		jobsInfo []*protos.JobInfo
 		totalNum uint32
 	)
-	logrus.Infof("Received request GetJobs: %v", in)
+	logrus.Tracef("Received request GetJobs: %v", in)
 
 	if in.Filter != nil {
 		base := &craneProtos.QueryTasksInfoRequest{

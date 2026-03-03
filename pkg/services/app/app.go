@@ -22,6 +22,7 @@ type ServerApp struct {
 }
 
 func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppConnectionInfoRequest) (*protos.GetAppConnectionInfoResponse, error) {
+	logrus.Tracef("[GetAppConnectionInfo] request is: %v", in)
 	jobID := in.JobId
 	taskInfo, err := utils.GetJobById(jobID, "")
 	if err != nil {
@@ -36,26 +37,13 @@ func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppC
 		return nil, utils.RichError(codes.Internal, "CRANE_FAILED", message.Error())
 	}
 
-	logrus.Infof("task %v info is: %s", in.JobId, taskInfo)
+	logrus.Tracef("[GetAppConnectionInfo] task %v info is: %s", in.JobId, taskInfo)
 	// 获取保存的作业信息
 	jobInfo, err := s.JM.QueryJobInfo(jobID)
 	if err != nil {
 		logrus.Errorf("load job submit info failed: %v", err)
 		return nil, utils.RichError(codes.Internal, "CRANE_FAILED", err.Error())
 	}
-
-	submitJobProxyInfo := &utils.SubmitJobProxyInfo{
-		JobName: jobName,
-		JobId:   jobID,
-	}
-
-	forwardNodes, err := utils.BuildJobForwardInfo(taskInfo.PodMeta, taskInfo.StepInfoList)
-	if err != nil {
-		logrus.Errorf("build job forward info failed: %v", err)
-		return nil, utils.RichError(codes.Internal, "BUILD_PROXY_FAILED", err.Error())
-	}
-	submitJobProxyInfo.ForwardNodes = forwardNodes
-	logrus.Infof("task %v forwardNodes is: %v", in.JobId, forwardNodes)
 
 	var (
 		sessionInfo string
@@ -77,29 +65,20 @@ func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppC
 		}
 	}
 
-	err = utils.GlobalProxyManager.CreateAndStartProxy(submitJobProxyInfo, hostPorts)
-	if err != nil {
-		logrus.Errorf("Failed to create proxy for app job %v: %v", jobName, err)
-		return nil, utils.RichError(codes.Internal, "BUILD_PROXY_FAILED", err.Error())
+	submitJobProxyInfo := &utils.SubmitJobProxyInfo{
+		JobName: jobName,
+		JobId:   jobID,
 	}
 
-	//task, step, err := utils.GetContainerStep(in.JobId, 1, false)
-	//if err != nil {
-	//	message := fmt.Errorf("get container step failed: %v", err)
-	//	logrus.Errorf("[GetAppConnectionInfo] %v", message)
-	//	return nil, utils.RichError(codes.Internal, "CRANE_FAILED", message.Error())
-	//}
+	forwardNodes, err := utils.BuildJobForwardInfo(taskInfo.PodMeta, taskInfo.StepInfoList)
+	if err != nil {
+		logrus.Errorf("build job forward info failed: %v", err)
+		return nil, utils.RichError(codes.Internal, "BUILD_PROXY_FAILED", err.Error())
+	}
+	submitJobProxyInfo.ForwardNodes = forwardNodes
+	logrus.Tracef("[GetAppConnectionInfo] task %v forwardNodes is: %v", in.JobId, submitJobProxyInfo.ForwardNodes)
 
-	primarySteps := utils.GetJobPrimaryStep(taskInfo.StepInfoList)
-	step := primarySteps[0]
-	//nodeName, err := utils.ResolveTargetNode(step)
-	//if err != nil {
-	//	message := fmt.Errorf("resolve target node failed: %v", err)
-	//	logrus.Errorf("[GetAppConnectionInfo] %v", message)
-	//	return nil, utils.RichError(codes.Internal, "CRANE_FAILED", message.Error())
-	//}
-
-	_, containerPort := taskInfo.PodMeta.Ports[0].HostPort, taskInfo.PodMeta.Ports[0].ContainerPort
+	containerPort := taskInfo.PodMeta.Ports[0].ContainerPort
 	hostname, _ := os.Hostname()
 	nodeName := forwardNodes[0].ExecutionNode
 
@@ -110,7 +89,31 @@ func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppC
 		logrus.Errorf("load job proxy info failed: %v", err)
 		return nil, utils.RichError(codes.Internal, "CRANE_FAILED", err.Error())
 	}
+
+	if proxyInfo == nil { // 第一次建立连接时，代理为空，此时才需要创建代理，后续不用了
+		err = utils.GlobalProxyManager.CreateAndStartProxy(submitJobProxyInfo, hostPorts)
+		if err != nil {
+			logrus.Errorf("Failed to create proxy for app job %v: %v", jobName, err)
+			return nil, utils.RichError(codes.Internal, "BUILD_PROXY_FAILED", err.Error())
+		}
+		proxyInfo, err = utils.LoadJobProxyMetaFromFile(jobID, nodeName)
+		if err != nil {
+			logrus.Errorf("load job proxy info failed: %v", err)
+			return nil, utils.RichError(codes.Internal, "CRANE_FAILED", err.Error())
+		}
+	}
+
 	logrus.Infof("proxy info: %v", proxyInfo)
+
+	primarySteps := utils.GetJobPrimaryStep(taskInfo.StepInfoList)
+	step := primarySteps[0]
+	nodeName1, err := utils.ResolveTargetNode(step)
+	if err != nil {
+		message := fmt.Errorf("resolve target node failed: %v", err)
+		logrus.Errorf("[GetAppConnectionInfo] %v", message)
+		return nil, utils.RichError(codes.Internal, "CRANE_FAILED", message.Error())
+	}
+	logrus.Infof("nodeName1 info: %v", nodeName1)
 
 	if jobType == utils.APP || jobType == utils.DevHost {
 		webFilePath := fmt.Sprintf("/tmp/%s", sessionInfo)
@@ -118,7 +121,8 @@ func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppC
 		currentTimestamp := time.Now().UnixMicro()
 		strNum := strconv.FormatInt(currentTimestamp, 10)
 		webFileDestPath := dstDir + "/" + "server_session_info.json" + "-" + strNum
-		if err = utils.CopyFromPod(taskInfo.TaskId, step.StepId, webFilePath, webFileDestPath, nodeName); err != nil {
+		logrus.Infof("task.TaskId %v, step.StepId %v, step.Uid %v, webFilePath %v, webFileDestPath %v, nodeName %v", taskInfo.TaskId, step.StepId, step.Uid, webFilePath, webFileDestPath, nodeName)
+		if err = utils.CopyFromPod(taskInfo.TaskId, step.StepId, step.Uid, webFilePath, webFileDestPath, nodeName); err != nil {
 			logrus.Errorf("copy file failed: %v", err)
 			return &protos.GetAppConnectionInfoResponse{}, nil
 		}
@@ -133,7 +137,7 @@ func (s *ServerApp) GetAppConnectionInfo(ctx context.Context, in *protos.GetAppC
 			}
 			randomPassword := string(result)
 			cmd := fmt.Sprintf("echo -e %q | vncpasswd -f > ~/.vnc/passwd", randomPassword)
-			err = utils.ExecContainerCMD(taskInfo.TaskId, step.StepId, nodeName, cmd)
+			err = utils.ExecContainerCMD(taskInfo.TaskId, step.StepId, taskInfo.Uid, nodeName, cmd)
 			if err != nil {
 				err = fmt.Errorf("modify vnc password failed, %v", err)
 				logrus.Errorf("GetAppConnectionInfo failed: %v", err)
