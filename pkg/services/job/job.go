@@ -174,7 +174,7 @@ func (s *ServerJob) GetJobById(ctx context.Context, in *protos.GetJobByIdRequest
 
 	// 获取cpu核分配数
 	// cpusAlloc := TaskInfoList.GetAllocCpus()
-	cpusAlloc := TaskInfoList.GetResView().GetAllocatableRes().CpuCoreLimit
+	cpusAlloc := TaskInfoList.GetReqResView().GetAllocatableRes().CpuCoreLimit
 	cpusAllocInt32 := int32(cpusAlloc)
 	// 获取节点列表
 	nodeList := TaskInfoList.GetCranedList()
@@ -339,13 +339,13 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			}
 			elapsedSeconds = job.GetEndTime().Seconds - job.GetStartTime().Seconds
 		}
-		cpusAlloc := job.GetResView().GetAllocatableRes().CpuCoreLimit
+		cpusAlloc := job.GetReqResView().GetAllocatableRes().CpuCoreLimit
 		cpusAllocInt32 := int32(cpusAlloc)
 
-		jobMemAllocMb := job.GetResView().GetAllocatableRes().MemoryLimitBytes
+		jobMemAllocMb := job.GetReqResView().GetAllocatableRes().MemoryLimitBytes
 		memAllocMb := int64(jobMemAllocMb / (1024 * 1024))
 
-		jobGpusAlloc := job.GetResView().GetDeviceMap()
+		jobGpusAlloc := job.GetReqResView().GetDeviceMap()
 		gpusAlloc := utils.GetGpuNumsFromJob(jobGpusAlloc)
 
 		nodeList := job.GetCranedList()

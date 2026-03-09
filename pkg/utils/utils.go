@@ -909,6 +909,7 @@ func GetSummaryClusterNodesInfo(authorizedPartitions []string) (*ClusterNodesInf
 		idleGpus := getGpuNums(IdleGpuCountTypeMap)
 
 		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalGpu: %v, allocGpus: %v, idleGpuCount: %v", nodeName, totalGpus, allocGpus, idleGpus)
+		logrus.Tracef("GetClusterNodesInfo nodeName: %v, totalCpu: %v, allocCpus: %v, idleCpuCount: %v", nodeName, totalCpuCores, allocCpuCores, idleCpuCount)
 
 		CpuCoreCount := uint32(totalCpuCores)
 		AllocCpuCoreCount := uint32(allocCpuCores)
