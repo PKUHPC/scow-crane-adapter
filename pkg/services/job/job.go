@@ -321,8 +321,10 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 		totalNum = uint32(len(response.GetTaskInfoList()))
 		return &protos.GetJobsResponse{Jobs: jobsInfo, TotalCount: &totalNum}, nil
 	}
-	totalNum = uint32(len(response.GetTaskInfoList()))
 	for _, job := range response.GetTaskInfoList() {
+		if in.Filter != nil && in.Filter.EndTime != nil && job.GetStatus() == craneProtos.TaskStatus_Running {
+                	continue
+                }
 		var elapsedSeconds, timeLimitMinutes int64
 		var state string
 		var reason = "no reason"
@@ -467,6 +469,7 @@ func (s *ServerJob) GetJobs(ctx context.Context, in *protos.GetJobsRequest) (*pr
 			jobsInfo = append(jobsInfo, subJobInfo)
 		}
 	}
+	totalNum = uint32(len(jobsInfo))
 	if in.Sort != nil && len(jobsInfo) != 0 {
 		var sortKey string
 		if in.Sort.GetField() == "" {
