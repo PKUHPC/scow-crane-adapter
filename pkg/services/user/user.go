@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/codes"
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
+
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
 )
 
 type ServerUser struct {
@@ -20,19 +21,25 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 	var allowedPartitionQosList []*craneProtos.UserInfo_AllowedPartitionQos
 	logrus.Infof("Received request AddUserToAccount: %v", in)
 
-	// 获取crane中QOS列表
-	qosList, err := utils.GetAllQos()
+	account, err := utils.GetAccountByName(in.AccountName)
 	if err != nil {
-		logrus.Errorf("AddUserToAccount Error getting QoS: %v", err)
-		return nil, utils.RichError(codes.Internal, "Error getting QoS", err.Error())
+		logrus.Errorf("AddUserToAccount get account failed: %v", err)
+		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 
+	if account == nil {
+		message := fmt.Sprintf("Account %s does not exist", in.AccountName)
+		return nil, utils.RichError(codes.Internal, "ACCOUNT_IS_NIL", message)
+	}
+
+	allowedPartitions := account.AllowedPartitions
+
 	// 获取计算分区 配置qos
-	for _, partition := range utils.CConfig.Partitions {
+	for _, partition := range allowedPartitions {
 		allowedPartitionQosList = append(allowedPartitionQosList, &craneProtos.UserInfo_AllowedPartitionQos{
-			PartitionName: partition.Name,
-			QosList:       qosList,
-			DefaultQos:    qosList[0],
+			PartitionName: partition,
+			QosList:       account.AllowedQosList,
+			DefaultQos:    account.DefaultQos,
 		})
 	}
 	uid, err := utils.GetUidByUserName(in.UserId)
@@ -59,8 +66,12 @@ func (s *ServerUser) AddUserToAccount(ctx context.Context, in *protos.AddUserToA
 		return nil, utils.RichError(codes.Unavailable, "CRANE_CALL_FAILED", err.Error())
 	}
 	if !response.GetOk() {
-		logrus.Errorf("AddUserToAccount err: %v", fmt.Errorf("ACCOUNT_NOT_FOUND"))
-		return nil, utils.RichError(codes.NotFound, "ACCOUNT_NOT_FOUND", strconv.FormatInt(int64(response.GetCode()), 10))
+		if response.GetCode() == craneProtos.ErrCode_ERR_USER_ALREADY_EXISTS {
+			logrus.Errorf("AddUserToAccount err: %v", response.GetCode())
+			return nil, utils.RichError(codes.AlreadyExists, "USER_ALREADY_EXISTS", strconv.FormatInt(int64(response.GetCode()), 10))
+		}
+		logrus.Errorf("AddUserToAccount err: %v", response.GetCode())
+		return nil, utils.RichError(codes.Internal, "FAILED_ADD_USER_TO_ACCOUNT", strconv.FormatInt(int64(response.GetCode()), 10))
 	}
 	logrus.Infof("AddUserToAccount success! user: %v, account: %v", in.UserId, in.AccountName)
 	return &protos.AddUserToAccountResponse{}, nil
