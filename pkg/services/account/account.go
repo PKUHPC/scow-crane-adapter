@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/codes"
 	craneProtos "scow-crane-adapter/gen/crane"
 	protos "scow-crane-adapter/gen/go"
 	"scow-crane-adapter/pkg/utils"
+
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
 )
 
 type ServerAccount struct {
@@ -352,6 +353,7 @@ func (s *ServerAccount) BlockAccountWithPartitions(ctx context.Context, in *prot
 		Name:        in.AccountName,
 		Type:        craneProtos.OperationType_Delete,
 		Uid:         0,
+		Force:       true,
 	}
 
 	response, err := utils.CraneCtld.ModifyAccount(context.Background(), request)
